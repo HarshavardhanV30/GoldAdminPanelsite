@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaEye, FaTrash, FaMoon, FaSun, FaFileExcel } from "react-icons/fa";
+import { FaEye, FaTrash, FaMoon, FaSun, FaFileExcel, FaSearch } from "react-icons/fa";
 import * as XLSX from "xlsx";
 
 const GoldLoanTable = () => {
   const [loans, setLoans] = useState([]);
+  const [filteredLoans, setFilteredLoans] = useState([]);
+  const [search, setSearch] = useState("");
   const [viewLoan, setViewLoan] = useState(null);
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [theme, setTheme] = useState("dark");
@@ -12,24 +14,51 @@ const GoldLoanTable = () => {
   const API_URL = "https://rendergoldapp-1.onrender.com/loan/all";
   const IMAGE_BASE = "https://adminapp-1-nk19.onrender.com";
 
+  const isDark = theme === "dark";
+
+  const colors = {
+    bg: isDark ? "#020617" : "#f8fafc",
+    card: isDark ? "#020617" : "#ffffff",
+    text: isDark ? "#e5e7eb" : "#0f172a",
+    header: isDark ? "#020617" : "#1e293b",
+    border: "#334155",
+    hover: isDark ? "#1e293b" : "#e2e8f0",
+    accent: "#facc15",
+    danger: "#ef4444",
+    muted: "#94a3b8",
+  };
+
   useEffect(() => {
     fetchLoans();
   }, []);
 
+  useEffect(() => {
+    const s = search.toLowerCase();
+    setFilteredLoans(
+      loans.filter(
+        (l) =>
+          l.fullname?.toLowerCase().includes(s) ||
+          l.mobile?.includes(s) ||
+          l.bank?.toLowerCase().includes(s)
+      )
+    );
+  }, [search, loans]);
+
   const fetchLoans = async () => {
     const res = await axios.get(API_URL);
-    setLoans(res.data?.data || []);
+    const data = res.data?.data || [];
+    setLoans(data);
+    setFilteredLoans(data);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this loan request?")) {
-      await axios.delete(`https://rendergoldapp-1.onrender.com/loan/${id}`);
-      fetchLoans();
-    }
+    if (!window.confirm("Delete this loan request?")) return;
+    await axios.delete(`https://rendergoldapp-1.onrender.com/loan/${id}`);
+    fetchLoans();
   };
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(loans);
+    const ws = XLSX.utils.json_to_sheet(filteredLoans);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GoldLoans");
     XLSX.writeFile(wb, "GoldLoans.xlsx");
@@ -46,85 +75,95 @@ const GoldLoanTable = () => {
   const getImage = (img) =>
     img?.startsWith("http") ? img : `${IMAGE_BASE}${img}`;
 
-  const colors = {
-    bg: theme === "dark" ? "#020617" : "#f8fafc",
-    card: theme === "dark" ? "#020617" : "#ffffff",
-    text: theme === "dark" ? "#e5e7eb" : "#0f172a",
-    header: theme === "dark" ? "#020617" : "#1e293b",
-    border: "#334155",
-    hover: theme === "dark" ? "#1e293b" : "#e2e8f0",
-    accent: "#facc15",
-    danger: "#ef4444",
-  };
-
   return (
     <div style={{ background: colors.bg, minHeight: "100vh", padding: 24, color: colors.text }}>
-      {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="fw-bold">Doorstep Gold Loan Requests</h3>
+      {/* ================= HEADER ================= */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h3 className="fw-bold mb-0">Doorstep Gold Loan Requests</h3>
+
         <div className="d-flex gap-2">
-          <button className="btn btn-warning" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? <FaSun /> : <FaMoon />}
-          </button>
-          <button className="btn btn-success" onClick={exportExcel}>
+          <button className="btn rounded-circle shadow-sm" style={{ background: colors.accent }} onClick={exportExcel}>
             <FaFileExcel />
+          </button>
+          <button
+            className="btn rounded-circle shadow-sm"
+            style={{ background: isDark ? "#0f172a" : "#e2e8f0", color: colors.text }}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+          >
+            {isDark ? <FaSun /> : <FaMoon />}
           </button>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div className="table-responsive rounded-4 overflow-hidden shadow-lg">
+      {/* ================= SEARCH ================= */}
+      <div className="mb-4">
+        <div
+          className="d-flex align-items-center px-3 py-2 rounded-3"
+          style={{ background: colors.card, border: `1px solid ${colors.border}` }}
+        >
+          <FaSearch color={colors.muted} />
+          <input
+            type="text"
+            placeholder="Search by Name, Mobile or Bank"
+            className="form-control border-0 bg-transparent text-reset ms-2"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="table-responsive d-none d-md-block rounded-4 shadow-lg overflow-hidden">
         <table className="table table-borderless align-middle mb-0">
           <thead style={{ background: colors.header, color: "#fff" }}>
             <tr>
-              <th>Image</th>
+              <th className="ps-4">Image</th>
               <th>Bank</th>
               <th>Name</th>
               <th>Mobile</th>
               <th>Gold</th>
               <th>Loan</th>
-              <th className="text-center">Actions</th>
+              <th className="text-center pe-4">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loans.map((loan) => (
+            {filteredLoans.map((loan) => (
               <tr
                 key={loan.id}
-                style={{ borderBottom: `1px solid ${colors.border}`, cursor: "pointer" }}
+                style={{ borderBottom: `1px solid ${colors.border}` }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = colors.hover)}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                <td>
+                <td className="ps-4">
                   {parseImages(loan.image).slice(0, 1).map((img, i) => (
                     <img
                       key={i}
                       src={getImage(img)}
-                      style={{
-                        width: 70,
-                        height: 70,
-                        borderRadius: 10,
-                        objectFit: "cover",
-                        border: `1px solid ${colors.border}`,
-                      }}
                       onClick={() => setEnlargedImage(getImage(img))}
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 12,
+                        cursor: "pointer",
+                        border: `2px solid ${colors.accent}`,
+                      }}
                     />
                   ))}
                 </td>
                 <td>{loan.bank}</td>
-                <td>{loan.fullname}</td>
+                <td className="fw-semibold">{loan.fullname}</td>
                 <td>{loan.mobile}</td>
                 <td>{loan.goldweight} gm</td>
-                <td>₹{loan.loanamount}</td>
-                <td className="text-center">
+                <td className="fw-semibold">₹{loan.loanamount}</td>
+                <td className="text-center pe-4">
                   <FaEye
-                    size={18}
                     color={colors.accent}
-                    style={{ marginRight: 14 }}
+                    style={{ cursor: "pointer", marginRight: 14 }}
                     onClick={() => setViewLoan(loan)}
                   />
                   <FaTrash
-                    size={16}
                     color={colors.danger}
+                    style={{ cursor: "pointer" }}
                     onClick={() => handleDelete(loan.id)}
                   />
                 </td>
@@ -134,67 +173,52 @@ const GoldLoanTable = () => {
         </table>
       </div>
 
-      {/* VIEW MODAL */}
-      {viewLoan && (
-        <div
-          onClick={() => setViewLoan(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999,
-          }}
-        >
+      {/* ================= MOBILE CARD VIEW ================= */}
+      <div className="d-md-none">
+        {filteredLoans.map((loan) => (
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: colors.card,
-              padding: 24,
-              borderRadius: 14,
-              width: 700,
-              color: colors.text,
-            }}
+            key={loan.id}
+            className="mb-3 p-3 rounded-4 shadow-sm"
+            style={{ background: colors.card, border: `1px solid ${colors.border}` }}
           >
-            <h4 className="fw-bold mb-3">{viewLoan.fullname}</h4>
-            <div className="d-flex gap-2 mb-3">
-              {parseImages(viewLoan.image).map((img, i) => (
+            <div className="d-flex gap-3">
+              {parseImages(loan.image).slice(0, 1).map((img, i) => (
                 <img
                   key={i}
                   src={getImage(img)}
-                  style={{ width: 140, height: 140, borderRadius: 10, objectFit: "cover" }}
+                  onClick={() => setEnlargedImage(getImage(img))}
+                  style={{ width: 80, height: 80, borderRadius: 12 }}
                 />
               ))}
+              <div>
+                <h6 className="fw-bold mb-1">{loan.fullname}</h6>
+                <p className="mb-1 text-muted">{loan.bank}</p>
+                <p className="mb-1">₹{loan.loanamount}</p>
+                <div className="d-flex gap-3 mt-2">
+                  <FaEye color={colors.accent} onClick={() => setViewLoan(loan)} />
+                  <FaTrash color={colors.danger} onClick={() => handleDelete(loan.id)} />
+                </div>
+              </div>
             </div>
-            <p><strong>Bank:</strong> {viewLoan.bank}</p>
-            <p><strong>Mobile:</strong> {viewLoan.mobile}</p>
-            <p><strong>Address:</strong> {viewLoan.address}</p>
-            <p><strong>Gold:</strong> {viewLoan.goldweight} gm ({viewLoan.goldtype})</p>
-            <p><strong>ID Proof:</strong> {viewLoan.idproof}</p>
-            <p><strong>Loan Amount:</strong> ₹{viewLoan.loanamount}</p>
-            <p><strong>Remarks:</strong> {viewLoan.remarks}</p>
-            <button className="btn btn-secondary mt-3" onClick={() => setViewLoan(null)}>Close</button>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* IMAGE ZOOM */}
+      {/* ================= IMAGE POPUP ================= */}
       {enlargedImage && (
         <div
           onClick={() => setEnlargedImage(null)}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.8)",
+            background: "rgba(0,0,0,0.9)",
             display: "flex",
-            justifyContent: "center",
             alignItems: "center",
+            justifyContent: "center",
             zIndex: 9999,
           }}
         >
-          <img src={enlargedImage} style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: 10 }} />
+          <img src={enlargedImage} style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: 14 }} />
         </div>
       )}
     </div>
