@@ -9,6 +9,7 @@ const SellerProductTable = () => {
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
 
   const API_URL = "https://rendergoldapp-1.onrender.com/seller/all";
   const IMAGE_BASE = "https://adminapp-1-nk19.onrender.com";
@@ -91,77 +92,81 @@ const SellerProductTable = () => {
     fetchProducts();
   }, []);
 
-  return (
-    <div className="container py-3">
-      <h4 className="mb-3 fw-bold text-primary">Seller Gold Products</h4>
+  const themeStyles = {
+    background: darkMode ? "#0f172a" : "#f8fafc",
+    card: darkMode ? "#020617" : "#ffffff",
+    text: darkMode ? "#e5e7eb" : "#1e293b",
+    tableHeader: darkMode ? "#020617" : "#1e293b",
+    border: darkMode ? "#334155" : "#e2e8f0",
+  };
 
-      {/* Filters and Export */}
-      <div className="d-flex gap-2 mb-3">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Min Price"
-          value={minPrice}
-          onChange={(e) => setMinPrice(e.target.value)}
-        />
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Max Price"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-        />
-        <button className="btn btn-primary" onClick={handleFilter}>
-          Apply Filter
-        </button>
-        <button className="btn btn-success" onClick={handleExport}>
-          Export to Excel
+  return (
+    <div
+      className="container py-4"
+      style={{ background: themeStyles.background, minHeight: "100vh", color: themeStyles.text }}
+    >
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h4 className="fw-bold">Seller Gold Products</h4>
+        <button
+          className={`btn ${darkMode ? "btn-light" : "btn-dark"}`}
+          onClick={() => setDarkMode(!darkMode)}
+        >
+          {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       </div>
 
-      <table className="table table-bordered table-hover align-middle">
-        <thead className="table-dark">
-          <tr>
-            <th>Image</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Weight</th>
-            <th>Purity</th>
-            <th>Condition</th>
-            <th>Price</th>
-            <th>Description</th>
-            <th>Seller Name</th>
-            <th>Mobile</th>
-            <th style={{ width: "90px" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
+      <div className="d-flex gap-2 mb-3">
+        <input type="number" className="form-control" placeholder="Min Price" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+        <input type="number" className="form-control" placeholder="Max Price" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+        <button className="btn btn-primary" onClick={handleFilter}>Apply</button>
+        <button className="btn btn-success" onClick={handleExport}>Export</button>
+      </div>
+
+      <div className="table-responsive">
+        <table
+          className="table align-middle"
+          style={{
+            background: themeStyles.card,
+            borderRadius: "12px",
+            overflow: "hidden",
+          }}
+        >
+          <thead style={{ background: themeStyles.tableHeader, color: "#fff" }}>
+            <tr>
+              <th>Image</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Weight</th>
+              <th>Purity</th>
+              <th>Condition</th>
+              <th>Price</th>
+              <th>Description</th>
+              <th>Seller</th>
+              <th>Mobile</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.map((product) => (
               <tr
                 key={product.id}
-                className={activeProduct?.id === product.id ? "table-primary" : ""}
-                style={{ cursor: "pointer" }}
                 onClick={() => handleRowClick(product)}
+                style={{
+                  cursor: "pointer",
+                  background: activeProduct?.id === product.id ? "#2563eb20" : "transparent",
+                }}
               >
                 <td>
-                  {parseImages(product.images).slice(0, 2).map((imgUrl, i) => (
+                  {parseImages(product.images).slice(0, 2).map((img, i) => (
                     <img
                       key={i}
-                      src={getImageUrl(imgUrl)}
-                      alt={`${product.name} ${i + 1}`}
-                      width="80"
-                      height="80"
-                      style={{
-                        objectFit: "cover",
-                        borderRadius: "6px",
-                        marginRight: "6px",
-                        border: "1px solid #ddd",
-                        cursor: "pointer",
-                      }}
+                      src={getImageUrl(img)}
+                      width="70"
+                      height="70"
+                      style={{ objectFit: "cover", borderRadius: "8px", marginRight: "6px" }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEnlargedImage(getImageUrl(imgUrl));
+                        setEnlargedImage(getImageUrl(img));
                       }}
                     />
                   ))}
@@ -172,9 +177,9 @@ const SellerProductTable = () => {
                 <td>{product.purity}</td>
                 <td>{product.condition}</td>
                 <td>₹{product.price}</td>
-                <td>{product.description?.slice(0, 30)}...</td>
-                <td>{product.full_name || "Not Provided"}</td>
-                <td>{product.mobilenumber || "Not Provided"}</td>
+                <td>{product.description?.slice(0, 25)}...</td>
+                <td>{product.full_name || "N/A"}</td>
+                <td>{product.mobilenumber || "N/A"}</td>
                 <td>
                   <button
                     className="btn btn-sm btn-danger"
@@ -187,98 +192,25 @@ const SellerProductTable = () => {
                   </button>
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="11" className="text-center">
-                No products available.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {activeProduct && (
-        <div className="card mt-4 shadow-lg border-0">
-          <div className="card-header bg-primary text-white fw-bold">
-            Product Details
-          </div>
-          <div className="card-body">
-            <div className="row">
-              <div className="col-md-5">
-                <div
-                  style={{
-                    display: "flex",
-                    overflowX: "auto",
-                    gap: "10px",
-                    paddingBottom: "6px",
-                    scrollSnapType: "x mandatory",
-                  }}
-                >
-                  {parseImages(activeProduct.images).map((imgUrl, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: "0 0 auto",
-                        scrollSnapAlign: "start",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setEnlargedImage(getImageUrl(imgUrl))}
-                    >
-                      <img
-                        src={getImageUrl(imgUrl)}
-                        alt={`${activeProduct.name} ${i + 1}`}
-                        style={{
-                          height: "250px",
-                          width: "auto",
-                          borderRadius: "8px",
-                          border: "1px solid #ccc",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="col-md-7">
-                <h5 className="fw-bold text-primary">{activeProduct.name}</h5>
-                <p><strong>Category:</strong> {activeProduct.category}</p>
-                <p><strong>Weight:</strong> {activeProduct.weight} gm</p>
-                <p><strong>Purity:</strong> {activeProduct.purity}</p>
-                <p><strong>Condition:</strong> {activeProduct.condition}</p>
-                <p><strong>Price:</strong> ₹{activeProduct.price}</p>
-                <p><strong>Description:</strong> {activeProduct.description}</p>
-                <p><strong>Seller Name:</strong> {activeProduct.full_name || "Not Provided"}</p>
-                <p><strong>Mobile:</strong> {activeProduct.mobilenumber || "Not Provided"}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {enlargedImage && (
         <div
           onClick={() => setEnlargedImage(null)}
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.7)",
+            inset: 0,
+            background: "rgba(0,0,0,0.8)",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
+            alignItems: "center",
             zIndex: 9999,
-            cursor: "pointer",
           }}
         >
-          <img
-            src={enlargedImage}
-            alt="Enlarged"
-            style={{ maxHeight: "90%", maxWidth: "90%", borderRadius: "8px" }}
-          />
+          <img src={enlargedImage} style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "10px" }} />
         </div>
       )}
     </div>
