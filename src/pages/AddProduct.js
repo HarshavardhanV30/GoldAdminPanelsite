@@ -10,18 +10,25 @@ const AddProduct = () => {
     price: "",
     stock: "",
     featured: "No",
-    image_urls: [],
+    image_urls: [""], // array of image URLs as strings
   });
 
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, type, files } = e.target;
-    if (type === "file") {
-      setProduct({ ...product, [name]: Array.from(files) });
+    const { name, value, type } = e.target;
+    if (name.startsWith("image_")) {
+      const index = parseInt(name.split("_")[1]);
+      const newImages = [...product.image_urls];
+      newImages[index] = value;
+      setProduct({ ...product, image_urls: newImages });
     } else {
       setProduct({ ...product, [name]: value });
     }
+  };
+
+  const addImageField = () => {
+    setProduct({ ...product, image_urls: [...product.image_urls, ""] });
   };
 
   const handleSubmit = async (e) => {
@@ -29,24 +36,20 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("productId", String(product.productId));
-      formData.append("title", product.title);
-      formData.append("purity", product.purity);
-      formData.append("weight", product.weight);
-      formData.append("price", String(product.price));
-      formData.append("stock", String(product.stock));
-      formData.append("featured", product.featured === "Yes");
-
-      // Append all images
-      product.image_urls.forEach((file) => {
-        formData.append("image_urls", file);
-      });
+      const payload = {
+        productId: String(product.productId),
+        title: product.title,
+        purity: product.purity,
+        weight: product.weight,
+        price: String(product.price),
+        stock: Number(product.stock),
+        featured: product.featured === "Yes",
+        image_urls: product.image_urls.filter((url) => url !== ""),
+      };
 
       const response = await axios.post(
         "https://rendergoldapp-1.onrender.com/products/add",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        payload
       );
 
       alert(`Product added successfully! ID: ${response.data.product.id}`);
@@ -60,7 +63,7 @@ const AddProduct = () => {
         price: "",
         stock: "",
         featured: "No",
-        image_urls: [],
+        image_urls: [""],
       });
     } catch (error) {
       console.error("Error adding product:", error);
@@ -181,18 +184,32 @@ const AddProduct = () => {
               </select>
             </div>
 
-            {/* Images */}
+            {/* Image URLs */}
             <div style={styles.formGroupFull}>
-              <label style={styles.label}>Product Images</label>
-              <input
-                type="file"
-                name="image_urls"
-                accept="image/*"
-                multiple
-                onChange={handleChange}
-                required
-                style={styles.fileInput}
-              />
+              <label style={styles.label}>Product Image URLs</label>
+              {product.image_urls.map((img, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  name={`image_${index}`}
+                  value={img}
+                  onChange={handleChange}
+                  placeholder="Enter image URL"
+                  required
+                  style={{ ...styles.input, marginBottom: "10px" }}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={addImageField}
+                style={{
+                  ...styles.button,
+                  backgroundColor: "#28a745",
+                  marginTop: "5px",
+                }}
+              >
+                + Add Another Image
+              </button>
             </div>
 
             {/* Submit Button */}
@@ -273,12 +290,6 @@ const styles = {
     borderRadius: "6px",
     border: "1px solid #ccc",
     fontSize: "14px",
-    backgroundColor: "#fff",
-  },
-  fileInput: {
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    padding: "10px",
     backgroundColor: "#fff",
   },
   button: {
