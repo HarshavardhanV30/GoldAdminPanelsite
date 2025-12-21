@@ -47,7 +47,7 @@ const AddProduct = () => {
         formData.append("image_urls", product.images[i]);
       }
 
-      const response = await axios.post(
+      await axios.post(
         "https://rendergoldapp-1.onrender.com/products/add",
         formData,
         {
@@ -72,10 +72,7 @@ const AddProduct = () => {
       });
     } catch (error) {
       console.error(error);
-      alert(
-        error.response?.data?.message ||
-          "❌ Failed to add product"
-      );
+      alert(error.response?.data?.message || "❌ Failed to add product");
     } finally {
       setLoading(false);
     }
@@ -84,7 +81,7 @@ const AddProduct = () => {
   return (
     <div style={styles.wrapper}>
       <form style={styles.card} onSubmit={handleSubmit}>
-        <h2>Add Product</h2>
+        <h2 style={styles.heading}>Add Product</h2>
 
         <input
           type="text"
@@ -93,6 +90,7 @@ const AddProduct = () => {
           value={product.productId}
           onChange={handleChange}
           required
+          style={styles.input}
         />
 
         <input
@@ -102,6 +100,7 @@ const AddProduct = () => {
           value={product.title}
           onChange={handleChange}
           required
+          style={styles.input}
         />
 
         <select
@@ -109,6 +108,7 @@ const AddProduct = () => {
           value={product.purity}
           onChange={handleChange}
           required
+          style={styles.select}
         >
           <option value="">Select Purity</option>
           <option value="22k">22K</option>
@@ -122,6 +122,7 @@ const AddProduct = () => {
           value={product.weight}
           onChange={handleChange}
           required
+          style={styles.input}
         />
 
         <input
@@ -131,6 +132,7 @@ const AddProduct = () => {
           value={product.price}
           onChange={handleChange}
           required
+          style={styles.input}
         />
 
         <input
@@ -140,12 +142,14 @@ const AddProduct = () => {
           value={product.stock}
           onChange={handleChange}
           required
+          style={styles.input}
         />
 
         <select
           name="featured"
           value={product.featured}
           onChange={handleChange}
+          style={styles.select}
         >
           <option value="false">Not Featured</option>
           <option value="true">Featured</option>
@@ -157,9 +161,10 @@ const AddProduct = () => {
           accept="image/*"
           onChange={handleImageChange}
           required
+          style={styles.file}
         />
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} style={styles.button}>
           {loading ? "Uploading..." : "Add Product"}
         </button>
       </form>
@@ -174,16 +179,51 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    padding: "20px",
   },
   card: {
-    background: "#fff",
+    background: "#ffffff",
     padding: "30px",
-    borderRadius: "10px",
-    width: "400px",
+    borderRadius: "12px",
+    width: "420px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+    gap: "14px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+  },
+  heading: {
+    textAlign: "center",
+    marginBottom: "10px",
+    color: "#333",
+  },
+  input: {
+    padding: "10px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+    outline: "none",
+  },
+  select: {
+    padding: "10px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+    backgroundColor: "#fff",
+  },
+  file: {
+    padding: "6px",
+    fontSize: "14px",
+  },
+  button: {
+    backgroundColor: "#007bff",
+    color: "#fff",
+    padding: "12px",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "15px",
+    fontWeight: "500",
+    cursor: "pointer",
+    marginTop: "8px",
   },
 };
 
