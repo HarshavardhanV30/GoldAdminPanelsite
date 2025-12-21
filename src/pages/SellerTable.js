@@ -1,187 +1,186 @@
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { FaEye, FaTrash, FaMoon, FaSun, FaFileExcel, FaFilter } from "react-icons/fa";
+import { FaSearch, FaEye, FaSun, FaMoon, FaTrash } from "react-icons/fa";
 
 const SellerProductTable = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [viewProduct, setViewProduct] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [activeProduct, setActiveProduct] = useState(null);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [darkMode, setDarkMode] = useState(true);
 
   const API_URL = "https://rendergoldapp-1.onrender.com/seller/all";
-  const IMAGE_BASE = "https://adminapp-1-nk19.onrender.com";
 
-  /* ---------------- HELPERS ---------------- */
-  const parseImages = (images) => {
-    try {
-      if (Array.isArray(images)) return images;
-      if (typeof images === "string") return JSON.parse(images);
-      return [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getImageUrl = (img) => {
-    if (!img) return "";
-    if (img.startsWith("http")) return img;
-    if (img.startsWith("/")) return `${IMAGE_BASE}${img}`;
-    return `${IMAGE_BASE}/uploads/${img}`;
-  };
-
-  /* ---------------- API ---------------- */
+  /* ================= FETCH ================= */
   const fetchProducts = async () => {
     try {
       const res = await axios.get(API_URL);
-      setProducts(res.data || []);
-      setFilteredProducts(res.data || []);
+      setProducts(res.data);
+      setFilteredProducts(res.data);
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error(err);
     }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-    await axios.delete(`https://rendergoldapp-1.onrender.com/seller/${id}`);
-    fetchProducts();
-  };
-
-  /* ---------------- FILTER ---------------- */
-  const handleFilter = () => {
-    const min = parseFloat(minPrice) || 0;
-    const max = parseFloat(maxPrice) || Infinity;
-    setFilteredProducts(
-      products.filter((p) => (+p.price || 0) >= min && (+p.price || 0) <= max)
-    );
-  };
-
-  /* ---------------- EXPORT ---------------- */
-  const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredProducts);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Seller Products");
-    XLSX.writeFile(wb, "Seller_Products.xlsx");
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  /* ---------------- THEME ---------------- */
-  const colors = {
-    bg: darkMode ? "#020617" : "#f8fafc",
-    card: darkMode ? "#020617" : "#ffffff",
-    header: darkMode ? "#020617" : "#1e293b",
-    hover: darkMode ? "#1e293b" : "#f1f5f9",
-    text: darkMode ? "#e5e7eb" : "#0f172a",
-    border: "#334155",
-    accent: "#facc15",
+  /* ================= DELETE ================= */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    await axios.delete(`https://rendergoldapp-1.onrender.com/seller/${id}`);
+    fetchProducts();
   };
 
-  return (
-    <div style={{ background: colors.bg, minHeight: "100vh", padding: 24, color: colors.text }}>
-      {/* ---------------- HEADER ---------------- */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="fw-bold">Seller Gold Products</h3>
-        <button
-          className="btn btn-warning rounded-circle"
-          onClick={() => setDarkMode(!darkMode)}
-        >
-          {darkMode ? <FaSun /> : <FaMoon />}
-        </button>
-      </div>
+  /* ================= EXPORT ================= */
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredProducts);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Products");
+    XLSX.writeFile(wb, "Seller_Products.xlsx");
+  };
 
-      {/* ---------------- FILTER CARD ---------------- */}
-      <div className="card shadow-sm rounded-4 mb-4" style={{ background: colors.card }}>
-        <div className="card-body d-flex flex-wrap gap-3 align-items-center">
+  /* ================= IMAGE PARSER ================= */
+  const parseImages = (images) => {
+    if (!images) return [];
+    if (Array.isArray(images)) return images;
+    try {
+      return JSON.parse(images);
+    } catch {
+      return [];
+    }
+  };
+
+  /* ================= CARD FILTERS ================= */
+  const showAll = () => setFilteredProducts(products);
+
+  const showToday = () =>
+    setFilteredProducts(
+      products.filter(
+        (p) =>
+          new Date(p.created_at).toLocaleDateString() ===
+          new Date().toLocaleDateString()
+      )
+    );
+
+  const showHigh = () =>
+    setFilteredProducts(products.filter((p) => Number(p.price) > 100000));
+
+  const showLow = () =>
+    setFilteredProducts(products.filter((p) => Number(p.price) <= 100000));
+
+  return (
+    <div
+      style={{
+        ...styles.page,
+        background: darkMode ? "#020617" : "#f8f9fa",
+        color: darkMode ? "#e5e7eb" : "#111",
+      }}
+    >
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div style={styles.searchBox}>
+          <FaSearch />
           <input
-            type="number"
-            className="form-control"
-            style={{ maxWidth: 160 }}
-            placeholder="Min Price"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="Search by product name..."
+            style={styles.searchInput}
+            onChange={(e) =>
+              setFilteredProducts(
+                products.filter((p) =>
+                  p.name.toLowerCase().includes(e.target.value.toLowerCase())
+                )
+              )
+            }
           />
-          <input
-            type="number"
-            className="form-control"
-            style={{ maxWidth: 160 }}
-            placeholder="Max Price"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-          />
-          <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleFilter}>
-            <FaFilter /> Filter
-          </button>
-          <button className="btn btn-success d-flex align-items-center gap-2" onClick={handleExport}>
-            <FaFileExcel /> Export
-          </button>
+        </div>
+
+        <div onClick={() => setDarkMode(!darkMode)} style={{ cursor: "pointer" }}>
+          {darkMode ? <FaSun /> : <FaMoon />}
         </div>
       </div>
 
-      {/* ---------------- TABLE ---------------- */}
-      <div className="table-responsive shadow-lg rounded-4 overflow-hidden">
-        <table className="table table-borderless align-middle">
-          <thead style={{ background: colors.header, color: "#fff" }}>
+      <h1 style={styles.title}>Seller Gold Products</h1>
+      <p style={styles.subtitle}>Manage all seller gold product listings</p>
+
+      {/* DASHBOARD CARDS */}
+      <div style={styles.cards}>
+        <div style={styles.blueCard} onClick={showAll}>
+          <h4>Total Products</h4>
+          <h2>{products.length}</h2>
+        </div>
+
+        <div style={styles.greenCard} onClick={showToday}>
+          <h4>Today</h4>
+          <h2>{products.filter(p =>
+            new Date(p.created_at).toLocaleDateString() ===
+            new Date().toLocaleDateString()
+          ).length}</h2>
+        </div>
+
+        <div style={styles.redCard} onClick={showHigh}>
+          <h4>High Amount</h4>
+          <h2>{products.filter(p => Number(p.price) > 100000).length}</h2>
+        </div>
+
+        <div style={styles.yellowCard} onClick={showLow}>
+          <h4>Low Amount</h4>
+          <h2>{products.filter(p => Number(p.price) <= 100000).length}</h2>
+        </div>
+      </div>
+
+      {/* FILTERS */}
+      <div style={styles.filters}>
+        <input placeholder="Min Price" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+        <input placeholder="Max Price" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+        <button onClick={() =>
+          setFilteredProducts(
+            products.filter(
+              (p) => Number(p.price) >= (minPrice || 0) && Number(p.price) <= (maxPrice || Infinity)
+            )
+          )
+        }>
+          Apply
+        </button>
+        <button onClick={handleExport}>Export</button>
+      </div>
+
+      {/* TABLE */}
+      <div style={styles.tableCard}>
+        <table style={styles.table}>
+          <thead>
             <tr>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Weight</th>
-              <th>Purity</th>
-              <th>Price</th>
-              <th>Seller</th>
-              <th>Mobile</th>
-              <th className="text-center">Actions</th>
+              {["Image","Name","Category","Weight","Purity","Condition","Price","Seller","Mobile","Actions"].map(h => (
+                <th key={h}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filteredProducts.map((p) => (
-              <tr
-                key={p.id}
-                style={{ borderBottom: `1px solid ${colors.border}` }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = colors.hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
+              <tr key={p.id}>
                 <td>
-                  {parseImages(p.images).slice(0, 1).map((img, i) => (
-                    <img
-                      key={i}
-                      src={getImageUrl(img)}
-                      onClick={() => setImagePreview(getImageUrl(img))}
-                      style={{
-                        width: 70,
-                        height: 70,
-                        borderRadius: 10,
-                        cursor: "pointer",
-                        objectFit: "cover",
-                        border: "2px solid #eab308",
-                      }}
-                    />
+                  {parseImages(p.images).slice(0,2).map((img,i)=>(
+                    <img key={i} src={img} style={styles.thumb} onClick={()=>setEnlargedImage(img)} />
                   ))}
                 </td>
                 <td>{p.name}</td>
                 <td>{p.category}</td>
                 <td>{p.weight} gm</td>
                 <td>{p.purity}</td>
+                <td>{p.condition}</td>
                 <td>₹{p.price}</td>
                 <td>{p.full_name || "N/A"}</td>
                 <td>{p.mobilenumber || "N/A"}</td>
-                <td className="text-center">
-                  <FaEye
-                    size={18}
-                    style={{ cursor: "pointer", marginRight: 14, color: colors.accent }}
-                    onClick={() => setViewProduct(p)}
-                  />
-                  <FaTrash
-                    size={16}
-                    style={{ cursor: "pointer", color: "#ef4444" }}
-                    onClick={() => handleDelete(p.id)}
-                  />
+                <td style={{display:"flex",gap:8}}>
+                  <button style={styles.btnView} onClick={() => setActiveProduct(p)}>
+                    <FaEye />
+                  </button>
+                  <button style={styles.btnDelete} onClick={() => handleDelete(p.id)}>
+                    <FaTrash />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -189,76 +188,64 @@ const SellerProductTable = () => {
         </table>
       </div>
 
-      {/* ---------------- IMAGE POPUP ---------------- */}
-      {imagePreview && (
-        <div
-          onClick={() => setImagePreview(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-        >
-          <img
-            src={imagePreview}
-            style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: 14 }}
-          />
+      {/* VIEW POPUP */}
+      {activeProduct && (
+        <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
+          <div style={styles.popupCard} onClick={(e)=>e.stopPropagation()}>
+            <h2 style={{color:"#000"}}>{activeProduct.name}</h2>
+
+            {parseImages(activeProduct.images).map((img,i)=>(
+              <img key={i} src={img} style={styles.bigImage} />
+            ))}
+
+            <p style={styles.popupText}><b>Category:</b> {activeProduct.category}</p>
+            <p style={styles.popupText}><b>Weight:</b> {activeProduct.weight} gm</p>
+            <p style={styles.popupText}><b>Purity:</b> {activeProduct.purity}</p>
+            <p style={styles.popupText}><b>Condition:</b> {activeProduct.condition}</p>
+            <p style={styles.popupText}><b>Price:</b> ₹{activeProduct.price}</p>
+            <p style={styles.popupText}><b>Seller:</b> {activeProduct.full_name}</p>
+            <p style={styles.popupText}><b>Mobile:</b> {activeProduct.mobilenumber}</p>
+          </div>
         </div>
       )}
 
-      {/* ---------------- VIEW PRODUCT ---------------- */}
-      {viewProduct && (
-        <div
-          onClick={() => setViewProduct(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: colors.card,
-              padding: 24,
-              borderRadius: 16,
-              width: 720,
-              color: colors.text,
-            }}
-          >
-            <h4 className="fw-bold mb-3">{viewProduct.name}</h4>
-            <div className="d-flex gap-3 mb-3">
-              {parseImages(viewProduct.images).map((img, i) => (
-                <img
-                  key={i}
-                  src={getImageUrl(img)}
-                  style={{ width: 140, height: 140, borderRadius: 12, objectFit: "cover" }}
-                />
-              ))}
-            </div>
-            <p><strong>Category:</strong> {viewProduct.category}</p>
-            <p><strong>Weight:</strong> {viewProduct.weight} gm</p>
-            <p><strong>Purity:</strong> {viewProduct.purity}</p>
-            <p><strong>Condition:</strong> {viewProduct.condition}</p>
-            <p><strong>Price:</strong> ₹{viewProduct.price}</p>
-            <p><strong>Description:</strong> {viewProduct.description}</p>
-
-            <button className="btn btn-secondary mt-3" onClick={() => setViewProduct(null)}>
-              Close
-            </button>
-          </div>
+      {enlargedImage && (
+        <div style={styles.popupOverlay} onClick={() => setEnlargedImage(null)}>
+          <img src={enlargedImage} style={styles.bigImage} />
         </div>
       )}
     </div>
   );
+};
+
+/* ================= STYLES ================= */
+const styles = {
+  page:{padding:20,minHeight:"100vh"},
+  header:{display:"flex",justifyContent:"space-between"},
+  searchBox:{display:"flex",gap:8},
+  searchInput:{border:"none",outline:"none"},
+  title:{fontSize:26},
+  subtitle:{color:"#94a3b8"},
+
+  cards:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16},
+  blueCard:{padding:20,borderRadius:16,color:"#fff",background:"linear-gradient(135deg,#2563eb,#1e40af)",cursor:"pointer"},
+  greenCard:{padding:20,borderRadius:16,color:"#fff",background:"linear-gradient(135deg,#22c55e,#15803d)",cursor:"pointer"},
+  redCard:{padding:20,borderRadius:16,color:"#fff",background:"linear-gradient(135deg,#ef4444,#991b1b)",cursor:"pointer"},
+  yellowCard:{padding:20,borderRadius:16,color:"#111",background:"linear-gradient(135deg,#facc15,#ca8a04)",cursor:"pointer"},
+
+  filters:{display:"flex",gap:10,margin:"20px 0"},
+
+  tableCard:{padding:20,borderRadius:16,background:"#020617"},
+  table:{width:"100%",borderCollapse:"collapse"},
+  thumb:{width:60,height:60,borderRadius:6,cursor:"pointer"},
+
+  btnView:{background:"#facc15",border:"none",padding:6,borderRadius:6,cursor:"pointer"},
+  btnDelete:{background:"#ef4444",color:"#fff",border:"none",padding:6,borderRadius:6,cursor:"pointer"},
+
+  popupOverlay:{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",justifyContent:"center",alignItems:"center"},
+  popupCard:{background:"#fff",padding:20,borderRadius:12,maxWidth:600,maxHeight:"90vh",overflowY:"auto"},
+  popupText:{color:"#000",marginBottom:6},
+  bigImage:{maxWidth:"100%",borderRadius:8,marginBottom:10},
 };
 
 export default SellerProductTable;
