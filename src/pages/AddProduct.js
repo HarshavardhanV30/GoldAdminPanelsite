@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 import axios from "axios";
-import { useState } from "react";
 
 const AddProduct = () => {
   const [product, setProduct] = useState({
@@ -28,26 +28,26 @@ const AddProduct = () => {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append("productId", product.productId);
-    formData.append("title", product.title);
-    formData.append("purity", product.purity);
-    formData.append("weight", product.weight);
-    formData.append("price", product.price);
-    formData.append("stock", product.stock);
-    formData.append("featured", product.featured === "Yes" ? true : false);
-
-    product.image_urls.forEach((file) => {
-      formData.append("image_urls", file);
-    });
-
     try {
+      const formData = new FormData();
+      formData.append("productId", product.productId);
+      formData.append("title", product.title);
+      formData.append("purity", product.purity);
+      formData.append("weight", product.weight);
+      formData.append("price", product.price);
+      formData.append("stock", product.stock);
+      formData.append("featured", product.featured === "Yes" ? true : false);
+
+      product.image_urls.forEach((file) => {
+        formData.append("image_urls", file);
+      });
+
       const response = await axios.post(
         "https://rendergoldapp-1.onrender.com/products/add",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      setLoading(false);
+
       alert(`Product added successfully! ID: ${response.data.product.id}`);
       setProduct({
         productId: "",
@@ -60,9 +60,12 @@ const AddProduct = () => {
         image_urls: [],
       });
     } catch (error) {
-      setLoading(false);
       console.error("Error adding product:", error);
-      alert("Failed to add product! Please try again.");
+      alert(
+        error.response?.data?.message || "Failed to add product! Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
