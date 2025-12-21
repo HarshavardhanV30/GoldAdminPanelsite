@@ -30,14 +30,15 @@ const AddProduct = () => {
 
     try {
       const formData = new FormData();
-      formData.append("productId", product.productId);
+      formData.append("productId", String(product.productId));
       formData.append("title", product.title);
       formData.append("purity", product.purity);
       formData.append("weight", product.weight);
-      formData.append("price", product.price);
-      formData.append("stock", product.stock);
-      formData.append("featured", product.featured === "Yes" ? true : false);
+      formData.append("price", String(product.price));
+      formData.append("stock", String(product.stock));
+      formData.append("featured", product.featured === "Yes");
 
+      // Append all images
       product.image_urls.forEach((file) => {
         formData.append("image_urls", file);
       });
@@ -49,6 +50,8 @@ const AddProduct = () => {
       );
 
       alert(`Product added successfully! ID: ${response.data.product.id}`);
+
+      // Reset form
       setProduct({
         productId: "",
         title: "",
@@ -62,7 +65,9 @@ const AddProduct = () => {
     } catch (error) {
       console.error("Error adding product:", error);
       alert(
-        error.response?.data?.message || "Failed to add product! Please try again."
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to add product! Please try again."
       );
     } finally {
       setLoading(false);
@@ -72,9 +77,7 @@ const AddProduct = () => {
   return (
     <div style={styles.pageWrapper}>
       <div style={styles.container}>
-        <div style={styles.headerBar}>
-          <h1 style={styles.pageTitle}>Add Product</h1>
-        </div>
+        <h1 style={styles.pageTitle}>Add Product</h1>
 
         <div style={styles.card}>
           <h2 style={styles.sectionTitle}>Basic Information</h2>
@@ -215,13 +218,11 @@ const styles = {
     maxWidth: "1100px",
     margin: "0 auto",
   },
-  headerBar: {
-    marginBottom: "20px",
-  },
   pageTitle: {
     fontSize: "24px",
     fontWeight: "600",
     color: "#333",
+    marginBottom: "20px",
   },
   card: {
     background: "#fff",
@@ -266,7 +267,6 @@ const styles = {
     border: "1px solid #ccc",
     fontSize: "14px",
     outline: "none",
-    transition: "border 0.2s",
   },
   select: {
     padding: "10px 12px",
@@ -290,7 +290,6 @@ const styles = {
     fontWeight: "500",
     fontSize: "14px",
     cursor: "pointer",
-    transition: "background 0.3s",
   },
 };
 
