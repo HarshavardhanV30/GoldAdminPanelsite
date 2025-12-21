@@ -8,6 +8,7 @@ import {
   FaTachometerAlt,
   FaBars,
   FaTimes,
+  FaEllipsisH,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 
@@ -18,37 +19,43 @@ export default function SidebarOnly() {
     <>
       {/* ===== SIDEBAR ===== */}
       <aside className={`sidebar ${isOpen ? "open" : "closed"}`}>
-        <div className="brand">{isOpen ? "GBuyers" : "GB"}</div>
+        <div className="brand">{isOpen ? "G Buyer" : "GB"}</div>
 
         <nav>
           <NavLink to="/dashboard" className="nav-item">
-            <FaTachometerAlt />
-            {isOpen && <span>Dashboard</span>}
+            <FaTachometerAlt className="icon" />
+            {isOpen && <span className="nav-text">Dashboard</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
           <NavLink to="/users" className="nav-item">
-            <FaUsers />
-            {isOpen && <span>Users</span>}
+            <FaUsers className="icon" />
+            {isOpen && <span className="nav-text">Users</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
           <NavLink to="/products" className="nav-item">
-            <FaBox />
-            {isOpen && <span>Products</span>}
+            <FaBox className="icon" />
+            {isOpen && <span className="nav-text">Products</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
           <NavLink to="/orders" className="nav-item">
-            <FaShoppingCart />
-            {isOpen && <span>Orders</span>}
+            <FaShoppingCart className="icon" />
+            {isOpen && <span className="nav-text">Orders</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
           <NavLink to="/SellerTable" className="nav-item">
-            <FaStore />
-            {isOpen && <span>Sellers</span>}
+            <FaStore className="icon" />
+            {isOpen && <span className="nav-text">Sellers</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
           <NavLink to="/GoldLoanRequest" className="nav-item">
-            <FaMoneyCheckAlt />
-            {isOpen && <span>Gold Loans</span>}
+            <FaMoneyCheckAlt className="icon" />
+            {isOpen && <span className="nav-text">Gold Loans</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
         </nav>
       </aside>
@@ -76,6 +83,8 @@ export default function SidebarOnly() {
           color: #fff;
           transition: width 0.3s ease;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         .sidebar.open { width: 240px; }
@@ -89,20 +98,37 @@ export default function SidebarOnly() {
           font-size: 1.4rem;
           font-weight: bold;
           color: gold;
+          border-bottom: 1px solid #333;
         }
 
         nav {
           margin-top: 10px;
+          display: flex;
+          flex-direction: column;
         }
 
         .nav-item {
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 14px 16px;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 12px 16px;
           color: #9ca3af;
           text-decoration: none;
           font-size: 15px;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+
+        .nav-item .icon {
+          min-width: 24px;
+          font-size: 18px;
+        }
+
+        .nav-item .ellipsis {
+          font-size: 16px;
+          color: #9ca3af;
+          cursor: pointer;
         }
 
         .sidebar.closed .nav-item {
@@ -110,6 +136,11 @@ export default function SidebarOnly() {
         }
 
         .nav-item:hover {
+          background: #1f2937;
+          color: gold;
+        }
+
+        .nav-item.active {
           background: #1f2937;
           color: gold;
         }
@@ -124,6 +155,9 @@ export default function SidebarOnly() {
           border-radius: 8px;
           cursor: pointer;
           z-index: 2000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       `}</style>
     </>
