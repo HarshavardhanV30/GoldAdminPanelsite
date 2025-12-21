@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const AddProduct = () => {
+  const [loading, setLoading] = useState(false);
+
   const [product, setProduct] = useState({
     productId: "",
     title: "",
@@ -9,26 +11,19 @@ const AddProduct = () => {
     weight: "",
     price: "",
     stock: "",
-    featured: "No",
-    image_urls: [""], // array of image URLs as strings
+    featured: "false",
+    images: [],
   });
 
-  const [loading, setLoading] = useState(false);
-
+  // Handle text inputs
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
-    if (name.startsWith("image_")) {
-      const index = parseInt(name.split("_")[1]);
-      const newImages = [...product.image_urls];
-      newImages[index] = value;
-      setProduct({ ...product, image_urls: newImages });
-    } else {
-      setProduct({ ...product, [name]: value });
-    }
+    const { name, value } = e.target;
+    setProduct({ ...product, [name]: value });
   };
 
-  const addImageField = () => {
-    setProduct({ ...product, image_urls: [...product.image_urls, ""] });
+  // Handle file selection
+  const handleImageChange = (e) => {
+    setProduct({ ...product, images: e.target.files });
   };
 
   const handleSubmit = async (e) => {
@@ -36,23 +31,33 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      const payload = {
-        productId: String(product.productId),
-        title: product.title,
-        purity: product.purity,
-        weight: product.weight,
-        price: String(product.price),
-        stock: Number(product.stock),
-        featured: product.featured === "Yes",
-        image_urls: product.image_urls.filter((url) => url !== ""),
-      };
+      const formData = new FormData();
+
+      // Append fields (MATCH POSTMAN KEYS EXACTLY)
+      formData.append("productId", product.productId);
+      formData.append("title", product.title);
+      formData.append("purity", product.purity);
+      formData.append("price", product.price);
+      formData.append("stock", product.stock);
+      formData.append("featured", product.featured);
+      formData.append("weight", product.weight);
+
+      // Append image file(s)
+      for (let i = 0; i < product.images.length; i++) {
+        formData.append("image_urls", product.images[i]);
+      }
 
       const response = await axios.post(
         "https://rendergoldapp-1.onrender.com/products/add",
-        payload
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      alert(`Product added successfully! ID: ${response.data.product.id}`);
+      alert("✅ Product Added Successfully!");
 
       // Reset form
       setProduct({
@@ -62,15 +67,14 @@ const AddProduct = () => {
         weight: "",
         price: "",
         stock: "",
-        featured: "No",
-        image_urls: [""],
+        featured: "false",
+        images: [],
       });
     } catch (error) {
-      console.error("Error adding product:", error);
+      console.error(error);
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to add product! Please try again."
+          "❌ Failed to add product"
       );
     } finally {
       setLoading(false);
@@ -78,229 +82,108 @@ const AddProduct = () => {
   };
 
   return (
-    <div style={styles.pageWrapper}>
-      <div style={styles.container}>
-        <h1 style={styles.pageTitle}>Add Product</h1>
+    <div style={styles.wrapper}>
+      <form style={styles.card} onSubmit={handleSubmit}>
+        <h2>Add Product</h2>
 
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Basic Information</h2>
-          <p style={styles.sectionSubtitle}>
-            Information to help define a product.
-          </p>
+        <input
+          type="text"
+          name="productId"
+          placeholder="Product ID"
+          value={product.productId}
+          onChange={handleChange}
+          required
+        />
 
-          <form onSubmit={handleSubmit} style={styles.form}>
-            {/* Product ID */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Product ID</label>
-              <input
-                type="text"
-                name="productId"
-                value={product.productId}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
+        <input
+          type="text"
+          name="title"
+          placeholder="Title"
+          value={product.title}
+          onChange={handleChange}
+          required
+        />
 
-            {/* Title */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Title</label>
-              <input
-                type="text"
-                name="title"
-                value={product.title}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
+        <select
+          name="purity"
+          value={product.purity}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select Purity</option>
+          <option value="22k">22K</option>
+          <option value="24k">24K</option>
+        </select>
 
-            {/* Purity */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Purity</label>
-              <select
-                name="purity"
-                value={product.purity}
-                onChange={handleChange}
-                required
-                style={styles.select}
-              >
-                <option value="">Select</option>
-                <option value="22k">22K</option>
-                <option value="24k">24K</option>
-              </select>
-            </div>
+        <input
+          type="text"
+          name="weight"
+          placeholder="Weight (100g)"
+          value={product.weight}
+          onChange={handleChange}
+          required
+        />
 
-            {/* Weight */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Weight</label>
-              <input
-                type="text"
-                name="weight"
-                value={product.weight}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          value={product.price}
+          onChange={handleChange}
+          required
+        />
 
-            {/* Price */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Price (₹)</label>
-              <input
-                type="number"
-                name="price"
-                value={product.price}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
+        <input
+          type="number"
+          name="stock"
+          placeholder="Stock"
+          value={product.stock}
+          onChange={handleChange}
+          required
+        />
 
-            {/* Stock */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Stock</label>
-              <input
-                type="number"
-                name="stock"
-                value={product.stock}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
+        <select
+          name="featured"
+          value={product.featured}
+          onChange={handleChange}
+        >
+          <option value="false">Not Featured</option>
+          <option value="true">Featured</option>
+        </select>
 
-            {/* Featured */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Featured</label>
-              <select
-                name="featured"
-                value={product.featured}
-                onChange={handleChange}
-                style={styles.select}
-              >
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageChange}
+          required
+        />
 
-            {/* Image URLs */}
-            <div style={styles.formGroupFull}>
-              <label style={styles.label}>Product Image URLs</label>
-              {product.image_urls.map((img, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  name={`image_${index}`}
-                  value={img}
-                  onChange={handleChange}
-                  placeholder="Enter image URL"
-                  required
-                  style={{ ...styles.input, marginBottom: "10px" }}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={addImageField}
-                style={{
-                  ...styles.button,
-                  backgroundColor: "#28a745",
-                  marginTop: "5px",
-                }}
-              >
-                + Add Another Image
-              </button>
-            </div>
-
-            {/* Submit Button */}
-            <div style={styles.formGroupFull}>
-              <button type="submit" style={styles.button} disabled={loading}>
-                {loading ? "Adding Product..." : "+ Add Product"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+        <button type="submit" disabled={loading}>
+          {loading ? "Uploading..." : "Add Product"}
+        </button>
+      </form>
     </div>
   );
 };
 
 const styles = {
-  pageWrapper: {
-    backgroundColor: "#f4f6f8",
+  wrapper: {
+    background: "#f4f6f8",
     minHeight: "100vh",
-    padding: "30px",
-  },
-  container: {
-    maxWidth: "1100px",
-    margin: "0 auto",
-  },
-  pageTitle: {
-    fontSize: "24px",
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: "20px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
   card: {
     background: "#fff",
-    padding: "25px 30px",
+    padding: "30px",
     borderRadius: "10px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-  },
-  sectionTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    marginBottom: "5px",
-    color: "#222",
-  },
-  sectionSubtitle: {
-    fontSize: "14px",
-    color: "#777",
-    marginBottom: "20px",
-  },
-  form: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "20px",
-  },
-  formGroup: {
+    width: "400px",
     display: "flex",
     flexDirection: "column",
-  },
-  formGroupFull: {
-    gridColumn: "1 / -1",
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    fontWeight: "500",
-    marginBottom: "6px",
-    fontSize: "14px",
-    color: "#555",
-  },
-  input: {
-    padding: "10px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    fontSize: "14px",
-    outline: "none",
-  },
-  select: {
-    padding: "10px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    fontSize: "14px",
-    backgroundColor: "#fff",
-  },
-  button: {
-    backgroundColor: "#007bff",
-    color: "#fff",
-    padding: "12px 18px",
-    border: "none",
-    borderRadius: "6px",
-    fontWeight: "500",
-    fontSize: "14px",
-    cursor: "pointer",
+    gap: "12px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
   },
 };
 
