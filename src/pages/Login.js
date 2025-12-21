@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // ✅ For toggling password
   const navigate = useNavigate();
 
   // 🔐 Dummy credentials
@@ -60,13 +62,21 @@ const Login = () => {
             style={styles.input}
           />
 
-          <input
-            type="password"
-            placeholder="Password: Admin@123"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-          />
+          <div style={styles.passwordContainer}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password: Admin@123"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ ...styles.input, paddingRight: "40px" }}
+            />
+            <span
+              onClick={() => setShowPassword(!showPassword)}
+              style={styles.passwordToggle}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
 
           <div style={styles.options}>
             <label>
@@ -124,6 +134,20 @@ const styles = {
     margin: "10px 0",
     border: "1px solid #ddd",
     borderRadius: "5px",
+    boxSizing: "border-box",
+  },
+  passwordContainer: {
+    position: "relative",
+    width: "100%",
+  },
+  passwordToggle: {
+    position: "absolute",
+    right: "10px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    cursor: "pointer",
+    color: "#888",
+    fontSize: "18px",
   },
   options: {
     fontSize: "14px",
