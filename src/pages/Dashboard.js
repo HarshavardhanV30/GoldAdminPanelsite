@@ -47,31 +47,79 @@ export default function AdvancedDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [usersRes, sellersRes, productsRes, ordersRes, loansRes] =
-        await Promise.all([
-          axios.get("https://rendergoldapp-1.onrender.com/users/all"),
-          axios.get("https://rendergoldapp-1.onrender.com/seller/all"),
-          axios.get("https://rendergoldapp-1.onrender.com/products/all"),
-          axios.get("https://rendergoldapp-1.onrender.com/order/all"),
-          axios.get("https://rendergoldapp-1.onrender.com/loan/all"),
-        ]);
+      const [
+        usersRes,
+        sellersRes,
+        productsRes,
+        ordersRes,
+        loansRes,
+      ] = await Promise.all([
+        axios.get("https://rendergoldapp-1.onrender.com/users/all"),
+        axios.get("https://rendergoldapp-1.onrender.com/seller/all"),
+        axios.get("https://rendergoldapp-1.onrender.com/products/all"),
+        axios.get("https://rendergoldapp-1.onrender.com/order/all"),
+        axios.get("https://rendergoldapp-1.onrender.com/loan/all"),
+      ]);
 
-      setUsers(usersRes.data || []);
-      setSellers(sellersRes.data || []);
-      setProducts(productsRes.data || []);
-      setOrders(ordersRes.data || []);
-      setLoans(loansRes.data || []);
-    } catch (error) {
-      console.error("Dashboard API Error:", error);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      setSellers(Array.isArray(sellersRes.data) ? sellersRes.data : []);
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
+
+      // ✅ VERY IMPORTANT FIX
+      setLoans(
+        Array.isArray(loansRes.data?.data)
+          ? loansRes.data.data
+          : []
+      );
+    } catch (err) {
+      console.error("Dashboard API Error:", err);
     }
   };
 
+  /* ================= LOANS ================= */
+  const totalLoanCount = loans.length;
+
+  const totalLoanAmount = loans.reduce(
+    (sum, loan) => sum + Number(loan.loanamount || 0),
+    0
+  );
+
+  /* ================= REVENUE ================= */
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const totalRevenue = orders.reduce(
+    (sum, o) => sum + Number(o.total_amount || 0),
+    0
+  );
+
+  const todayRevenue = orders.reduce((sum, o) => {
+    const d = new Date(o.order_date);
+    return d.toDateString() === today.toDateString()
+      ? sum + Number(o.total_amount || 0)
+      : sum;
+  }, 0);
+
+  const weeklyRevenue = orders.reduce((sum, o) => {
+    const d = new Date(o.order_date);
+    return d >= startOfWeek ? sum + Number(o.total_amount || 0) : sum;
+  }, 0);
+
+  const monthlyRevenue = orders.reduce((sum, o) => {
+    const d = new Date(o.order_date);
+    return d >= startOfMonth ? sum + Number(o.total_amount || 0) : sum;
+  }, 0);
+
+  /* ================= CHARTS ================= */
   const revenueData = {
     labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
     datasets: [
       {
-        label: "Orders",
-        data: Array.from({ length: 12 }, (_, i) => (orders.length / 12) * (i + 1)),
+        label: "Revenue",
+        data: Array.from({ length: 12 }, (_, i) => (totalRevenue / 12) * (i + 1)),
         borderColor: "#facc15",
         backgroundColor: "rgba(250,204,21,0.25)",
         fill: true,
@@ -97,132 +145,59 @@ export default function AdvancedDashboard() {
   };
 
   return (
-    <div className={`layout ${darkMode ? "dark" : "light"}`}>
+    <div className={darkMode ? "dark" : "light"}>
       <main className="main">
         <div className="header">
-          <h1>Dashboardsss</h1>
-          <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
+          <h1>Admin Dashboard</h1>
+          <button onClick={() => setDarkMode(!darkMode)}>
             {darkMode ? <FaSun /> : <FaMoon />}
           </button>
         </div>
 
+        {/* ================= STATS ================= */}
         <div className="stats">
-          <StatCard icon={<FaUsers />} title="Total Users" value={users.length} />
-          <StatCard icon={<FaStore />} title="Total Sellers" value={sellers.length} />
-          <StatCard icon={<FaBox />} title="Total Products" value={products.length} />
-          <StatCard icon={<FaShoppingCart />} title="Total Orders" value={orders.length} />
-          <StatCard icon={<FaMoneyCheckAlt />} title="Gold Loan Requests" value={loans.length} />
+          <StatCard icon={<FaUsers />} title="Users" value={users.length} />
+          <StatCard icon={<FaStore />} title="Sellers" value={sellers.length} />
+          <StatCard icon={<FaBox />} title="Products" value={products.length} />
+          <StatCard icon={<FaShoppingCart />} title="Orders" value={orders.length} />
+          <StatCard icon={<FaMoneyCheckAlt />} title="Loan Requests" value={totalLoanCount} />
+          <StatCard
+            icon={<FaMoneyCheckAlt />}
+            title="Total Loan Amount"
+            value={`₹${totalLoanAmount.toLocaleString("en-IN")}`}
+          />
         </div>
 
+        {/* ================= REVENUE ================= */}
+        <h2 className="section">Revenue Overview</h2>
+        <div className="stats">
+          <StatCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString("en-IN")}`} />
+          <StatCard title="Today Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} />
+          <StatCard title="Weekly Revenue" value={`₹${weeklyRevenue.toLocaleString("en-IN")}`} />
+          <StatCard title="Monthly Revenue" value={`₹${monthlyRevenue.toLocaleString("en-IN")}`} />
+        </div>
+
+        {/* ================= CHARTS ================= */}
         <div className="charts">
-          <div className="chart-card">
-            <h3>Revenue Overview</h3>
-            <Line data={revenueData} />
-          </div>
-          <div className="chart-card">
-            <h3>User Growth</h3>
-            <Bar data={userGrowthData} />
-          </div>
-        </div>
-
-        <div className="table-card">
-          <h3>Recent Orders</h3>
-          <div className="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Product</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.slice(0, 7).map((o, i) => (
-                  <tr key={i}>
-                    <td>{o?._id || "N/A"}</td>
-                    <td>{o?.userName || "User"}</td>
-                    <td>{o?.productName || "Product"}</td>
-                    <td>₹{o?.amount || 0}</td>
-                    <td className="success">{o?.status || "Placed"}</td>
-                    <td>{new Date(o?.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <div className="chart-card"><Line data={revenueData} /></div>
+          <div className="chart-card"><Bar data={userGrowthData} /></div>
         </div>
       </main>
 
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Segoe UI, sans-serif; }
-
-        .layout { min-height: 100vh; }
-
+        * { margin:0; box-sizing:border-box; font-family:Segoe UI; }
         .dark { --bg:#0b1220; --card:#0f172a; --text:#fff; }
         .light { --bg:#f4f6f8; --card:#fff; --text:#111; }
-
-        .main {
-          background: var(--bg);
-          color: var(--text);
-          padding: 30px;
-          min-height: 100vh;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .theme-toggle {
-          background: none;
-          border: none;
-          color: gold;
-          font-size: 22px;
-          cursor: pointer;
-        }
-
-        .stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 20px;
-        }
-
-        .card {
-          background: var(--card);
-          padding: 20px;
-          border-radius: 14px;
-          display: flex;
-          gap: 14px;
-          box-shadow: 0 8px 20px rgba(0,0,0,.15);
-        }
-
-        .icon { font-size: 26px; color: gold; }
-
-        .charts {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 22px;
-          margin-top: 26px;
-        }
-
-        .chart-card, .table-card {
-          background: var(--card);
-          padding: 22px;
-          border-radius: 14px;
-        }
-
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #1f2937; }
-        .success { color: #22c55e; font-weight: 600; }
-
-        @media (max-width: 1024px) {
-          .charts { grid-template-columns: 1fr; }
-        }
+        .main { background:var(--bg); color:var(--text); min-height:100vh; padding:30px; }
+        .header { display:flex; justify-content:space-between; margin-bottom:20px; }
+        button { background:none; border:none; color:gold; font-size:22px; cursor:pointer; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; }
+        .card { background:var(--card); padding:20px; border-radius:14px; display:flex; gap:14px; }
+        .icon { font-size:26px; color:gold; }
+        .section { margin:30px 0 15px; }
+        .charts { display:grid; grid-template-columns:2fr 1fr; gap:22px; margin-top:30px; }
+        .chart-card { background:var(--card); padding:20px; border-radius:14px; }
+        @media(max-width:900px){ .charts{grid-template-columns:1fr;} }
       `}</style>
     </div>
   );
@@ -230,7 +205,7 @@ export default function AdvancedDashboard() {
 
 const StatCard = ({ icon, title, value }) => (
   <div className="card">
-    <div className="icon">{icon}</div>
+    {icon && <div className="icon">{icon}</div>}
     <div>
       <p>{title}</p>
       <h2>{value}</h2>
