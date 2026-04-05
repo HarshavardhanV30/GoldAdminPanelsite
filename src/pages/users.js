@@ -13,7 +13,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [search, setSearch] = useState("");
-  const [theme, setTheme] = useState("dark"); // dark | light
+  const [theme, setTheme] = useState("dark");
 
   const isDark = theme === "dark";
 
@@ -23,15 +23,23 @@ const UserManagement = () => {
       const res = await axios.get(
         "https://rendergoldapp-1.onrender.com/users/all"
       );
-      setUsers(res.data);
+
+      // Prevent crash if API fails
+      if (res && Array.isArray(res.data)) {
+        setUsers(res.data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUsers([]); // fallback
     }
   };
 
   /* ================= DELETE USER ================= */
   const deleteUser = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
+
     try {
       await axios.delete(
         `https://rendergoldapp-1.onrender.com/users/${id}`
@@ -46,10 +54,10 @@ const UserManagement = () => {
   const exportToExcel = () => {
     const data = users.map((u, index) => ({
       "S.NO": index + 1,
-      ID: u.id,
-      Name: u.full_name,
-      Email: u.email,
-      Phone: u.phone,
+      ID: u?.id || "",
+      Name: u?.full_name || "",
+      Email: u?.email || "",
+      Phone: u?.phone || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -62,10 +70,11 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
+  /* ================= FILTER ================= */
   const filteredUsers = users.filter(
     (u) =>
-      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
+      (u?.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (u?.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -82,7 +91,7 @@ const UserManagement = () => {
         overflow: "hidden",
       }}
     >
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div
         style={{
           display: "flex",
@@ -106,6 +115,7 @@ const UserManagement = () => {
         </div>
 
         <div style={{ display: "flex", gap: "12px" }}>
+          {/* Theme Toggle */}
           <button
             onClick={() => setTheme(isDark ? "light" : "dark")}
             style={{
@@ -120,6 +130,7 @@ const UserManagement = () => {
             {isDark ? <FaSun /> : <FaMoon />}
           </button>
 
+          {/* Export */}
           <button
             onClick={exportToExcel}
             style={{
@@ -139,7 +150,7 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* ================= CARD ================= */}
+      {/* CARD */}
       <div
         style={{
           height: "calc(100% - 90px)",
@@ -151,6 +162,7 @@ const UserManagement = () => {
           overflow: "hidden",
         }}
       >
+        {/* SEARCH */}
         <div
           style={{
             display: "flex",
@@ -160,7 +172,7 @@ const UserManagement = () => {
           }}
         >
           <div>
-            <h4 style={{ margin: 0, fontSize: "18px" }}>All Users</h4>
+            <h4 style={{ margin: 0 }}>All Users</h4>
             <span style={{ fontSize: "13px", color: "#64748b" }}>
               {filteredUsers.length} users
             </span>
@@ -184,7 +196,7 @@ const UserManagement = () => {
           />
         </div>
 
-        {/* ================= TABLE ================= */}
+        {/* TABLE */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -201,7 +213,7 @@ const UserManagement = () => {
             <tbody>
               {filteredUsers.map((user, index) => (
                 <tr
-                  key={user.id}
+                  key={user?.id || index}
                   style={{
                     borderBottom: "1px solid #e2e8f0",
                     cursor: "pointer",
@@ -210,13 +222,13 @@ const UserManagement = () => {
                 >
                   <td>{index + 1}</td>
                   <td style={{ color: "#facc15", fontWeight: "600" }}>
-                    {user.id}
+                    {user?.id}
                   </td>
                   <td style={{ fontWeight: "600" }}>
-                    {user.full_name}
+                    {user?.full_name}
                   </td>
-                  <td>{user.email}</td>
-                  <td>{user.phone}</td>
+                  <td>{user?.email}</td>
+                  <td>{user?.phone}</td>
                   <td style={{ textAlign: "center" }}>
                     <FaEdit
                       style={{
@@ -226,10 +238,13 @@ const UserManagement = () => {
                       }}
                     />
                     <FaTrash
-                      style={{ color: "#ef4444", cursor: "pointer" }}
+                      style={{
+                        color: "#ef4444",
+                        cursor: "pointer",
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteUser(user.id);
+                        deleteUser(user?.id);
                       }}
                     />
                   </td>
@@ -255,7 +270,7 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* ================= MODAL ================= */}
+      {/* MODAL */}
       {selectedUser && (
         <div
           style={{
@@ -279,10 +294,10 @@ const UserManagement = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ marginBottom: "15px" }}>User Details</h3>
-            <p><b>ID:</b> {selectedUser.id}</p>
-            <p><b>Name:</b> {selectedUser.full_name}</p>
-            <p><b>Email:</b> {selectedUser.email}</p>
-            <p><b>Phone:</b> {selectedUser.phone}</p>
+            <p><b>ID:</b> {selectedUser?.id}</p>
+            <p><b>Name:</b> {selectedUser?.full_name}</p>
+            <p><b>Email:</b> {selectedUser?.email}</p>
+            <p><b>Phone:</b> {selectedUser?.phone}</p>
 
             <button
               style={{
