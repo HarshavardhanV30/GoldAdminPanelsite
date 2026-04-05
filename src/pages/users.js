@@ -186,12 +186,7 @@ const UserManagement = () => {
 
         {/* ================= TABLE ================= */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th>S.NO</th>
@@ -231,10 +226,7 @@ const UserManagement = () => {
                       }}
                     />
                     <FaTrash
-                      style={{
-                        color: "#ef4444",
-                        cursor: "pointer",
-                      }}
+                      style={{ color: "#ef4444", cursor: "pointer" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteUser(user.id);
