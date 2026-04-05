@@ -14,7 +14,6 @@ const SellerProductTable = () => {
 
   const API_URL = "https://rendergoldapp-1.onrender.com/seller/all";
 
-  /* ================= FETCH ================= */
   const fetchProducts = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -29,14 +28,12 @@ const SellerProductTable = () => {
     fetchProducts();
   }, []);
 
-  /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
     await axios.delete(`https://rendergoldapp-1.onrender.com/seller/${id}`);
     fetchProducts();
   };
 
-  /* ================= EXPORT ================= */
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(filteredProducts);
     const wb = XLSX.utils.book_new();
@@ -44,7 +41,6 @@ const SellerProductTable = () => {
     XLSX.writeFile(wb, "Seller_Products.xlsx");
   };
 
-  /* ================= IMAGE PARSER ================= */
   const parseImages = (images) => {
     if (!images) return [];
     if (Array.isArray(images)) return images;
@@ -55,7 +51,6 @@ const SellerProductTable = () => {
     }
   };
 
-  /* ================= CARD FILTERS ================= */
   const showAll = () => setFilteredProducts(products);
 
   const showToday = () =>
@@ -81,7 +76,6 @@ const SellerProductTable = () => {
         color: darkMode ? "#e5e7eb" : "#111",
       }}
     >
-      {/* HEADER */}
       <div style={styles.header}>
         <div style={styles.searchBox}>
           <FaSearch />
@@ -106,7 +100,6 @@ const SellerProductTable = () => {
       <h1 style={styles.title}>Seller Gold Products</h1>
       <p style={styles.subtitle}>Manage all seller gold product listings</p>
 
-      {/* DASHBOARD CARDS */}
       <div style={styles.cards}>
         <div style={styles.blueCard} onClick={showAll}>
           <h4>Total Products</h4>
@@ -132,7 +125,6 @@ const SellerProductTable = () => {
         </div>
       </div>
 
-      {/* FILTERS */}
       <div style={styles.filters}>
         <input placeholder="Min Price" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
         <input placeholder="Max Price" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
@@ -148,7 +140,6 @@ const SellerProductTable = () => {
         <button onClick={handleExport}>Export</button>
       </div>
 
-      {/* TABLE */}
       <div style={styles.tableCard}>
         <table style={styles.table}>
           <thead>
@@ -163,7 +154,7 @@ const SellerProductTable = () => {
               <tr key={p.id}>
                 <td>
                   {parseImages(p.images).slice(0,2).map((img,i)=>(
-                    <img key={i} src={img} style={styles.thumb} onClick={()=>setEnlargedImage(img)} />
+                    <img key={i} src={img} alt="product" style={styles.thumb} onClick={()=>setEnlargedImage(img)} />
                   ))}
                 </td>
                 <td>{p.name}</td>
@@ -188,37 +179,27 @@ const SellerProductTable = () => {
         </table>
       </div>
 
-      {/* VIEW POPUP */}
       {activeProduct && (
         <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
           <div style={styles.popupCard} onClick={(e)=>e.stopPropagation()}>
             <h2 style={{color:"#000"}}>{activeProduct.name}</h2>
 
             {parseImages(activeProduct.images).map((img,i)=>(
-              <img key={i} src={img} style={styles.bigImage} />
+              <img key={i} src={img} alt="product-large" style={styles.bigImage} />
             ))}
-
-            <p style={styles.popupText}><b>Category:</b> {activeProduct.category}</p>
-            <p style={styles.popupText}><b>Weight:</b> {activeProduct.weight} gm</p>
-            <p style={styles.popupText}><b>Purity:</b> {activeProduct.purity}</p>
-            <p style={styles.popupText}><b>Condition:</b> {activeProduct.condition}</p>
-            <p style={styles.popupText}><b>Price:</b> ₹{activeProduct.price}</p>
-            <p style={styles.popupText}><b>Seller:</b> {activeProduct.full_name}</p>
-            <p style={styles.popupText}><b>Mobile:</b> {activeProduct.mobilenumber}</p>
           </div>
         </div>
       )}
 
       {enlargedImage && (
         <div style={styles.popupOverlay} onClick={() => setEnlargedImage(null)}>
-          <img src={enlargedImage} style={styles.bigImage} />
+          <img src={enlargedImage} alt="enlarged" style={styles.bigImage} />
         </div>
       )}
     </div>
   );
 };
 
-/* ================= STYLES ================= */
 const styles = {
   page:{padding:20,minHeight:"100vh"},
   header:{display:"flex",justifyContent:"space-between"},
