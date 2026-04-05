@@ -44,7 +44,8 @@ const UserManagement = () => {
 
   /* ================= EXPORT EXCEL ================= */
   const exportToExcel = () => {
-    const data = users.map((u) => ({
+    const data = users.map((u, index) => ({
+      "S.NO": index + 1,
       ID: u.id,
       Name: u.full_name,
       Email: u.email,
@@ -193,6 +194,7 @@ const UserManagement = () => {
           >
             <thead>
               <tr>
+                <th>S.NO</th>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
@@ -202,7 +204,7 @@ const UserManagement = () => {
             </thead>
 
             <tbody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((user, index) => (
                 <tr
                   key={user.id}
                   style={{
@@ -211,6 +213,7 @@ const UserManagement = () => {
                   }}
                   onClick={() => setSelectedUser(user)}
                 >
+                  <td>{index + 1}</td>
                   <td style={{ color: "#facc15", fontWeight: "600" }}>
                     {user.id}
                   </td>
@@ -244,7 +247,7 @@ const UserManagement = () => {
               {filteredUsers.length === 0 && (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     style={{
                       textAlign: "center",
                       padding: "30px",
