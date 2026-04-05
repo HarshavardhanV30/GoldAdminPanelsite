@@ -22,15 +22,14 @@ const UserManagement = () => {
     try {
       const res = await axios.get(
         "https://rendergoldapp-1.onrender.com/users/all",
-        { timeout: 10000 } // prevent hanging
+        { timeout: 10000 }
       );
 
-      // ✅ Ensure safe data
       const safeData = Array.isArray(res?.data) ? res.data : [];
       setUsers(safeData);
     } catch (error) {
       console.error("Error fetching users:", error);
-      setUsers([]); // prevent crash
+      setUsers([]);
     }
   };
 
@@ -158,7 +157,13 @@ const UserManagement = () => {
         }}
       >
         {/* SEARCH */}
-        <div style={{ padding: "18px", display: "flex", justifyContent: "space-between" }}>
+        <div
+          style={{
+            padding: "18px",
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
           <span>{filteredUsers.length} users</span>
 
           <input
@@ -166,12 +171,18 @@ const UserManagement = () => {
             placeholder="Search users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              outline: "none",
+            }}
           />
         </div>
 
         {/* TABLE */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <table style={{ width: "100%" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th>S.NO</th>
@@ -191,14 +202,56 @@ const UserManagement = () => {
                   <td>{user?.full_name}</td>
                   <td>{user?.email}</td>
                   <td>{user?.phone}</td>
+
+                  {/* ✅ FIXED ACTIONS UI */}
                   <td>
-                    <FaEdit />
-                    <FaTrash
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteUser(user?.id);
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
-                    />
+                    >
+                      {/* EDIT BUTTON */}
+                      <button
+                        style={{
+                          background: "#3b82f6",
+                          border: "none",
+                          padding: "8px",
+                          borderRadius: "8px",
+                          color: "#fff",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        <FaEdit />
+                      </button>
+
+                      {/* DELETE BUTTON */}
+                      <button
+                        style={{
+                          background: "#ef4444",
+                          border: "none",
+                          padding: "8px",
+                          borderRadius: "8px",
+                          color: "#fff",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteUser(user?.id);
+                        }}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -233,6 +286,7 @@ const UserManagement = () => {
               margin: "100px auto",
               width: "400px",
               color: "#fff",
+              borderRadius: "10px",
             }}
           >
             <p>ID: {selectedUser?.id}</p>
