@@ -79,6 +79,11 @@ export default function SidebarOnly() {
             {isOpen && <span className="nav-text">AddPhoneNumber</span>}
             {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
+          <NavLink to="/AddGoldPrice" className="nav-item">
+            <FaShoppingCart className="icon" />
+            {isOpen && <span className="nav-text">AddGoldPrice</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
+          </NavLink>
         </nav>
       </aside>
 

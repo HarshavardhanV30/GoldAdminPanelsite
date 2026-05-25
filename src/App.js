@@ -13,6 +13,7 @@ import Terms from "./pages/Terms&conditionss";
 import BannerManagement from "./pages/Banners";
 import CategoryAdminPanel from "./pages/category";
 import AddPhoneNumber from "./pages/PhoneNumber";
+import GoldPriceDashboard from "./pages/AddGoldPrice";
 import Sidebar from "../src/components/sidebar";
 
 import "./App.css";
@@ -54,6 +55,7 @@ const App = () => {
           <Route path="/AddBanners" element={<BannerManagement/>}/>
           <Route path="/categoryName" element={<CategoryAdminPanel/>}/>
           <Route path="/AddPhonenumbers" element={<AddPhoneNumber/>}/>
+          <Route path="/AddGoldPrice" element={<GoldPriceDashboard/>}/>
         </Routes>
       </Layout>
     </Router>
