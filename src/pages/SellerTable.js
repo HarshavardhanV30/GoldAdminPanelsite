@@ -1,6 +1,14 @@
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
+import {
+  FaSearch,
+  FaEye,
+  FaSun,
+  FaMoon,
+  FaTrash,
+  FaCheckCircle,
+} from "react-icons/fa";
 
 const SellerProductTable = () => {
   const [products, setProducts] = useState([]);
@@ -9,280 +17,539 @@ const SellerProductTable = () => {
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [darkMode, setDarkMode] = useState(true);
 
   const API_URL = "https://rendergoldapp-1.onrender.com/seller/all";
-  const IMAGE_BASE = "https://adminapp-1-nk19.onrender.com";
 
-  const parseImages = (images) => {
-    try {
-      if (Array.isArray(images)) return images;
-      if (typeof images === "string") return JSON.parse(images);
-      return [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getImageUrl = (imgPath) => {
-    if (!imgPath) return "";
-    if (imgPath.startsWith("http")) return imgPath;
-    if (imgPath.startsWith("/")) return `${IMAGE_BASE}${imgPath}`;
-    return `${IMAGE_BASE}/uploads/${imgPath}`;
-  };
-
+  /* ================= FETCH ================= */
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(API_URL);
-      const data = response.data || [];
-      setProducts(data);
-      setFilteredProducts(data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
+      const res = await axios.get(API_URL);
+      setProducts(res.data);
+      setFilteredProducts(res.data);
+    } catch (err) {
+      console.error(err);
     }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        await axios.delete(`https://rendergoldapp-1.onrender.com/seller/${id}`);
-        alert("Product deleted successfully (if supported by API)");
-        fetchProducts();
-        setActiveProduct(null);
-      } catch (error) {
-        console.error("Error deleting product:", error);
-      }
-    }
-  };
-
-  const handleRowClick = (product) => {
-    setActiveProduct(product.id === activeProduct?.id ? null : product);
-  };
-
-  const handleFilter = () => {
-    let min = parseFloat(minPrice) || 0;
-    let max = parseFloat(maxPrice) || Infinity;
-    const filtered = products.filter((p) => {
-      const price = parseFloat(p.price) || 0;
-      return price >= min && price <= max;
-    });
-    setFilteredProducts(filtered);
-  };
-
-  const handleExport = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      filteredProducts.map((p) => ({
-        Name: p.name,
-        Category: p.category,
-        Weight: p.weight,
-        Purity: p.purity,
-        Condition: p.condition,
-        Price: p.price,
-        Description: p.description,
-        Seller: p.full_name || "Not Provided",
-        Mobile: p.mobilenumber || "Not Provided",
-      }))
-    );
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
-    XLSX.writeFile(workbook, "Seller_Products.xlsx");
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  return (
-    <div className="container py-3">
-      <h4 className="mb-3 fw-bold text-primary">Seller Gold Products</h4>
+  /* ================= DELETE ================= */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?"))
+      return;
 
-      {/* Filters and Export */}
-      <div className="d-flex gap-2 mb-3">
+    await axios.delete(
+      `https://rendergoldapp-1.onrender.com/seller/${id}`
+    );
+
+    fetchProducts();
+  };
+
+  /* ================= APPROVE TO PUBLISH ================= */
+  const handleApprove = async (id) => {
+    try {
+      await axios.put(
+        `https://rendergoldapp-1.onrender.com/seller/approve/${id}`,
+        {
+          status: "Approved",
+        }
+      );
+
+      alert("Product Approved & Published Successfully");
+
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to approve product");
+    }
+  };
+
+  /* ================= EXPORT ================= */
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredProducts);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Products");
+    XLSX.writeFile(wb, "Seller_Products.xlsx");
+  };
+
+  /* ================= IMAGE PARSER ================= */
+  const parseImages = (images) => {
+    if (!images) return [];
+
+    if (Array.isArray(images)) return images;
+
+    try {
+      return JSON.parse(images);
+    } catch {
+      return [];
+    }
+  };
+
+  /* ================= CARD FILTERS ================= */
+  const showAll = () => setFilteredProducts(products);
+
+  const showToday = () =>
+    setFilteredProducts(
+      products.filter(
+        (p) =>
+          new Date(p.created_at).toLocaleDateString() ===
+          new Date().toLocaleDateString()
+      )
+    );
+
+  const showHigh = () =>
+    setFilteredProducts(
+      products.filter((p) => Number(p.price) > 100000)
+    );
+
+  const showLow = () =>
+    setFilteredProducts(
+      products.filter((p) => Number(p.price) <= 100000)
+    );
+
+  return (
+    <div
+      style={{
+        ...styles.page,
+        background: darkMode ? "#020617" : "#f8f9fa",
+        color: darkMode ? "#e5e7eb" : "#111",
+      }}
+    >
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div style={styles.searchBox}>
+          <FaSearch />
+
+          <input
+            placeholder="Search by product name..."
+            style={styles.searchInput}
+            onChange={(e) =>
+              setFilteredProducts(
+                products.filter((p) =>
+                  p.name
+                    .toLowerCase()
+                    .includes(e.target.value.toLowerCase())
+                )
+              )
+            }
+          />
+        </div>
+
+        <div
+          onClick={() => setDarkMode(!darkMode)}
+          style={{ cursor: "pointer" }}
+        >
+          {darkMode ? <FaSun /> : <FaMoon />}
+        </div>
+      </div>
+
+      <h1 style={styles.title}>Seller Gold Products</h1>
+
+      <p style={styles.subtitle}>
+        Manage all seller gold product listings
+      </p>
+
+      {/* DASHBOARD CARDS */}
+      <div style={styles.cards}>
+        <div style={styles.blueCard} onClick={showAll}>
+          <h4>Total Products</h4>
+          <h2>{products.length}</h2>
+        </div>
+
+        <div style={styles.greenCard} onClick={showToday}>
+          <h4>Today</h4>
+
+          <h2>
+            {
+              products.filter(
+                (p) =>
+                  new Date(p.created_at).toLocaleDateString() ===
+                  new Date().toLocaleDateString()
+              ).length
+            }
+          </h2>
+        </div>
+
+        <div style={styles.redCard} onClick={showHigh}>
+          <h4>High Amount</h4>
+
+          <h2>
+            {
+              products.filter(
+                (p) => Number(p.price) > 100000
+              ).length
+            }
+          </h2>
+        </div>
+
+        <div style={styles.yellowCard} onClick={showLow}>
+          <h4>Low Amount</h4>
+
+          <h2>
+            {
+              products.filter(
+                (p) => Number(p.price) <= 100000
+              ).length
+            }
+          </h2>
+        </div>
+      </div>
+
+      {/* FILTERS */}
+      <div style={styles.filters}>
         <input
-          type="number"
-          className="form-control"
           placeholder="Min Price"
           value={minPrice}
           onChange={(e) => setMinPrice(e.target.value)}
         />
+
         <input
-          type="number"
-          className="form-control"
           placeholder="Max Price"
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
         />
-        <button className="btn btn-primary" onClick={handleFilter}>
-          Apply Filter
+
+        <button
+          onClick={() =>
+            setFilteredProducts(
+              products.filter(
+                (p) =>
+                  Number(p.price) >= (minPrice || 0) &&
+                  Number(p.price) <= (maxPrice || Infinity)
+              )
+            )
+          }
+        >
+          Apply
         </button>
-        <button className="btn btn-success" onClick={handleExport}>
-          Export to Excel
-        </button>
+
+        <button onClick={handleExport}>Export</button>
       </div>
 
-      <table className="table table-bordered table-hover align-middle">
-        <thead className="table-dark">
-          <tr>
-            <th>Image</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Weight</th>
-            <th>Purity</th>
-            <th>Condition</th>
-            <th>Price</th>
-            <th>Description</th>
-            <th>Seller Name</th>
-            <th>Mobile</th>
-            <th style={{ width: "90px" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <tr
-                key={product.id}
-                className={activeProduct?.id === product.id ? "table-primary" : ""}
-                style={{ cursor: "pointer" }}
-                onClick={() => handleRowClick(product)}
-              >
+      {/* TABLE */}
+      <div style={styles.tableCard}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              {[
+                "Image",
+                "Name",
+                "Category",
+                "Weight",
+                "Purity",
+                "Condition",
+                "Price",
+                "Seller",
+                "Mobile",
+                "Actions",
+              ].map((h) => (
+                <th key={h}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredProducts.map((p) => (
+              <tr key={p.id}>
                 <td>
-                  {parseImages(product.images).slice(0, 2).map((imgUrl, i) => (
-                    <img
-                      key={i}
-                      src={getImageUrl(imgUrl)}
-                      alt={`${product.name} ${i + 1}`}
-                      width="80"
-                      height="80"
-                      style={{
-                        objectFit: "cover",
-                        borderRadius: "6px",
-                        marginRight: "6px",
-                        border: "1px solid #ddd",
-                        cursor: "pointer",
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEnlargedImage(getImageUrl(imgUrl));
-                      }}
-                    />
-                  ))}
+                  {parseImages(p.images)
+                    .slice(0, 2)
+                    .map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt=""
+                        style={styles.thumb}
+                        onClick={() => setEnlargedImage(img)}
+                      />
+                    ))}
                 </td>
-                <td>{product.name}</td>
-                <td>{product.category}</td>
-                <td>{product.weight} gm</td>
-                <td>{product.purity}</td>
-                <td>{product.condition}</td>
-                <td>₹{product.price}</td>
-                <td>{product.description?.slice(0, 30)}...</td>
-                <td>{product.full_name || "Not Provided"}</td>
-                <td>{product.mobilenumber || "Not Provided"}</td>
+
+                <td>{p.name}</td>
+
+                <td>{p.category}</td>
+
+                <td>{p.weight} gm</td>
+
+                <td>{p.purity}</td>
+
+                <td>{p.condition}</td>
+
+                <td>₹{p.price}</td>
+
+                <td>{p.full_name || "N/A"}</td>
+
+                <td>{p.mobilenumber || "N/A"}</td>
+
                 <td>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(product.id);
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <div style={styles.actionContainer}>
+                    {/* BIG APPROVE BUTTON */}
+                    <button
+                      style={styles.btnApprove}
+                      onClick={() => handleApprove(p.id)}
+                    >
+                      <FaCheckCircle />
+                      Approve To Publish
+                    </button>
+
+                    <button
+                      style={styles.btnView}
+                      onClick={() => setActiveProduct(p)}
+                    >
+                      <FaEye />
+                    </button>
+
+                    <button
+                      style={styles.btnDelete}
+                      onClick={() => handleDelete(p.id)}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="11" className="text-center">
-                No products available.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
+      {/* VIEW POPUP */}
       {activeProduct && (
-        <div className="card mt-4 shadow-lg border-0">
-          <div className="card-header bg-primary text-white fw-bold">
-            Product Details
-          </div>
-          <div className="card-body">
-            <div className="row">
-              <div className="col-md-5">
-                <div
-                  style={{
-                    display: "flex",
-                    overflowX: "auto",
-                    gap: "10px",
-                    paddingBottom: "6px",
-                    scrollSnapType: "x mandatory",
-                  }}
-                >
-                  {parseImages(activeProduct.images).map((imgUrl, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: "0 0 auto",
-                        scrollSnapAlign: "start",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setEnlargedImage(getImageUrl(imgUrl))}
-                    >
-                      <img
-                        src={getImageUrl(imgUrl)}
-                        alt={`${activeProduct.name} ${i + 1}`}
-                        style={{
-                          height: "250px",
-                          width: "auto",
-                          borderRadius: "8px",
-                          border: "1px solid #ccc",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+        <div
+          style={styles.popupOverlay}
+          onClick={() => setActiveProduct(null)}
+        >
+          <div
+            style={styles.popupCard}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ color: "#000" }}>
+              {activeProduct.name}
+            </h2>
 
-              <div className="col-md-7">
-                <h5 className="fw-bold text-primary">{activeProduct.name}</h5>
-                <p><strong>Category:</strong> {activeProduct.category}</p>
-                <p><strong>Weight:</strong> {activeProduct.weight} gm</p>
-                <p><strong>Purity:</strong> {activeProduct.purity}</p>
-                <p><strong>Condition:</strong> {activeProduct.condition}</p>
-                <p><strong>Price:</strong> ₹{activeProduct.price}</p>
-                <p><strong>Description:</strong> {activeProduct.description}</p>
-                <p><strong>Seller Name:</strong> {activeProduct.full_name || "Not Provided"}</p>
-                <p><strong>Mobile:</strong> {activeProduct.mobilenumber || "Not Provided"}</p>
-              </div>
-            </div>
+            {parseImages(activeProduct.images).map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt=""
+                style={styles.bigImage}
+              />
+            ))}
+
+            <p style={styles.popupText}>
+              <b>Category:</b> {activeProduct.category}
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Weight:</b> {activeProduct.weight} gm
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Purity:</b> {activeProduct.purity}
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Condition:</b> {activeProduct.condition}
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Price:</b> ₹{activeProduct.price}
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Seller:</b> {activeProduct.full_name}
+            </p>
+
+            <p style={styles.popupText}>
+              <b>Mobile:</b> {activeProduct.mobilenumber}
+            </p>
           </div>
         </div>
       )}
 
+      {/* IMAGE POPUP */}
       {enlargedImage && (
         <div
+          style={styles.popupOverlay}
           onClick={() => setEnlargedImage(null)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            cursor: "pointer",
-          }}
         >
           <img
             src={enlargedImage}
-            alt="Enlarged"
-            style={{ maxHeight: "90%", maxWidth: "90%", borderRadius: "8px" }}
+            alt=""
+            style={styles.bigImage}
           />
         </div>
       )}
     </div>
   );
+};
+
+/* ================= STYLES ================= */
+const styles = {
+  page: {
+    padding: 20,
+    minHeight: "100vh",
+  },
+
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+  },
+
+  searchBox: {
+    display: "flex",
+    gap: 8,
+  },
+
+  searchInput: {
+    border: "none",
+    outline: "none",
+  },
+
+  title: {
+    fontSize: 26,
+  },
+
+  subtitle: {
+    color: "#94a3b8",
+  },
+
+  cards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 16,
+  },
+
+  blueCard: {
+    padding: 20,
+    borderRadius: 16,
+    color: "#fff",
+    background: "linear-gradient(135deg,#2563eb,#1e40af)",
+    cursor: "pointer",
+  },
+
+  greenCard: {
+    padding: 20,
+    borderRadius: 16,
+    color: "#fff",
+    background: "linear-gradient(135deg,#22c55e,#15803d)",
+    cursor: "pointer",
+  },
+
+  redCard: {
+    padding: 20,
+    borderRadius: 16,
+    color: "#fff",
+    background: "linear-gradient(135deg,#ef4444,#991b1b)",
+    cursor: "pointer",
+  },
+
+  yellowCard: {
+    padding: 20,
+    borderRadius: 16,
+    color: "#111",
+    background: "linear-gradient(135deg,#facc15,#ca8a04)",
+    cursor: "pointer",
+  },
+
+  filters: {
+    display: "flex",
+    gap: 10,
+    margin: "20px 0",
+  },
+
+  tableCard: {
+    padding: 20,
+    borderRadius: 16,
+    background: "#020617",
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+
+  thumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    cursor: "pointer",
+    marginRight: 5,
+  },
+
+  actionContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  /* BIG APPROVE BUTTON */
+  btnApprove: {
+    background: "linear-gradient(135deg,#22c55e,#15803d)",
+    color: "#fff",
+    border: "none",
+    padding: "10px 18px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    minWidth: 190,
+    justifyContent: "center",
+  },
+
+  btnView: {
+    background: "#facc15",
+    border: "none",
+    padding: 10,
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+
+  btnDelete: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    padding: 10,
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+
+  popupOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.7)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+
+  popupCard: {
+    background: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    maxWidth: 600,
+    maxHeight: "90vh",
+    overflowY: "auto",
+  },
+
+  popupText: {
+    color: "#000",
+    marginBottom: 6,
+  },
+
+  bigImage: {
+    maxWidth: "100%",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
 };
 
 export default SellerProductTable;

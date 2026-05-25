@@ -10,10 +10,13 @@ import AddProduct from "./pages/AddProduct";
 import SellerTable from "./pages/SellerTable";
 import GoldLoanRequest from "./pages/GoldLoanRequest";
 import Terms from "./pages/Terms&conditionss";
-
+import BannerManagement from "./pages/Banners";
+import CategoryAdminPanel from "./pages/category";
+import AddPhoneNumber from "./pages/PhoneNumber";
 import Sidebar from "../src/components/sidebar";
 
 import "./App.css";
+import AddGoldProduct from "./pages/AddGoldProduct";
 
 /* ---------- Layout Wrapper ---------- */
 const Layout = ({ children }) => {
@@ -47,6 +50,10 @@ const App = () => {
           <Route path="/sellertable" element={<SellerTable />} />
           <Route path="/goldloanrequest" element={<GoldLoanRequest />} />
           <Route path="/terms-and-conditions" element={<Terms />} />
+          <Route path="/AddGoldProducts" element={<AddGoldProduct/>}/>
+          <Route path="/AddBanners" element={<BannerManagement/>}/>
+          <Route path="/categoryName" element={<CategoryAdminPanel/>}/>
+          <Route path="/AddPhonenumbers" element={<AddPhoneNumber/>}/>
         </Routes>
       </Layout>
     </Router>

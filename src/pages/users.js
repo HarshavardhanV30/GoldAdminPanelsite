@@ -70,7 +70,7 @@ const UserManagement = () => {
   return (
     <div
       style={{
-        width: "100vw",
+        width: "81vw",
         height: "100vh",
         background: isDark
           ? "radial-gradient(circle at top, #0f172a, #020617)"
@@ -174,7 +174,7 @@ const UserManagement = () => {
               borderRadius: "10px",
               padding: "8px 14px",
               outline: "none",
-              width: "220px",
+              width: "81px",
               border: "1px solid",
               background: isDark ? "#020617" : "#f8fafc",
               color: isDark ? "#e5e7eb" : "#020617",
