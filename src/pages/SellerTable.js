@@ -19,7 +19,7 @@ const SellerProductTable = () => {
   const [maxPrice, setMaxPrice] = useState("");
   const [darkMode, setDarkMode] = useState(true);
 
-  const API_URL = "https://rendergoldapp-1.onrender.com/seller/all";
+  const API_URL = "https://goldbackend-auyv.onrender.com/seller/all";
 
   /* ================= FETCH ================= */
   const fetchProducts = async () => {
@@ -42,7 +42,7 @@ const SellerProductTable = () => {
       return;
 
     await axios.delete(
-      `https://rendergoldapp-1.onrender.com/seller/${id}`
+      `https://goldbackend-auyv.onrender.com/seller/${id}`
     );
 
     fetchProducts();
@@ -52,7 +52,7 @@ const SellerProductTable = () => {
   const handleApprove = async (id) => {
     try {
       await axios.put(
-        `https://rendergoldapp-1.onrender.com/seller/approve/${id}`,
+        `https://goldbackend-auyv.onrender.com/seller/approve/${id}`,
         {
           status: "Approved",
         }

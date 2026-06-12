@@ -21,7 +21,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const res = await axios.get(
-        "https://rendergoldapp-1.onrender.com/users/all"
+        "https://goldbackend-auyv.onrender.com/users/all"
       );
       setUsers(res.data);
     } catch (error) {
@@ -34,7 +34,7 @@ const UserManagement = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await axios.delete(
-        `https://rendergoldapp-1.onrender.com/users/${id}`
+        `https://goldbackend-auyv.onrender.com/users/${id}`
       );
       fetchUsers();
     } catch (error) {
