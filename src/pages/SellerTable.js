@@ -332,7 +332,7 @@ const SellerProductTable = () => {
                   </button>
 
                   {openDropdownId === p.id && (
-                    <div style={{ ...styles.dropdownMenu, background: darkMode ? "#1e293b" : "#fff", box|Shadow: darkMode ? "0 4px 20px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.1)", border: darkMode ? "1px solid #334155" : "1px solid #e2e8f0" }}>
+                    <div style={{ ...styles.dropdownMenu, background: darkMode ? "#1e293b" : "#fff", boxShadow: darkMode ? "0 4px 20px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.1)", border: darkMode ? "1px solid #334155" : "1px solid #e2e8f0" }}>
                       <button 
                         style={{ ...styles.dropdownItem, color: "#10b981" }} 
                         onClick={() => handleStatusUpdate(p.id, "approved")}
@@ -385,7 +385,7 @@ const SellerProductTable = () => {
       {activeProduct && (
         <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
           <div style={{ ...styles.popupCard, background: darkMode ? "#1e293b" : "#fff" }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ color: darkMode ? "#fff" : "#000", marginBottom: 16ATION: "700" }}>{activeProduct.name}</h2>
+            <h2 style={{ color: darkMode ? "#fff" : "#000", marginBottom: 16, fontWeight: "700" }}>{activeProduct.name}</h2>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 15 }}>
               {parseImages(activeProduct.images).map((img, i) => (
                 <img key={i} src={img} alt="" style={styles.bigImage} />
@@ -434,7 +434,7 @@ const styles = {
   yellowCard: { padding: 20, borderRadius: 16, color: "#111", background: "linear-gradient(135deg,#facc15,#eab308)", cursor: "pointer" },
   filters: { display: "flex", gap: 12, margin: "24px 0", alignItems: "center" },
   actionBtn: { border: "none", background: "#64748b", color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: "600", fontSize: 13 },
-  tableCard: { padding: 20, borderRadius: 16, overflowX: "visible" }, // Changed overflow to visible so dropdown renders beautifully above limits
+  tableCard: { padding: 20, borderRadius: 16, overflowX: "visible" }, 
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
   th: { padding: "14px 16px", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.06em" },
   td: { padding: "14px 16px", fontSize: 14, verticalAlign: "middle" },
