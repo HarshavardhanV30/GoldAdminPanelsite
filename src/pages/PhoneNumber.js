@@ -56,7 +56,7 @@ const AddPhoneNumber = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const result = await response.json();
+        
         if (response.ok) {
           alert("Number updated successfully");
           setEditingId(null);
@@ -443,7 +443,7 @@ const AddPhoneNumber = () => {
                   <th style={thStyle}>Email</th>
                   <th style={thStyle}>Phone Number</th>
                   <th style={thStyle}>Created On</th>
-                  <th style={thStyle, { ...thStyle, textAlign: "right" }}>Actions</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
 
@@ -458,7 +458,7 @@ const AddPhoneNumber = () => {
                     >
                       <td style={tdStyle}>{item.id}</td>
                       <td style={tdStyle}>{item.email || "N/A"}</td>
-                      <td style={tdStyle, { fontWeight: "500", color: "#111827" }}>
+                      <td style={{ ...tdStyle, fontWeight: "500", color: "#111827" }}>
                         {item.phone_number}
                       </td>
                       <td style={tdStyle}>
