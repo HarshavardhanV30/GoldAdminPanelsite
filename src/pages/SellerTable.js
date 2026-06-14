@@ -10,6 +10,7 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaClock,
+  FaChevronDown,
 } from "react-icons/fa";
 
 const SellerProductTable = () => {
@@ -21,9 +22,10 @@ const SellerProductTable = () => {
   const [maxPrice, setMaxPrice] = useState("");
   const [darkMode, setDarkMode] = useState(true);
   
-  // Professional UI State Management
+  // UI States
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openDropdownId, setOpenDropdownId] = useState(null); // Manages which row's action dropdown is open
 
   const API_URL = "https://goldbackend-auyv.onrender.com/seller/all";
 
@@ -46,7 +48,7 @@ const SellerProductTable = () => {
     fetchProducts();
   }, []);
 
-  /* ================= CLIENT-SIDE SEARCH & FILTER EFFECT ================= */
+  /* ================= CLIENT-SIDE FILTERS EFFECT ================= */
   useEffect(() => {
     let result = products;
 
@@ -67,9 +69,16 @@ const SellerProductTable = () => {
     setFilteredProducts(result);
   }, [searchQuery, minPrice, maxPrice, products]);
 
-  /* ================= DELETE ================= */
+  /* ================= CLOSE DROPDOWNS ON DOM CLICK ================= */
+  useEffect(() => {
+    const closeAllDropdowns = () => setOpenDropdownId(null);
+    window.addEventListener("click", closeAllDropdowns);
+    return () => window.removeEventListener("click", closeAllDropdowns);
+  }, []);
+
+  /* ================= DELETE ACTION ================= */
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    if (!window.confirm("Are you sure you want to permanently delete this product?")) return;
 
     setLoading(true);
     try {
@@ -83,7 +92,7 @@ const SellerProductTable = () => {
     }
   };
 
-  /* ================= STATUS UPDATE (PATCH) ================= */
+  /* ================= STATUS PATCH PIPELINE (APPROVE / CANCEL / PENDING) ================= */
   const handleStatusUpdate = async (id, statusValue) => {
     setLoading(true);
     try {
@@ -100,7 +109,7 @@ const SellerProductTable = () => {
     }
   };
 
-  /* ================= EXPORT ================= */
+  /* ================= EXPORT SHEET ================= */
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(filteredProducts);
     const wb = XLSX.utils.book_new();
@@ -119,7 +128,7 @@ const SellerProductTable = () => {
     }
   };
 
-  /* ================= CARD SHORTCUT FILTERS ================= */
+  /* ================= DASHBOARD SHORTCUT FILTERS ================= */
   const showAll = () => setFilteredProducts(products);
 
   const showToday = () =>
@@ -137,12 +146,17 @@ const SellerProductTable = () => {
   const showLow = () =>
     setFilteredProducts(products.filter((p) => Number(p.price) <= 100000));
 
-  /* ================= DYNAMIC STYLE RETRIEVER FOR STATUS PILLS ================= */
+  /* ================= PILL BADGE GENERATOR ================= */
   const getStatusStyle = (status) => {
     const normalize = (status || "pending").toLowerCase();
     if (normalize === "approved") return styles.statusApproved;
     if (normalize === "cancelled") return styles.statusCancelled;
     return styles.statusPending;
+  };
+
+  const toggleDropdown = (e, id) => {
+    e.stopPropagation(); // Stops immediate window-click auto-closure
+    setOpenDropdownId(openDropdownId === id ? null : id);
   };
 
   return (
@@ -153,11 +167,11 @@ const SellerProductTable = () => {
         color: darkMode ? "#e5e7eb" : "#111",
       }}
     >
-      {/* GLOBAL BACKGROUND LOADING SCREEN */}
+      {/* GLOBAL LOADING GLASS OVERLAY */}
       {loading && (
         <div style={styles.globalLoaderOverlay}>
           <div style={styles.spinner}></div>
-          <p style={{ marginTop: 12, fontWeight: "500" }}>Processing Requests...</p>
+          <p style={{ marginTop: 14, fontWeight: "600", letterSpacing: "0.5px" }}>Updating Database Lifecycle...</p>
         </div>
       )}
 
@@ -187,9 +201,9 @@ const SellerProductTable = () => {
       </div>
 
       <h1 style={styles.title}>Seller Gold Products</h1>
-      <p style={styles.subtitle}>Manage all seller gold product listings</p>
+      <p style={styles.subtitle}>Manage and process all raw incoming marketplace listings</p>
 
-      {/* DASHBOARD CARDS */}
+      {/* DASHBOARD STATUS COUNTS */}
       <div style={styles.cards}>
         <div style={styles.blueCard} onClick={showAll}>
           <h4>Total Products</h4>
@@ -220,7 +234,7 @@ const SellerProductTable = () => {
         </div>
       </div>
 
-      {/* FILTERS */}
+      {/* FILTER CONSOLE */}
       <div style={styles.filters}>
         <input
           placeholder="Min Price"
@@ -251,11 +265,11 @@ const SellerProductTable = () => {
           Reset Filters
         </button>
         <button style={{ ...styles.actionBtn, background: "#2563eb", color: "#fff" }} onClick={handleExport}>
-          Export XLSX
+          Export XLSX Sheet
         </button>
       </div>
 
-      {/* TABLE */}
+      {/* COMPACT DATA TABLE */}
       <div style={{ ...styles.tableCard, background: darkMode ? "#0f172a" : "#fff", border: darkMode ? "1px solid #1e293b" : "1px solid #e2e8f0" }}>
         <table style={styles.table}>
           <thead>
@@ -307,56 +321,59 @@ const SellerProductTable = () => {
                 </td>
                 <td style={styles.td}>{p.full_name || "N/A"}</td>
                 <td style={styles.td}>{p.mobilenumber || "N/A"}</td>
-                <td style={styles.td}>
-                  <div style={styles.actionContainer}>
-                    {/* DYNAMIC ACTION BUTTONS */}
-                    <button
-                      disabled={loading}
-                      style={{ ...styles.btnApprove, opacity: loading ? 0.6 : 1 }}
-                      onClick={() => handleStatusUpdate(p.id, "approved")}
-                    >
-                      <FaCheckCircle /> Approve
-                    </button>
+                
+                {/* ACTIONS CELL WITH INLINE DROPDOWN POPUP */}
+                <td style={{ ...styles.td, position: "relative" }}>
+                  <button 
+                    style={{ ...styles.dropdownToggleBtn, background: darkMode ? "#1e293b" : "#e2e8f0", color: darkMode ? "#fff" : "#000" }} 
+                    onClick={(e) => toggleDropdown(e, p.id)}
+                  >
+                    Options <FaChevronDown size={10} />
+                  </button>
 
-                    <button
-                      disabled={loading}
-                      style={{ ...styles.btnCancel, opacity: loading ? 0.6 : 1 }}
-                      onClick={() => handleStatusUpdate(p.id, "cancelled")}
-                    >
-                      <FaTimesCircle /> Cancel
-                    </button>
-
-                    <button
-                      disabled={loading}
-                      style={{ ...styles.btnPending, opacity: loading ? 0.6 : 1 }}
-                      onClick={() => handleStatusUpdate(p.id, "pending")}
-                    >
-                      <FaClock /> Pending
-                    </button>
-
-                    <button
-                      disabled={loading}
-                      style={{ ...styles.btnView, opacity: loading ? 0.6 : 1 }}
-                      onClick={() => setActiveProduct(p)}
-                    >
-                      <FaEye />
-                    </button>
-
-                    <button
-                      disabled={loading}
-                      style={{ ...styles.btnDelete, opacity: loading ? 0.6 : 1 }}
-                      onClick={() => handleDelete(p.id)}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
+                  {openDropdownId === p.id && (
+                    <div style={{ ...styles.dropdownMenu, background: darkMode ? "#1e293b" : "#fff", box|Shadow: darkMode ? "0 4px 20px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.1)", border: darkMode ? "1px solid #334155" : "1px solid #e2e8f0" }}>
+                      <button 
+                        style={{ ...styles.dropdownItem, color: "#10b981" }} 
+                        onClick={() => handleStatusUpdate(p.id, "approved")}
+                      >
+                        <FaCheckCircle /> Approve Item
+                      </button>
+                      <button 
+                        style={{ ...styles.dropdownItem, color: "#ef4444" }} 
+                        onClick={() => handleStatusUpdate(p.id, "cancelled")}
+                      >
+                        <FaTimesCircle /> Cancel / Reject
+                      </button>
+                      <button 
+                        style={{ ...styles.dropdownItem, color: "#64748b" }} 
+                        onClick={() => handleStatusUpdate(p.id, "pending")}
+                      >
+                        <FaClock /> Mark Pending
+                      </button>
+                      <hr style={{ border: "none", borderTop: darkMode ? "1px solid #334155" : "1px solid #f1f5f9", margin: "4px 0" }} />
+                      <button 
+                        style={{ ...styles.dropdownItem, color: darkMode ? "#fff" : "#000" }} 
+                        onClick={() => setActiveProduct(p)}
+                      >
+                        <FaEye /> View Profile
+                      </button>
+                      <button 
+                        style={{ ...styles.dropdownItem, color: "#b91c1c" }} 
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        <FaTrash /> Delete Record
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
+            
             {filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={11} style={{ ...styles.td, textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
-                  No matching products found.
+                  No records matching structural filters found.
                 </td>
               </tr>
             )}
@@ -364,17 +381,17 @@ const SellerProductTable = () => {
         </table>
       </div>
 
-      {/* VIEW POPUP MODAL */}
+      {/* MODAL POPUP: PROMPT DETAILED WRAPPER */}
       {activeProduct && (
         <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
           <div style={{ ...styles.popupCard, background: darkMode ? "#1e293b" : "#fff" }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ color: darkMode ? "#fff" : "#000", marginBottom: 16 }}>{activeProduct.name}</h2>
+            <h2 style={{ color: darkMode ? "#fff" : "#000", marginBottom: 16ATION: "700" }}>{activeProduct.name}</h2>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 15 }}>
               {parseImages(activeProduct.images).map((img, i) => (
                 <img key={i} src={img} alt="" style={styles.bigImage} />
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Category:</b> {activeProduct.category}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Weight:</b> {activeProduct.weight} gm</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Purity:</b> {activeProduct.purity}</p>
@@ -386,66 +403,63 @@ const SellerProductTable = () => {
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Seller:</b> {activeProduct.full_name}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Mobile:</b> {activeProduct.mobilenumber}</p>
             </div>
-            <button style={{ ...styles.actionBtn, marginTop: 20, width: "100%" }} onClick={() => setActiveProduct(null)}>Close Details</button>
+            <button style={{ ...styles.actionBtn, marginTop: 24, width: "100%" }} onClick={() => setActiveProduct(null)}>Close Overlay View</button>
           </div>
         </div>
       )}
 
-      {/* IMAGE ENLARGEMENT POPUP */}
+      {/* LIGHTBOX MATRIX IMAGE DETECTOR */}
       {enlargedImage && (
         <div style={styles.popupOverlay} onClick={() => setEnlargedImage(null)}>
-          <img src={enlargedImage} alt="" style={{ ...styles.bigImage, maxWidth: "80%", maxHeight: "80vh" }} />
+          <img src={enlargedImage} alt="" style={{ ...styles.bigImage, maxWidth: "75%", maxHeight: "75vh", objectFit: "contain" }} />
         </div>
       )}
     </div>
   );
 };
 
-/* ================= THEMED STYLES ================= */
+/* ================= THEMED STRUCTURAL STYLES ================= */
 const styles = {
-  page: { padding: 24, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif", transition: "background 0.2s ease" },
+  page: { padding: 24, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif", transition: "background 0.2s ease, color 0.2s ease" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  searchBox: { display: "flex", alignItems: "center", gap: 10, width: "40%" },
-  searchInput: { border: "none", outline: "none", padding: "10px 14px", borderRadius: 10, width: "100%", fontSize: 14 },
-  filterInput: { border: "none", outline: "none", padding: "8px 12px", borderRadius: 8, fontSize: 14, width: 120 },
+  searchBox: { display: "flex", alignItems: "center", gap: 10, width: "35%" },
+  searchInput: { border: "none", outline: "none", padding: "10px 14px", borderRadius: 10, width: "100%", fontSize: 14, transition: "all 0.2s ease" },
+  filterInput: { border: "none", outline: "none", padding: "8px 12px", borderRadius: 8, fontSize: 14, width: 130 },
   title: { fontSize: 28, fontWeight: "700", margin: "10px 0 4px 0" },
-  subtitle: { color: "#94a3b8", marginBottom: 24 },
+  subtitle: { color: "#94a3b8", marginBottom: 24, fontSize: 14 },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 },
   blueCard: { padding: 20, borderRadius: 16, color: "#fff", background: "linear-gradient(135deg,#3b82f6,#1d4ed8)", cursor: "pointer" },
   greenCard: { padding: 20, borderRadius: 16, color: "#fff", background: "linear-gradient(135deg,#10b981,#047857)", cursor: "pointer" },
   redCard: { padding: 20, borderRadius: 16, color: "#fff", background: "linear-gradient(135deg,#ef4444,#b91c1c)", cursor: "pointer" },
   yellowCard: { padding: 20, borderRadius: 16, color: "#111", background: "linear-gradient(135deg,#facc15,#eab308)", cursor: "pointer" },
   filters: { display: "flex", gap: 12, margin: "24px 0", alignItems: "center" },
-  actionBtn: { border: "none", background: "#64748b", color: "#fff", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: "600" },
-  tableCard: { padding: 20, borderRadius: 16, overflowX: "auto" },
+  actionBtn: { border: "none", background: "#64748b", color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: "600", fontSize: 13 },
+  tableCard: { padding: 20, borderRadius: 16, overflowX: "visible" }, // Changed overflow to visible so dropdown renders beautifully above limits
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  th: { padding: "12px 16px", fontSize: 13, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" },
-  td: { padding: "16px", fontSize: 14, verticalAlign: "middle" },
-  thumb: { width: 50, height: 50, borderRadius: 8, cursor: "pointer", marginRight: 6, objectFit: "cover" },
-  actionContainer: { display: "flex", alignItems: "center", gap: 6 },
-  
-  // Custom Dynamic Status Pill Styling
-  statusApproved: { background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700" },
-  statusCancelled: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700" },
-  statusPending: { background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700" },
+  th: { padding: "14px 16px", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.06em" },
+  td: { padding: "14px 16px", fontSize: 14, verticalAlign: "middle" },
+  thumb: { width: 48, height: 48, borderRadius: 8, cursor: "pointer", marginRight: 6, objectFit: "cover" },
 
-  // Table Buttons
-  btnApprove: { background: "#10b981", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: 4, fontSize: 12 },
-  btnCancel: { background: "#ef4444", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: 4, fontSize: 12 },
-  btnPending: { background: "#64748b", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: 4, fontSize: 12 },
-  btnView: { background: "#facc15", color: "#000", border: "none", padding: 8, borderRadius: 6, cursor: "pointer", display: "flex" },
-  btnDelete: { background: "#b91c1c", color: "#fff", border: "none", padding: 8, borderRadius: 6, cursor: "pointer", display: "flex" },
+  // Custom Dropdown Interactive Components
+  dropdownToggleBtn: { border: "none", padding: "8px 14px", borderRadius: 8, fontWeight: "600", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 },
+  dropdownMenu: { position: "absolute", right: 16, top: "80%", zIndex: 100, borderRadius: 10, padding: "6px", minWidth: "170px", display: "flex", flexDirection: "column", gap: 2 },
+  dropdownItem: { background: "none", border: "none", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, borderRadius: 6, transition: "background 0.15s ease" },
 
-  // Loader & Overlays
-  globalLoaderOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", color: "#fff" },
-  spinner: { width: 40, height: 40, border: "4px solid rgba(255,255,255,0.3)", borderTop: "4px solid #fff", borderRadius: "50%", animation: "spin 1s linear infinite" },
-  popupOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999 },
-  popupCard: { padding: 24, borderRadius: 16, width: "100%", maxWidth: 550, maxHeight: "85vh", overflowY: "auto" },
-  popupText: { fontSize: 14, marginBottom: 8 },
-  bigImage: { width: 100, height: 100, borderRadius: 8, objectFit: "cover", border: "1px solid #cbd5e1" },
+  // Color-coded Status Badges
+  statusApproved: { background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  statusCancelled: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  statusPending: { background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+
+  // Loading Modals & Overlays
+  globalLoaderOverlay: { position: "fixed", inset: 0, background: "rgba(2, 6, 23, 0.65)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", color: "#fff" },
+  spinner: { width: 42, height: 42, border: "4px solid rgba(255,255,255,0.2)", borderTop: "4px solid #3b82f6", borderRadius: "50%", animation: "spin 0.85s linear infinite" },
+  popupOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(2px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999 },
+  popupCard: { padding: 28, borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto" },
+  popupText: { fontSize: 14, marginBottom: 4 },
+  bigImage: { width: 90, height: 90, borderRadius: 10, objectFit: "cover", border: "1px solid #cbd5e1" },
 };
 
-// CSS Injection hook trick for pure loading spinner keyframe
+// Global CSS Insertion for Spinner Keyframes
 if (typeof document !== "undefined") {
   const styleSheet = document.styleSheets[0] || document.head.appendChild(document.createElement("style")).sheet;
   try { styleSheet.insertRule("@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }", styleSheet.cssRules.length); } catch (e) {}
