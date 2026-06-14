@@ -8,6 +8,8 @@ import {
   FaMoon,
   FaTrash,
   FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
 } from "react-icons/fa";
 
 const SellerProductTable = () => {
@@ -41,29 +43,31 @@ const SellerProductTable = () => {
     if (!window.confirm("Are you sure you want to delete this product?"))
       return;
 
-    await axios.delete(
-      `https://goldbackend-auyv.onrender.com/seller/${id}`
-    );
-
-    fetchProducts();
-  };
-
-  /* ================= APPROVE TO PUBLISH ================= */
-  const handleApprove = async (id) => {
     try {
-      await axios.put(
-        `https://goldbackend-auyv.onrender.com/seller/approve/${id}`,
-        {
-          status: "Approved",
-        }
-      );
-
-      alert("Product Approved & Published Successfully");
-
+      await axios.delete(`https://goldbackend-auyv.onrender.com/seller/${id}`);
       fetchProducts();
     } catch (err) {
       console.error(err);
-      alert("Failed to approve product");
+      alert("Failed to delete product");
+    }
+  };
+
+  /* ================= STATUS UPDATE (PATCH) ================= */
+  const handleStatusUpdate = async (id, statusValue) => {
+    try {
+      // Correctly targets the requested dynamic PATCH endpoint: /seller/:id/status
+      await axios.patch(
+        `https://goldbackend-auyv.onrender.com/seller/${id}/status`,
+        {
+          status: statusValue, // Send requested body structure ("approved", "cancelled", "pending")
+        }
+      );
+
+      alert(`Product marked as ${statusValue.toUpperCase()} successfully`);
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to update product status to ${statusValue}`);
     }
   };
 
@@ -78,9 +82,7 @@ const SellerProductTable = () => {
   /* ================= IMAGE PARSER ================= */
   const parseImages = (images) => {
     if (!images) return [];
-
     if (Array.isArray(images)) return images;
-
     try {
       return JSON.parse(images);
     } catch {
@@ -101,14 +103,10 @@ const SellerProductTable = () => {
     );
 
   const showHigh = () =>
-    setFilteredProducts(
-      products.filter((p) => Number(p.price) > 100000)
-    );
+    setFilteredProducts(products.filter((p) => Number(p.price) > 100000));
 
   const showLow = () =>
-    setFilteredProducts(
-      products.filter((p) => Number(p.price) <= 100000)
-    );
+    setFilteredProducts(products.filter((p) => Number(p.price) <= 100000));
 
   return (
     <div
@@ -122,16 +120,13 @@ const SellerProductTable = () => {
       <div style={styles.header}>
         <div style={styles.searchBox}>
           <FaSearch />
-
           <input
             placeholder="Search by product name..."
             style={styles.searchInput}
             onChange={(e) =>
               setFilteredProducts(
                 products.filter((p) =>
-                  p.name
-                    .toLowerCase()
-                    .includes(e.target.value.toLowerCase())
+                  p.name.toLowerCase().includes(e.target.value.toLowerCase())
                 )
               )
             }
@@ -147,10 +142,7 @@ const SellerProductTable = () => {
       </div>
 
       <h1 style={styles.title}>Seller Gold Products</h1>
-
-      <p style={styles.subtitle}>
-        Manage all seller gold product listings
-      </p>
+      <p style={styles.subtitle}>Manage all seller gold product listings</p>
 
       {/* DASHBOARD CARDS */}
       <div style={styles.cards}>
@@ -161,7 +153,6 @@ const SellerProductTable = () => {
 
         <div style={styles.greenCard} onClick={showToday}>
           <h4>Today</h4>
-
           <h2>
             {
               products.filter(
@@ -175,25 +166,15 @@ const SellerProductTable = () => {
 
         <div style={styles.redCard} onClick={showHigh}>
           <h4>High Amount</h4>
-
           <h2>
-            {
-              products.filter(
-                (p) => Number(p.price) > 100000
-              ).length
-            }
+            {products.filter((p) => Number(p.price) > 100000).length}
           </h2>
         </div>
 
         <div style={styles.yellowCard} onClick={showLow}>
           <h4>Low Amount</h4>
-
           <h2>
-            {
-              products.filter(
-                (p) => Number(p.price) <= 100000
-              ).length
-            }
+            {products.filter((p) => Number(p.price) <= 100000).length}
           </h2>
         </div>
       </div>
@@ -205,13 +186,11 @@ const SellerProductTable = () => {
           value={minPrice}
           onChange={(e) => setMinPrice(e.target.value)}
         />
-
         <input
           placeholder="Max Price"
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
         />
-
         <button
           onClick={() =>
             setFilteredProducts(
@@ -225,7 +204,6 @@ const SellerProductTable = () => {
         >
           Apply
         </button>
-
         <button onClick={handleExport}>Export</button>
       </div>
 
@@ -242,6 +220,7 @@ const SellerProductTable = () => {
                 "Purity",
                 "Condition",
                 "Price",
+                "Status",
                 "Seller",
                 "Mobile",
                 "Actions",
@@ -267,32 +246,39 @@ const SellerProductTable = () => {
                       />
                     ))}
                 </td>
-
                 <td>{p.name}</td>
-
                 <td>{p.category}</td>
-
                 <td>{p.weight} gm</td>
-
                 <td>{p.purity}</td>
-
                 <td>{p.condition}</td>
-
                 <td>₹{p.price}</td>
-
+                <td style={{ textTransform: "capitalize", fontWeight: "bold" }}>
+                  {p.status || "Pending"}
+                </td>
                 <td>{p.full_name || "N/A"}</td>
-
                 <td>{p.mobilenumber || "N/A"}</td>
-
                 <td>
                   <div style={styles.actionContainer}>
-                    {/* BIG APPROVE BUTTON */}
+                    {/* ACTION BUTTONS */}
                     <button
                       style={styles.btnApprove}
-                      onClick={() => handleApprove(p.id)}
+                      onClick={() => handleStatusUpdate(p.id, "approved")}
                     >
-                      <FaCheckCircle />
-                      Approve To Publish
+                      <FaCheckCircle /> Approve
+                    </button>
+
+                    <button
+                      style={styles.btnCancel}
+                      onClick={() => handleStatusUpdate(p.id, "cancelled")}
+                    >
+                      <FaTimesCircle /> Cancel
+                    </button>
+
+                    <button
+                      style={styles.btnPending}
+                      onClick={() => handleStatusUpdate(p.id, "pending")}
+                    >
+                      <FaClock /> Pending
                     </button>
 
                     <button
@@ -318,51 +304,33 @@ const SellerProductTable = () => {
 
       {/* VIEW POPUP */}
       {activeProduct && (
-        <div
-          style={styles.popupOverlay}
-          onClick={() => setActiveProduct(null)}
-        >
-          <div
-            style={styles.popupCard}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ color: "#000" }}>
-              {activeProduct.name}
-            </h2>
-
+        <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
+          <div style={styles.popupCard} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ color: "#000" }}>{activeProduct.name}</h2>
             {parseImages(activeProduct.images).map((img, i) => (
-              <img
-                key={i}
-                src={img}
-                alt=""
-                style={styles.bigImage}
-              />
+              <img key={i} src={img} alt="" style={styles.bigImage} />
             ))}
-
             <p style={styles.popupText}>
               <b>Category:</b> {activeProduct.category}
             </p>
-
             <p style={styles.popupText}>
               <b>Weight:</b> {activeProduct.weight} gm
             </p>
-
             <p style={styles.popupText}>
               <b>Purity:</b> {activeProduct.purity}
             </p>
-
             <p style={styles.popupText}>
               <b>Condition:</b> {activeProduct.condition}
             </p>
-
             <p style={styles.popupText}>
               <b>Price:</b> ₹{activeProduct.price}
             </p>
-
+            <p style={styles.popupText}>
+              <b>Status:</b> {activeProduct.status || "Pending"}
+            </p>
             <p style={styles.popupText}>
               <b>Seller:</b> {activeProduct.full_name}
             </p>
-
             <p style={styles.popupText}>
               <b>Mobile:</b> {activeProduct.mobilenumber}
             </p>
@@ -372,15 +340,8 @@ const SellerProductTable = () => {
 
       {/* IMAGE POPUP */}
       {enlargedImage && (
-        <div
-          style={styles.popupOverlay}
-          onClick={() => setEnlargedImage(null)}
-        >
-          <img
-            src={enlargedImage}
-            alt=""
-            style={styles.bigImage}
-          />
+        <div style={styles.popupOverlay} onClick={() => setEnlargedImage(null)}>
+          <img src={enlargedImage} alt="" style={styles.bigImage} />
         </div>
       )}
     </div>
@@ -389,40 +350,17 @@ const SellerProductTable = () => {
 
 /* ================= STYLES ================= */
 const styles = {
-  page: {
-    padding: 20,
-    minHeight: "100vh",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-  },
-
-  searchBox: {
-    display: "flex",
-    gap: 8,
-  },
-
-  searchInput: {
-    border: "none",
-    outline: "none",
-  },
-
-  title: {
-    fontSize: 26,
-  },
-
-  subtitle: {
-    color: "#94a3b8",
-  },
-
+  page: { padding: 20, minHeight: "100vh" },
+  header: { display: "flex", justifyContent: "space-between" },
+  searchBox: { display: "flex", gap: 8 },
+  searchInput: { border: "none", outline: "none" },
+  title: { fontSize: 26 },
+  subtitle: { color: "#94a3b8" },
   cards: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
     gap: 16,
   },
-
   blueCard: {
     padding: 20,
     borderRadius: 16,
@@ -430,7 +368,6 @@ const styles = {
     background: "linear-gradient(135deg,#2563eb,#1e40af)",
     cursor: "pointer",
   },
-
   greenCard: {
     padding: 20,
     borderRadius: 16,
@@ -438,7 +375,6 @@ const styles = {
     background: "linear-gradient(135deg,#22c55e,#15803d)",
     cursor: "pointer",
   },
-
   redCard: {
     padding: 20,
     borderRadius: 16,
@@ -446,7 +382,6 @@ const styles = {
     background: "linear-gradient(135deg,#ef4444,#991b1b)",
     cursor: "pointer",
   },
-
   yellowCard: {
     padding: 20,
     borderRadius: 16,
@@ -454,25 +389,14 @@ const styles = {
     background: "linear-gradient(135deg,#facc15,#ca8a04)",
     cursor: "pointer",
   },
-
-  filters: {
-    display: "flex",
-    gap: 10,
-    margin: "20px 0",
-  },
-
+  filters: { display: "flex", gap: 10, margin: "20px 0" },
   tableCard: {
     padding: 20,
     borderRadius: 16,
     background: "#020617",
     overflowX: "auto",
   },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-
+  table: { width: "100%", borderCollapse: "collapse" },
   thumb: {
     width: 60,
     height: 60,
@@ -480,47 +404,61 @@ const styles = {
     cursor: "pointer",
     marginRight: 5,
   },
-
-  actionContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  /* BIG APPROVE BUTTON */
+  actionContainer: { display: "flex", alignItems: "center", gap: 6 },
   btnApprove: {
     background: "linear-gradient(135deg,#22c55e,#15803d)",
     color: "#fff",
     border: "none",
-    padding: "10px 18px",
-    borderRadius: 10,
+    padding: "8px 12px",
+    borderRadius: 8,
     cursor: "pointer",
     fontWeight: "bold",
     display: "flex",
     alignItems: "center",
-    gap: 8,
-    fontSize: 14,
-    minWidth: 190,
-    justifyContent: "center",
+    gap: 4,
+    fontSize: 12,
   },
-
+  btnCancel: {
+    background: "linear-gradient(135deg,#ef4444,#b91c1c)",
+    color: "#fff",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 12,
+  },
+  btnPending: {
+    background: "linear-gradient(135deg,#6b7280,#374151)",
+    color: "#fff",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 12,
+  },
   btnView: {
     background: "#facc15",
     border: "none",
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
     cursor: "pointer",
   },
-
   btnDelete: {
     background: "#ef4444",
     color: "#fff",
     border: "none",
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
     cursor: "pointer",
   },
-
   popupOverlay: {
     position: "fixed",
     inset: 0,
@@ -530,7 +468,6 @@ const styles = {
     alignItems: "center",
     zIndex: 999,
   },
-
   popupCard: {
     background: "#fff",
     padding: 20,
@@ -539,17 +476,8 @@ const styles = {
     maxHeight: "90vh",
     overflowY: "auto",
   },
-
-  popupText: {
-    color: "#000",
-    marginBottom: 6,
-  },
-
-  bigImage: {
-    maxWidth: "100%",
-    borderRadius: 8,
-    marginBottom: 10,
-  },
+  popupText: { color: "#000", marginBottom: 6 },
+  bigImage: { maxWidth: "100%", borderRadius: 8, marginBottom: 10 },
 };
 
 export default SellerProductTable;
