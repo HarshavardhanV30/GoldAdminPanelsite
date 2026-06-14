@@ -1,38 +1,124 @@
-import React from "react";
-import {
-  FaEdit,
-  FaTrash,
-  FaUserCircle,
-} from "react-icons/fa";
-
-const bannerData = [
-  {
-    id: 1,
-    name: "Summer Sale Banner",
-    image:
-      "https://img.freepik.com/free-vector/summer-sale-banner-template_23-2148921533.jpg",
-  },
-  {
-    id: 2,
-    name: "New Arrivals Banner",
-    image:
-      "https://img.freepik.com/free-vector/new-arrival-banner-template_23-2148899923.jpg",
-  },
-  {
-    id: 3,
-    name: "Mega Discount Banner",
-    image:
-      "https://img.freepik.com/free-vector/mega-sale-banner-template_23-2148908004.jpg",
-  },
-  {
-    id: 4,
-    name: "Festival Offer Banner",
-    image:
-      "https://img.freepik.com/free-vector/festival-sale-banner-template_23-2149737135.jpg",
-  },
-];
+import React, { useState, useEffect, useRef } from "react";
+import { FaEdit, FaTrash, FaUserCircle } from "react-icons/fa";
 
 const BannerManagement = () => {
+  // Component States
+  const [banners, setBanners] = useState([]);
+  const [name, setName] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // File Input Ref to reset the field safely
+  const fileInputRef = useRef(null);
+
+  // 1. GET ALL Banners
+  const fetchBanners = async () => {
+    try {
+      const response = await fetch("https://goldbackend-auyv.onrender.com/banners/bannerall");
+      const data = await response.json();
+      setBanners(data);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      alert("Failed to load banners.");
+    }
+  };
+
+  useEffect(() => {
+    fetchBanners();
+  }, []);
+
+  // Handle file selection
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
+  // Reset form status
+  const resetForm = () => {
+    setName("");
+    setImageFile(null);
+    setEditId(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // 2. POST (Add) & PUT (Update) Submission Logic
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validations
+    if (!editId && (!name || !imageFile)) {
+      alert("Please fill in both name and image fields to add a banner.");
+      return;
+    }
+
+    setLoading(true);
+    const formData = new FormData();
+    if (name) formData.append("name", name);
+    if (imageFile) formData.append("bannerimage", imageFile);
+
+    try {
+      let url = "https://goldbackend-auyv.onrender.com/banners/add";
+      let method = "POST";
+
+      if (editId) {
+        url = `https://goldbackend-auyv.onrender.com/banners/update/${editId}`;
+        method = "PUT";
+      }
+
+      const response = await fetch(url, {
+        method: method,
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert(editId ? "Banner updated successfully!" : "Banner added successfully!");
+        resetForm();
+        fetchBanners();
+      } else {
+        alert("Something went wrong with the submission.");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("API error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Setup form fields for editing
+  const handleEditSetup = (banner) => {
+    setEditId(banner.id);
+    setName(banner.name);
+    // Note: Browser security does not allow pre-filling input type="file" via code.
+    // The image file remains optional during updating.
+  };
+
+  // 3. DELETE Banner
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this banner?")) {
+      try {
+        const response = await fetch(`https://goldbackend-auyv.onrender.com/banners/${id}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          alert("Banner deleted successfully!");
+          fetchBanners();
+          if (editId === id) resetForm(); // Clear form if current edited banner is deleted
+        } else {
+          alert("Failed to delete banner.");
+        }
+      } catch (error) {
+        console.error("Delete error:", error);
+        alert("API error occurred while deleting.");
+      }
+    }
+  };
+
   return (
     <div
       style={{
@@ -42,7 +128,7 @@ const BannerManagement = () => {
         fontFamily: "Arial, sans-serif",
       }}
     >
-      {/* Header */}
+      {/* Header Section */}
       <div
         style={{
           display: "flex",
@@ -53,9 +139,10 @@ const BannerManagement = () => {
       >
         <h1
           style={{
-            fontSize: "40px",
+            fontSize: "26px", // Reduced font size
             fontWeight: "700",
             color: "#111827",
+            margin: 0,
           }}
         >
           Banner Management
@@ -65,161 +152,195 @@ const BannerManagement = () => {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "10px",
-            fontSize: "18px",
+            gap: "8px",
+            fontSize: "14px", // Reduced font size
             color: "#111827",
           }}
         >
-          <FaUserCircle size={28} color="#9ca3af" />
+          <FaUserCircle size={22} color="#9ca3af" />
           <span>Admin</span>
         </div>
       </div>
 
-      {/* Add Banner Section */}
+      {/* Dynamic Add / Edit Banner Section */}
       <div
         style={{
           background: "#fff",
           border: "1px solid #e5e7eb",
           borderRadius: "8px",
-          padding: "25px",
+          padding: "20px",
           marginBottom: "25px",
         }}
       >
         <h2
           style={{
-            fontSize: "32px",
+            fontSize: "20px", // Reduced font size
             fontWeight: "700",
-            marginBottom: "25px",
+            marginBottom: "15px",
             color: "#111827",
           }}
         >
-          Add New Banner
+          {editId ? "Edit Banner Details" : "Add New Banner"}
         </h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "30px",
-            marginBottom: "30px",
-          }}
-        >
-          {/* Banner Name */}
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "10px",
-                fontWeight: "600",
-                fontSize: "18px",
-              }}
-            >
-              Banner Name <span style={{ color: "red" }}>*</span>
-            </label>
-
-            <input
-              type="text"
-              placeholder="Enter banner name"
-              style={{
-                width: "100%",
-                height: "52px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                padding: "0 15px",
-                fontSize: "16px",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          {/* Banner Image */}
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "10px",
-                fontWeight: "600",
-                fontSize: "18px",
-              }}
-            >
-              Banner Image <span style={{ color: "red" }}>*</span>
-            </label>
-
-            <div
-              style={{
-                display: "flex",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                overflow: "hidden",
-                height: "52px",
-              }}
-            >
-              <input
-                type="file"
+        <form onSubmit={handleSubmit}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "20px",
+              marginBottom: "20px",
+            }}
+          >
+            {/* Banner Name Field */}
+            <div>
+              <label
                 style={{
-                  flex: 1,
-                  border: "none",
-                  padding: "12px",
-                  fontSize: "15px",
-                }}
-              />
-
-              <button
-                style={{
-                  width: "120px",
-                  border: "none",
-                  background: "#f3f4f6",
-                  fontSize: "16px",
-                  cursor: "pointer",
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "600",
+                  fontSize: "14px", // Reduced font size
                 }}
               >
-                Browse
-              </button>
+                Banner Name {!editId && <span style={{ color: "red" }}>*</span>}
+              </label>
+
+              <input
+                type="text"
+                placeholder="Enter banner name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: "100%",
+                  height: "40px", // Reduced height
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  padding: "0 12px",
+                  fontSize: "14px", // Reduced font size
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
             </div>
 
-            <p
+            {/* Banner Image Field */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "600",
+                  fontSize: "14px", // Reduced font size
+                }}
+              >
+                Banner Image {!editId && <span style={{ color: "red" }}>*</span>}
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  overflow: "hidden",
+                  height: "40px", // Reduced height
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    padding: "8px",
+                    fontSize: "13px", // Reduced font size
+                    background: "#fff",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current.click()}
+                  style={{
+                    width: "100px",
+                    border: "none",
+                    background: "#f3f4f6",
+                    fontSize: "14px", // Reduced font size
+                    cursor: "pointer",
+                    borderLeft: "1px solid #d1d5db",
+                  }}
+                >
+                  Browse
+                </button>
+              </div>
+
+              <p
+                style={{
+                  marginTop: "6px",
+                  fontSize: "12px", // Reduced font size
+                  color: "#6b7280",
+                }}
+              >
+                Recommended size: 1920 x 600 px (JPG, PNG, WEBP) {editId && "• Leave blank to keep existing"}
+              </p>
+            </div>
+          </div>
+
+          {/* Form Actions Buttons */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              type="submit"
+              disabled={loading}
               style={{
-                marginTop: "10px",
-                fontSize: "14px",
-                color: "#6b7280",
+                background: editId ? "#10b981" : "#2563eb", // Emerald for save, blue for submit
+                color: "#fff",
+                border: "none",
+                padding: "10px 25px",
+                borderRadius: "6px",
+                fontSize: "14px", // Reduced font size
+                cursor: "pointer",
+                fontWeight: "500",
               }}
             >
-              Recommended size: 1920 x 600 px (JPG, PNG, WEBP)
-            </p>
-          </div>
-        </div>
+              {loading ? "Processing..." : editId ? "Update Banner" : "Submit"}
+            </button>
 
-        {/* Submit Button */}
-        <button
-          style={{
-            background: "#2563eb",
-            color: "#fff",
-            border: "none",
-            padding: "14px 35px",
-            borderRadius: "6px",
-            fontSize: "18px",
-            cursor: "pointer",
-            fontWeight: "500",
-          }}
-        >
-          Submit
-        </button>
+            {editId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{
+                  background: "#6b7280",
+                  color: "#fff",
+                  border: "none",
+                  padding: "10px 25px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                }}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+        </form>
       </div>
 
-      {/* Banner List */}
+      {/* Banner List Table Section */}
       <div
         style={{
           background: "#fff",
           border: "1px solid #e5e7eb",
           borderRadius: "8px",
-          padding: "25px",
+          padding: "20px",
         }}
       >
         <h2
           style={{
-            fontSize: "32px",
+            fontSize: "20px", // Reduced font size
             fontWeight: "700",
-            marginBottom: "25px",
+            marginBottom: "15px",
             color: "#111827",
           }}
         >
@@ -238,6 +359,7 @@ const BannerManagement = () => {
                 style={{
                   borderBottom: "1px solid #e5e7eb",
                   textAlign: "left",
+                  background: "#f9fafb",
                 }}
               >
                 <th style={tableHead}>#</th>
@@ -248,96 +370,122 @@ const BannerManagement = () => {
             </thead>
 
             <tbody>
-              {bannerData.map((banner) => (
-                <tr
-                  key={banner.id}
-                  style={{
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  <td style={tableCell}>{banner.id}</td>
-
-                  <td style={tableCell}>{banner.name}</td>
-
-                  <td style={tableCell}>
-                    <img
-                      src={banner.image}
-                      alt={banner.name}
-                      style={{
-                        width: "350px",
-                        height: "90px",
-                        objectFit: "cover",
-                        borderRadius: "4px",
-                      }}
-                    />
-                  </td>
-
-                  <td style={tableCell}>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "15px",
-                      }}
-                    >
-                      <button
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          border: "2px solid #2563eb",
-                          borderRadius: "8px",
-                          background: "#fff",
-                          color: "#2563eb",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <FaEdit size={18} />
-                      </button>
-
-                      <button
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          border: "none",
-                          borderRadius: "8px",
-                          background: "#ef4444",
-                          color: "#fff",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <FaTrash size={18} />
-                      </button>
-                    </div>
+              {banners.length === 0 ? (
+                <tr>
+                  <td colSpan="4" style={{ ...tableCell, textAlign: "center", color: "#9ca3af" }}>
+                    No banners found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                banners.map((banner, index) => (
+                  <tr
+                    key={banner.id || index}
+                    style={{
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <td style={tableCell}>{index + 1}</td>
+
+                    <td style={tableCell}>{banner.name}</td>
+
+                    <td style={tableCell}>
+                      {banner.bannerimage ? (
+                        <img
+                          src={banner.bannerimage}
+                          alt={banner.name}
+                          style={{
+                            width: "220px", // Reduced size
+                            height: "65px",  // Reduced size
+                            objectFit: "cover",
+                            borderRadius: "4px",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: "12px", color: "#9ca3af" }}>No Image</span>
+                      )}
+                    </td>
+
+                    <td style={tableCell}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                        }}
+                      >
+                        {/* Edit Action Button */}
+                        <button
+                          onClick={() => handleEditSetup(banner)}
+                          title="Edit Banner"
+                          style={{
+                            width: "32px", // Reduced size
+                            height: "32px", // Reduced size
+                            border: "1.5px solid #2563eb",
+                            borderRadius: "6px",
+                            background: "#fff",
+                            color: "#2563eb",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <FaEdit size={14} />
+                        </button>
+
+                        {/* Delete Action Button */}
+                        <button
+                          onClick={() => handleDelete(banner.id)}
+                          title="Delete Banner"
+                          style={{
+                            width: "32px", // Reduced size
+                            height: "32px", // Reduced size
+                            border: "none",
+                            borderRadius: "6px",
+                            background: "#ef4444",
+                            color: "#fff",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         <p
           style={{
-            marginTop: "20px",
-            fontSize: "16px",
+            marginTop: "15px",
+            fontSize: "13px", // Reduced font size
             color: "#374151",
           }}
         >
-          Showing 1 to 4 of 4 entries
+          Showing {banners.length} of {banners.length} entries
         </p>
       </div>
     </div>
   );
 };
 
+// Reusable styling templates with scaled down fonts and paddings
 const tableHead = {
-  padding: "18px",
-  fontSize: "18px",
+  padding: "12px 16px", // Reduced padding
+  fontSize: "14px",      // Reduced font size
   fontWeight: "700",
-  color: "#111827",
+  color: "#4b5563",
 };
 
 const tableCell = {
-  padding: "18px",
-  fontSize: "17px",
+  padding: "12px 16px", // Reduced padding
+  fontSize: "13px",      // Reduced font size
   color: "#111827",
   verticalAlign: "middle",
 };

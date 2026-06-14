@@ -14,6 +14,7 @@ import BannerManagement from "./pages/Banners";
 import CategoryAdminPanel from "./pages/category";
 import AddPhoneNumber from "./pages/PhoneNumber";
 import GoldPriceDashboard from "./pages/AddGoldPrice";
+import SellGoldPrice  from "./pages/SellGoldPrice";
 import Sidebar from "../src/components/sidebar";
 
 import "./App.css";
@@ -56,6 +57,7 @@ const App = () => {
           <Route path="/categoryName" element={<CategoryAdminPanel/>}/>
           <Route path="/AddPhonenumbers" element={<AddPhoneNumber/>}/>
           <Route path="/AddGoldPrice" element={<GoldPriceDashboard/>}/>
+          <Route path="/SellGold" element={<SellGoldPrice/>}/>
         </Routes>
       </Layout>
     </Router>

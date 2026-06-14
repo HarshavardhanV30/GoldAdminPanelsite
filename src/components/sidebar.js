@@ -84,6 +84,11 @@ export default function SidebarOnly() {
             {isOpen && <span className="nav-text">AddGoldPrice</span>}
             {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
+          <NavLink to="/SellGold" className="nav-item">
+            <FaShoppingCart className="icon" />
+            {isOpen && <span className="nav-text">SellGoldPrice</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
+          </NavLink>
         </nav>
       </aside>
 
@@ -95,7 +100,7 @@ export default function SidebarOnly() {
       {/* ===== STYLES ===== */}
       <style>{`
         * {
-          margin: 0;
+          margin: 0; 
           padding: 0;
           box-sizing: border-box;
           font-family: Segoe UI, sans-serif;
