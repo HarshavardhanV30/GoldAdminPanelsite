@@ -92,7 +92,7 @@ const SellerProductTable = () => {
     }
   };
 
-  /* ================= STATUS PATCH PIPELINE (APPROVE / CANCEL / PENDING) ================= */
+  /* ================= STATUS PATCH PIPELINE (APPROVE / REJECT / PENDING) ================= */
   const handleStatusUpdate = async (id, statusValue) => {
     setLoading(true);
     try {
@@ -150,7 +150,7 @@ const SellerProductTable = () => {
   const getStatusStyle = (status) => {
     const normalize = (status || "pending").toLowerCase();
     if (normalize === "approved") return styles.statusApproved;
-    if (normalize === "cancelled") return styles.statusCancelled;
+    if (normalize === "rejected") return styles.statusRejected;
     return styles.statusPending;
   };
 
@@ -256,7 +256,7 @@ const SellerProductTable = () => {
             color: darkMode ? "#fff" : "#000",
             border: darkMode ? "1px solid #334155" : "1px solid #cbd5e1",
           }}
-          onChange={(e) => setMaxPrice(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
         <button 
           style={styles.actionBtn} 
@@ -341,9 +341,9 @@ const SellerProductTable = () => {
                       </button>
                       <button 
                         style={{ ...styles.dropdownItem, color: "#ef4444" }} 
-                        onClick={() => handleStatusUpdate(p.id, "cancelled")}
+                        onClick={() => handleStatusUpdate(p.id, "rejected")}
                       >
-                        <FaTimesCircle /> Cancel / Reject
+                        <FaTimesCircle /> Reject Item
                       </button>
                       <button 
                         style={{ ...styles.dropdownItem, color: "#64748b" }} 
@@ -447,7 +447,7 @@ const styles = {
 
   // Color-coded Status Badges
   statusApproved: { background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
-  statusCancelled: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
+  statusRejected: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
   statusPending: { background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
 
   // Loading Modals & Overlays
