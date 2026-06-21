@@ -12,7 +12,9 @@ const CategoryAdminPanel = () => {
   // State variables
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
-  const [categoryImage, setCategoryImage] = useState(""); // Stores base64 string or url
+  const [categoryImage, setCategoryImage] = useState(""); // Stores final cloud URL string
+  const [selectedFile, setSelectedFile] = useState(null);   // Stores local file object for upload
+  const [previewUrl, setPreviewUrl] = useState("");         // Stores temporary local object blob URL for visual preview
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -34,23 +36,31 @@ const CategoryAdminPanel = () => {
     }
   };
 
-  // Helper: Convert File Object to Base64 String 
+  // Capture file and generate a fast local preview URL
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check size limit to prevent oversized Base64 payload failures (e.g., 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert("File is too large! Please choose an image smaller than 2MB.");
-      e.target.value = ""; // Clear file selector
-      return;
-    }
+    setSelectedFile(file);
+    // Create a local temporary URL just for the browser preview (saves memory, no base64 overhead)
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCategoryImage(reader.result); // Base64 Data URI string
-    };
-    reader.readAsDataURL(file);
+  // Helper: Upload file to a free image hosting API to obtain an absolute string URL
+  const uploadImageToCloud = async (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    // Using an anonymous free upload router (ImgBB). 
+    // Replace "chg" with your own API key if you have one, or use your backend's direct multi-part route if available.
+    const response = await fetch("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error("Image upload to hosting server failed");
+    const result = await response.json();
+    return result.data.url; // Returns a clean HTTP link string
   };
 
   // 2. POST (Add) or PUT (Update) API
@@ -62,14 +72,33 @@ const CategoryAdminPanel = () => {
     }
 
     setLoading(true);
-    
-    // Request body configured exactly to match your schema keys
-    const bodyData = {
-      name: name,
-      categoryimage: categoryImage || "https://via.placeholder.com/150"
-    };
 
     try {
+      let finalImageUrl = categoryImage;
+
+      // If the user selected a new file, upload it first to get the URL string
+      if (selectedFile) {
+        try {
+          finalImageUrl = await uploadImageToCloud(selectedFile);
+        } catch (uploadErr) {
+          console.error("Cloud upload error:", uploadErr);
+          alert("Failed to process your image file. Upload aborted.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Safeguard fallback if no image url is found
+      if (!finalImageUrl) {
+        finalImageUrl = "https://via.placeholder.com/150";
+      }
+
+      // Structure data precisely to match database requirements
+      const bodyData = {
+        name: name,
+        categoryimage: finalImageUrl
+      };
+
       let url = `${BASE_URL}/add`;
       let method = "POST";
 
@@ -86,23 +115,27 @@ const CategoryAdminPanel = () => {
         body: JSON.stringify(bodyData),
       });
 
-      if (!response.ok) throw new Error("API action failed");
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Server status: ${response.status} - ${errText}`);
+      }
 
-      // Reset form variables
+      // Reset form variables upon successful request fulfillment
       setName("");
       setCategoryImage("");
+      setSelectedFile(null);
+      setPreviewUrl("");
       setEditingId(null);
       
-      // Reset input element visually
       const fileInput = document.getElementById("categoryImageInput");
       if (fileInput) fileInput.value = "";
 
-      // Refresh the list
+      // Refresh data grid
       fetchCategories();
       alert(editingId ? "Category updated successfully!" : "Category added successfully!");
     } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Failed to save category.");
+      console.error("Error submitting form data:", error);
+      alert(`Failed to save category. Error Details: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -113,6 +146,8 @@ const CategoryAdminPanel = () => {
     setEditingId(item.id);
     setName(item.name);
     setCategoryImage(item.categoryimage || "");
+    setPreviewUrl(item.categoryimage || ""); // Existing cloud image acts as the preview URL
+    setSelectedFile(null); // Reset file selection
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -140,6 +175,8 @@ const CategoryAdminPanel = () => {
     setEditingId(null);
     setName("");
     setCategoryImage("");
+    setSelectedFile(null);
+    setPreviewUrl("");
     const fileInput = document.getElementById("categoryImageInput");
     if (fileInput) fileInput.value = "";
   };
@@ -270,21 +307,21 @@ const CategoryAdminPanel = () => {
                 accept="image/*"
                 onChange={handleFileChange}
                 style={fileInputStyle}
-                required={!editingId} // Image is mandatory only when creating new
+                required={!editingId} 
               />
               
               {/* Image Preview Window */}
-              {categoryImage && (
+              {previewUrl && (
                 <div style={{ marginTop: "12px" }}>
                   <span style={{ display: "block", fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
-                    Image Preview:
+                    Selected Preview:
                   </span>
                   <img
-                    src={categoryImage}
+                    src={previewUrl}
                     alt="Preview Target"
                     style={{
-                      height: "70px",
-                      width: "70px",
+                      height: "75px",
+                      width: "75px",
                       objectFit: "cover",
                       borderRadius: "6px",
                       border: "1px solid #e5e7eb"
@@ -338,7 +375,7 @@ const CategoryAdminPanel = () => {
         <div
           style={{
             backgroundColor: "#fff",
-            borderRadius: "#8px",
+            borderRadius: "8px",
             padding: "24px",
             marginTop: "24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
@@ -471,7 +508,7 @@ const CategoryAdminPanel = () => {
   );
 };
 
-// Extracted Styles with Normalized Standard Dimensions
+// Layout Design Specifications
 const tableHeader = {
   padding: "14px 18px",
   fontSize: "14px",
