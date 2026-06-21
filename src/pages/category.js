@@ -14,7 +14,7 @@ const CategoryAdminPanel = () => {
   const [name, setName] = useState("");
   const [categoryImage, setCategoryImage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState(null); // Keeps track if we are updating
+  const [editingId, setEditingId] = useState(null);
 
   // Fetch all categories on initial render
   useEffect(() => {
@@ -44,17 +44,15 @@ const CategoryAdminPanel = () => {
 
     setLoading(true);
     
-    // Construct request body match JSON expectations
     const bodyData = {
       name: name,
-      categoryimage: categoryImage || "https://via.placeholder.com/150" // Fallback placeholder if empty
+      categoryimage: categoryImage || "https://via.placeholder.com/150"
     };
 
     try {
       let url = `${BASE_URL}/add`;
       let method = "POST";
 
-      // If editingId exists, swap to the PUT routine
       if (editingId) {
         url = `${BASE_URL}/${editingId}`;
         method = "PUT";
@@ -70,12 +68,10 @@ const CategoryAdminPanel = () => {
 
       if (!response.ok) throw new Error("API action failed");
 
-      // Reset form variables
       setName("");
       setCategoryImage("");
       setEditingId(null);
       
-      // Refresh the list
       fetchCategories();
       alert(editingId ? "Category updated successfully!" : "Category added successfully!");
     } catch (error) {
@@ -86,12 +82,11 @@ const CategoryAdminPanel = () => {
     }
   };
 
-  // Setup form fields for updating an entry
   const handleEditClick = (item) => {
     setEditingId(item.id);
     setName(item.name);
     setCategoryImage(item.categoryimage || "");
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll up to the form nicely
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // 3. DELETE API
@@ -106,14 +101,13 @@ const CategoryAdminPanel = () => {
       if (!response.ok) throw new Error("Failed to delete category");
 
       alert("Category deleted successfully!");
-      fetchCategories(); // Refresh list
+      fetchCategories();
     } catch (error) {
       console.error("Error deleting category:", error);
       alert("Failed to delete category.");
     }
   };
 
-  // Cancel out of editing mode
   const handleCancelEdit = () => {
     setEditingId(null);
     setName("");
@@ -131,42 +125,42 @@ const CategoryAdminPanel = () => {
       {/* Header */}
       <div
         style={{
-          height: "70px",
+          height: "60px",
           backgroundColor: "#ffffff",
           borderBottom: "1px solid #e5e7eb",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 30px",
+          padding: "0 20px",
         }}
       >
-        <FaBars size={24} color="#1f2937" />
+        <FaBars size={20} color="#1f2937" />
 
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "10px",
-            fontSize: "20px",
+            gap: "8px",
+            fontSize: "15px",
             fontWeight: "500",
             color: "#111827",
           }}
         >
-          <FaUserCircle size={34} color="#9ca3af" />
+          <FaUserCircle size={26} color="#9ca3af" />
           <span>Admin</span>
-          <span style={{ fontSize: "14px" }}>▼</span>
+          <span style={{ fontSize: "11px" }}>▼</span>
         </div>
       </div>
 
       {/* Main Content */}
-      <div style={{ padding: "35px" }}>
+      <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
         {/* Title */}
         <h1
           style={{
-            fontSize: "54px",
+            fontSize: "28px",
             margin: 0,
             fontWeight: "700",
-            color: "#000",
+            color: "#111827",
           }}
         >
           Categories
@@ -174,9 +168,10 @@ const CategoryAdminPanel = () => {
 
         <p
           style={{
-            marginTop: "10px",
+            marginTop: "6px",
             color: "#6b7280",
-            fontSize: "28px",
+            fontSize: "15px",
+            marginBlockEnd: 0,
           }}
         >
           Manage your categories
@@ -186,17 +181,18 @@ const CategoryAdminPanel = () => {
         <div
           style={{
             backgroundColor: "#fff",
-            borderRadius: "12px",
-            padding: "35px",
-            marginTop: "35px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            borderRadius: "8px",
+            padding: "24px",
+            marginTop: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
             border: "1px solid #ececec",
           }}
         >
           <h2
             style={{
-              marginBottom: "35px",
-              fontSize: "36px",
+              margin: "0 0 20px 0",
+              fontSize: "18px",
+              fontWeight: "600",
               color: "#111827",
             }}
           >
@@ -204,13 +200,13 @@ const CategoryAdminPanel = () => {
           </h2>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: "25px" }}>
+            <div style={{ marginBottom: "16px" }}>
               <label
                 style={{
                   display: "block",
-                  marginBottom: "15px",
+                  marginBottom: "8px",
                   fontWeight: "600",
-                  fontSize: "24px",
+                  fontSize: "14px",
                   color: "#111827",
                 }}
               >
@@ -226,13 +222,13 @@ const CategoryAdminPanel = () => {
               />
             </div>
 
-            <div style={{ marginBottom: "25px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <label
                 style={{
                   display: "block",
-                  marginBottom: "15px",
+                  marginBottom: "8px",
                   fontWeight: "600",
-                  fontSize: "24px",
+                  fontSize: "14px",
                   color: "#111827",
                 }}
               >
@@ -247,20 +243,20 @@ const CategoryAdminPanel = () => {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "15px" }}>
+            <div style={{ display: "flex", gap: "10px" }}>
               <button
                 type="submit"
                 disabled={loading}
                 style={{
-                  marginTop: "10px",
                   backgroundColor: loading ? "#93c5fd" : "#1565ff",
                   color: "#fff",
                   border: "none",
-                  borderRadius: "8px",
-                  padding: "16px 32px",
-                  fontSize: "22px",
+                  borderRadius: "6px",
+                  padding: "10px 20px",
+                  fontSize: "14px",
                   cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: "500",
+                  transition: "background-color 0.2s",
                 }}
               >
                 {loading ? "Processing..." : editingId ? "Update" : "Submit"}
@@ -271,13 +267,12 @@ const CategoryAdminPanel = () => {
                   type="button"
                   onClick={handleCancelEdit}
                   style={{
-                    marginTop: "10px",
                     backgroundColor: "#e5e7eb",
                     color: "#1f2937",
                     border: "none",
-                    borderRadius: "8px",
-                    padding: "16px 32px",
-                    fontSize: "22px",
+                    borderRadius: "6px",
+                    padding: "10px 20px",
+                    fontSize: "14px",
                     cursor: "pointer",
                     fontWeight: "500",
                   }}
@@ -293,17 +288,18 @@ const CategoryAdminPanel = () => {
         <div
           style={{
             backgroundColor: "#fff",
-            borderRadius: "12px",
-            padding: "35px",
-            marginTop: "35px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            borderRadius: "8px",
+            padding: "24px",
+            marginTop: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
             border: "1px solid #ececec",
           }}
         >
           <h2
             style={{
-              marginBottom: "30px",
-              fontSize: "36px",
+              margin: "0 0 16px 0",
+              fontSize: "18px",
+              fontWeight: "600",
               color: "#111827",
             }}
           >
@@ -314,7 +310,7 @@ const CategoryAdminPanel = () => {
             style={{
               overflowX: "auto",
               border: "1px solid #e5e7eb",
-              borderRadius: "10px",
+              borderRadius: "6px",
             }}
           >
             <table
@@ -356,13 +352,13 @@ const CategoryAdminPanel = () => {
                       <td style={tableCell}>{item.id}</td>
                       <td style={tableCell}>
                         <img 
-                          src={item.categoryimage || "https://via.placeholder.com/60"} 
+                          src={item.categoryimage || "https://via.placeholder.com/40"} 
                           alt={item.name} 
-                          style={{ width: "60px", height: "60px", borderRadius: "6px", objectFit: "cover" }}
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/60"; }}
+                          style={{ width: "40px", height: "40px", borderRadius: "4px", objectFit: "cover" }}
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/40"; }}
                         />
                       </td>
-                      <td style={tableCell}>{item.name}</td>
+                      <td style={{ ...tableCell, fontWeight: "500" }}>{item.name}</td>
                       <td style={tableCell}>
                         {item.created_at ? new Date(item.created_at).toLocaleString() : "N/A"}
                       </td>
@@ -371,17 +367,17 @@ const CategoryAdminPanel = () => {
                         <div
                           style={{
                             display: "flex",
-                            gap: "15px",
+                            gap: "10px",
                           }}
                         >
                           <button
                             onClick={() => handleEditClick(item)}
                             title="Edit Category"
                             style={{
-                              width: "52px",
-                              height: "52px",
-                              borderRadius: "8px",
-                              border: "2px solid #2563eb",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "6px",
+                              border: "1px solid #2563eb",
                               background: "#fff",
                               color: "#2563eb",
                               cursor: "pointer",
@@ -390,17 +386,17 @@ const CategoryAdminPanel = () => {
                               justifyContent: "center",
                             }}
                           >
-                            <FaPen size={18} />
+                            <FaPen size={12} />
                           </button>
 
                           <button
                             onClick={() => handleDelete(item.id)}
                             title="Delete Category"
                             style={{
-                              width: "52px",
-                              height: "52px",
-                              borderRadius: "8px",
-                              border: "2px solid #ef4444",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "6px",
+                              border: "1px solid #ef4444",
                               background: "#fff",
                               color: "#ef4444",
                               cursor: "pointer",
@@ -409,7 +405,7 @@ const CategoryAdminPanel = () => {
                               justifyContent: "center",
                             }}
                           >
-                            <FaTrash size={18} />
+                            <FaTrash size={12} />
                           </button>
                         </div>
                       </td>
@@ -425,28 +421,28 @@ const CategoryAdminPanel = () => {
   );
 };
 
-// Extracted / Shared Styles
+// Updated Styles Object Matrix
 const tableHeader = {
-  padding: "24px",
-  fontSize: "24px",
+  padding: "14px 16px",
+  fontSize: "14px",
   fontWeight: "600",
-  color: "#111827",
+  color: "#4b5563",
 };
 
 const tableCell = {
-  padding: "24px",
-  fontSize: "22px",
-  color: "#374151",
+  padding: "12px 16px",
+  fontSize: "14px",
+  color: "#111827",
   verticalAlign: "middle"
 };
 
 const inputStyle = {
   width: "100%",
-  height: "70px",
-  borderRadius: "8px",
+  height: "42px",
+  borderRadius: "6px",
   border: "1px solid #d1d5db",
-  paddingLeft: "20px",
-  fontSize: "22px",
+  paddingLeft: "12px",
+  fontSize: "14px",
   outline: "none",
   color: "#111827",
   boxSizing: "border-box",
