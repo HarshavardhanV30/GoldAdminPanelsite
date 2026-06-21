@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaBars,
   FaUserCircle,
@@ -12,11 +12,13 @@ const CategoryAdminPanel = () => {
   // State variables
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
-  const [categoryImage, setCategoryImage] = useState(""); // Stores final cloud URL string
   const [selectedFile, setSelectedFile] = useState(null);   // Stores local file object for upload
-  const [previewUrl, setPreviewUrl] = useState("");         // Stores temporary local object blob URL for visual preview
+  const [previewUrl, setPreviewUrl] = useState("");         // Stores temporary local visual preview
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // File Input Ref to safely target and reset the field reset
+  const fileInputRef = useRef(null);
 
   // Fetch all categories on initial render
   useEffect(() => {
@@ -42,25 +44,8 @@ const CategoryAdminPanel = () => {
     if (!file) return;
 
     setSelectedFile(file);
-    // Create a local temporary URL just for the browser preview (saves memory, no base64 overhead)
+    // Create a local temporary URL just for the browser preview
     setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  // Helper: Upload file to a free image hosting API to obtain an absolute string URL
-  const uploadImageToCloud = async (file) => {
-    const formData = new FormData();
-    formData.append("image", file);
-
-    // Using an anonymous free upload router (ImgBB). 
-    // Replace "chg" with your own API key if you have one, or use your backend's direct multi-part route if available.
-    const response = await fetch("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) throw new Error("Image upload to hosting server failed");
-    const result = await response.json();
-    return result.data.url; // Returns a clean HTTP link string
   };
 
   // 2. POST (Add) or PUT (Update) API
@@ -71,34 +56,22 @@ const CategoryAdminPanel = () => {
       return;
     }
 
+    // Validation for raw additions
+    if (!editingId && !selectedFile) {
+      alert("Please select an image file to add a new category.");
+      return;
+    }
+
     setLoading(true);
 
+    // Using FormData format to allow backend process via Cloudinary
+    const formData = new FormData();
+    formData.append("name", name);
+    if (selectedFile) {
+      formData.append("categoryimage", selectedFile);
+    }
+
     try {
-      let finalImageUrl = categoryImage;
-
-      // If the user selected a new file, upload it first to get the URL string
-      if (selectedFile) {
-        try {
-          finalImageUrl = await uploadImageToCloud(selectedFile);
-        } catch (uploadErr) {
-          console.error("Cloud upload error:", uploadErr);
-          alert("Failed to process your image file. Upload aborted.");
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Safeguard fallback if no image url is found
-      if (!finalImageUrl) {
-        finalImageUrl = "https://via.placeholder.com/150";
-      }
-
-      // Structure data precisely to match database requirements
-      const bodyData = {
-        name: name,
-        categoryimage: finalImageUrl
-      };
-
       let url = `${BASE_URL}/add`;
       let method = "POST";
 
@@ -109,10 +82,7 @@ const CategoryAdminPanel = () => {
 
       const response = await fetch(url, {
         method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bodyData),
+        body: formData, // Send FormData direct payload (Do not add application/json headers)
       });
 
       if (!response.ok) {
@@ -120,15 +90,8 @@ const CategoryAdminPanel = () => {
         throw new Error(`Server status: ${response.status} - ${errText}`);
       }
 
-      // Reset form variables upon successful request fulfillment
-      setName("");
-      setCategoryImage("");
-      setSelectedFile(null);
-      setPreviewUrl("");
-      setEditingId(null);
-      
-      const fileInput = document.getElementById("categoryImageInput");
-      if (fileInput) fileInput.value = "";
+      // Reset form variables upon successful configuration updates
+      handleCancelEdit();
 
       // Refresh data grid
       fetchCategories();
@@ -145,9 +108,11 @@ const CategoryAdminPanel = () => {
   const handleEditClick = (item) => {
     setEditingId(item.id);
     setName(item.name);
-    setCategoryImage(item.categoryimage || "");
-    setPreviewUrl(item.categoryimage || ""); // Existing cloud image acts as the preview URL
-    setSelectedFile(null); // Reset file selection
+    setPreviewUrl(item.categoryimage || ""); // Existing cloud image acts as the initial placeholder preview
+    setSelectedFile(null); // Clear selected file instance
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -164,21 +129,22 @@ const CategoryAdminPanel = () => {
 
       alert("Category deleted successfully!");
       fetchCategories();
+      if (editingId === id) handleCancelEdit();
     } catch (error) {
       console.error("Error deleting category:", error);
       alert("Failed to delete category.");
     }
   };
 
-  // Cancel out of editing mode
+  // Cancel out of editing mode / Clean reset operations
   const handleCancelEdit = () => {
     setEditingId(null);
     setName("");
-    setCategoryImage("");
     setSelectedFile(null);
     setPreviewUrl("");
-    const fileInput = document.getElementById("categoryImageInput");
-    if (fileInput) fileInput.value = "";
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -277,7 +243,7 @@ const CategoryAdminPanel = () => {
                   color: "#111827",
                 }}
               >
-                Category Name
+                Category Name {!editingId && <span style={{ color: "red" }}>*</span>}
               </label>
               <input
                 type="text"
@@ -299,12 +265,13 @@ const CategoryAdminPanel = () => {
                   color: "#111827",
                 }}
               >
-                Category Image File
+                Category Image File {!editingId && <span style={{ color: "red" }}>*</span>}
               </label>
               <input
                 id="categoryImageInput"
                 type="file"
                 accept="image/*"
+                ref={fileInputRef}
                 onChange={handleFileChange}
                 style={fileInputStyle}
                 required={!editingId} 
@@ -336,7 +303,7 @@ const CategoryAdminPanel = () => {
                 type="submit"
                 disabled={loading}
                 style={{
-                  backgroundColor: loading ? "#93c5fd" : "#1565ff",
+                  backgroundColor: loading ? "#93c5fd" : editingId ? "#10b981" : "#1565ff",
                   color: "#fff",
                   border: "none",
                   borderRadius: "6px",
@@ -429,14 +396,14 @@ const CategoryAdminPanel = () => {
                     </td>
                   </tr>
                 ) : (
-                  categories.map((item) => (
+                  categories.map((item, index) => (
                     <tr
-                      key={item.id}
+                      key={item.id || index}
                       style={{
                         borderTop: "1px solid #e5e7eb",
                       }}
                     >
-                      <td style={tableCell}>{item.id}</td>
+                      <td style={tableCell}>{item.id || index + 1}</td>
                       <td style={tableCell}>
                         <img 
                           src={item.categoryimage || "https://via.placeholder.com/45"} 
