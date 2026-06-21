@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaBars,
   FaUserCircle,
@@ -6,35 +6,120 @@ import {
   FaTrash,
 } from "react-icons/fa";
 
-const categories = [
-  {
-    id: 1,
-    name: "Electronics",
-    createdAt: "20 May 2024, 10:30 AM",
-  },
-  {
-    id: 2,
-    name: "Fashion",
-    createdAt: "20 May 2024, 11:15 AM",
-  },
-  {
-    id: 3,
-    name: "Home & Kitchen",
-    createdAt: "21 May 2024, 09:45 AM",
-  },
-  {
-    id: 4,
-    name: "Beauty & Health",
-    createdAt: "21 May 2024, 10:20 AM",
-  },
-  {
-    id: 5,
-    name: "Sports & Outdoors",
-    createdAt: "22 May 2024, 02:10 PM",
-  },
-];
+const BASE_URL = "https://goldbackend-auyv.onrender.com/category";
 
 const CategoryAdminPanel = () => {
+  // State variables
+  const [categories, setCategories] = useState([]);
+  const [name, setName] = useState("");
+  const [categoryImage, setCategoryImage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null); // Keeps track if we are updating
+
+  // Fetch all categories on initial render
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // 1. GET ALL API
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/all`);
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      alert("Failed to load categories.");
+    }
+  };
+
+  // 2. POST (Add) or PUT (Update) API
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      alert("Please enter a category name");
+      return;
+    }
+
+    setLoading(true);
+    
+    // Construct request body match JSON expectations
+    const bodyData = {
+      name: name,
+      categoryimage: categoryImage || "https://via.placeholder.com/150" // Fallback placeholder if empty
+    };
+
+    try {
+      let url = `${BASE_URL}/add`;
+      let method = "POST";
+
+      // If editingId exists, swap to the PUT routine
+      if (editingId) {
+        url = `${BASE_URL}/${editingId}`;
+        method = "PUT";
+      }
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyData),
+      });
+
+      if (!response.ok) throw new Error("API action failed");
+
+      // Reset form variables
+      setName("");
+      setCategoryImage("");
+      setEditingId(null);
+      
+      // Refresh the list
+      fetchCategories();
+      alert(editingId ? "Category updated successfully!" : "Category added successfully!");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to save category.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Setup form fields for updating an entry
+  const handleEditClick = (item) => {
+    setEditingId(item.id);
+    setName(item.name);
+    setCategoryImage(item.categoryimage || "");
+    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll up to the form nicely
+  };
+
+  // 3. DELETE API
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+      const response = await fetch(`${BASE_URL}/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete category");
+
+      alert("Category deleted successfully!");
+      fetchCategories(); // Refresh list
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      alert("Failed to delete category.");
+    }
+  };
+
+  // Cancel out of editing mode
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setName("");
+    setCategoryImage("");
+  };
+
   return (
     <div
       style={{
@@ -97,7 +182,7 @@ const CategoryAdminPanel = () => {
           Manage your categories
         </p>
 
-        {/* Add Category Card */}
+        {/* Add / Edit Category Card */}
         <div
           style={{
             backgroundColor: "#fff",
@@ -115,54 +200,93 @@ const CategoryAdminPanel = () => {
               color: "#111827",
             }}
           >
-            Add New Category
+            {editingId ? "Edit Category" : "Add New Category"}
           </h2>
 
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "15px",
-                fontWeight: "600",
-                fontSize: "24px",
-                color: "#111827",
-              }}
-            >
-              Category Name
-            </label>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: "25px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "15px",
+                  fontWeight: "600",
+                  fontSize: "24px",
+                  color: "#111827",
+                }}
+              >
+                Category Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter category name"
+                style={inputStyle}
+                required
+              />
+            </div>
 
-            <input
-              type="text"
-              placeholder="Enter category name"
-              style={{
-                width: "100%",
-                height: "70px",
-                borderRadius: "8px",
-                border: "1px solid #d1d5db",
-                paddingLeft: "20px",
-                fontSize: "22px",
-                outline: "none",
-                color: "#111827",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
+            <div style={{ marginBottom: "25px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "15px",
+                  fontWeight: "600",
+                  fontSize: "24px",
+                  color: "#111827",
+                }}
+              >
+                Category Image URL
+              </label>
+              <input
+                type="url"
+                value={categoryImage}
+                onChange={(e) => setCategoryImage(e.target.value)}
+                placeholder="Enter category image URL (e.g. Cloudinary link)"
+                style={inputStyle}
+              />
+            </div>
 
-          <button
-            style={{
-              marginTop: "30px",
-              backgroundColor: "#1565ff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "16px 32px",
-              fontSize: "22px",
-              cursor: "pointer",
-              fontWeight: "500",
-            }}
-          >
-            Submit
-          </button>
+            <div style={{ display: "flex", gap: "15px" }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  marginTop: "10px",
+                  backgroundColor: loading ? "#93c5fd" : "#1565ff",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "16px 32px",
+                  fontSize: "22px",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontWeight: "500",
+                }}
+              >
+                {loading ? "Processing..." : editingId ? "Update" : "Submit"}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  style={{
+                    marginTop: "10px",
+                    backgroundColor: "#e5e7eb",
+                    color: "#1f2937",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "16px 32px",
+                    fontSize: "22px",
+                    cursor: "pointer",
+                    fontWeight: "500",
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
         </div>
 
         {/* Categories Table */}
@@ -206,7 +330,8 @@ const CategoryAdminPanel = () => {
                     textAlign: "left",
                   }}
                 >
-                  <th style={tableHeader}>#</th>
+                  <th style={tableHeader}># ID</th>
+                  <th style={tableHeader}>Image</th>
                   <th style={tableHeader}>Category Name</th>
                   <th style={tableHeader}>Created At</th>
                   <th style={tableHeader}>Actions</th>
@@ -214,61 +339,83 @@ const CategoryAdminPanel = () => {
               </thead>
 
               <tbody>
-                {categories.map((item) => (
-                  <tr
-                    key={item.id}
-                    style={{
-                      borderTop: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <td style={tableCell}>{item.id}</td>
-                    <td style={tableCell}>{item.name}</td>
-                    <td style={tableCell}>{item.createdAt}</td>
-
-                    <td style={tableCell}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "15px",
-                        }}
-                      >
-                        <button
-                          style={{
-                            width: "52px",
-                            height: "52px",
-                            borderRadius: "8px",
-                            border: "2px solid #2563eb",
-                            background: "#fff",
-                            color: "#2563eb",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <FaPen size={18} />
-                        </button>
-
-                        <button
-                          style={{
-                            width: "52px",
-                            height: "52px",
-                            borderRadius: "8px",
-                            border: "2px solid #ef4444",
-                            background: "#fff",
-                            color: "#ef4444",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <FaTrash size={18} />
-                        </button>
-                      </div>
+                {categories.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ ...tableCell, textAlign: "center", color: "#9ca3af" }}>
+                      No categories found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  categories.map((item) => (
+                    <tr
+                      key={item.id}
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <td style={tableCell}>{item.id}</td>
+                      <td style={tableCell}>
+                        <img 
+                          src={item.categoryimage || "https://via.placeholder.com/60"} 
+                          alt={item.name} 
+                          style={{ width: "60px", height: "60px", borderRadius: "6px", objectFit: "cover" }}
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/60"; }}
+                        />
+                      </td>
+                      <td style={tableCell}>{item.name}</td>
+                      <td style={tableCell}>
+                        {item.created_at ? new Date(item.created_at).toLocaleString() : "N/A"}
+                      </td>
+
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "15px",
+                          }}
+                        >
+                          <button
+                            onClick={() => handleEditClick(item)}
+                            title="Edit Category"
+                            style={{
+                              width: "52px",
+                              height: "52px",
+                              borderRadius: "8px",
+                              border: "2px solid #2563eb",
+                              background: "#fff",
+                              color: "#2563eb",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <FaPen size={18} />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            title="Delete Category"
+                            style={{
+                              width: "52px",
+                              height: "52px",
+                              borderRadius: "8px",
+                              border: "2px solid #ef4444",
+                              background: "#fff",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <FaTrash size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -278,6 +425,7 @@ const CategoryAdminPanel = () => {
   );
 };
 
+// Extracted / Shared Styles
 const tableHeader = {
   padding: "24px",
   fontSize: "24px",
@@ -289,6 +437,19 @@ const tableCell = {
   padding: "24px",
   fontSize: "22px",
   color: "#374151",
+  verticalAlign: "middle"
+};
+
+const inputStyle = {
+  width: "100%",
+  height: "70px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  paddingLeft: "20px",
+  fontSize: "22px",
+  outline: "none",
+  color: "#111827",
+  boxSizing: "border-box",
 };
 
 export default CategoryAdminPanel;
