@@ -12,7 +12,7 @@ const CategoryAdminPanel = () => {
   // State variables
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
-  const [categoryImage, setCategoryImage] = useState("");
+  const [categoryImage, setCategoryImage] = useState(""); // Stores base64 string or url
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -34,6 +34,25 @@ const CategoryAdminPanel = () => {
     }
   };
 
+  // Helper: Convert File Object to Base64 String 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check size limit to prevent oversized Base64 payload failures (e.g., 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("File is too large! Please choose an image smaller than 2MB.");
+      e.target.value = ""; // Clear file selector
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCategoryImage(reader.result); // Base64 Data URI string
+    };
+    reader.readAsDataURL(file);
+  };
+
   // 2. POST (Add) or PUT (Update) API
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +63,7 @@ const CategoryAdminPanel = () => {
 
     setLoading(true);
     
+    // Request body configured exactly to match your schema keys
     const bodyData = {
       name: name,
       categoryimage: categoryImage || "https://via.placeholder.com/150"
@@ -68,10 +88,16 @@ const CategoryAdminPanel = () => {
 
       if (!response.ok) throw new Error("API action failed");
 
+      // Reset form variables
       setName("");
       setCategoryImage("");
       setEditingId(null);
       
+      // Reset input element visually
+      const fileInput = document.getElementById("categoryImageInput");
+      if (fileInput) fileInput.value = "";
+
+      // Refresh the list
       fetchCategories();
       alert(editingId ? "Category updated successfully!" : "Category added successfully!");
     } catch (error) {
@@ -82,6 +108,7 @@ const CategoryAdminPanel = () => {
     }
   };
 
+  // Setup form fields for updating an entry
   const handleEditClick = (item) => {
     setEditingId(item.id);
     setName(item.name);
@@ -108,10 +135,13 @@ const CategoryAdminPanel = () => {
     }
   };
 
+  // Cancel out of editing mode
   const handleCancelEdit = () => {
     setEditingId(null);
     setName("");
     setCategoryImage("");
+    const fileInput = document.getElementById("categoryImageInput");
+    if (fileInput) fileInput.value = "";
   };
 
   return (
@@ -131,7 +161,7 @@ const CategoryAdminPanel = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 20px",
+          padding: "0 24px",
         }}
       >
         <FaBars size={20} color="#1f2937" />
@@ -146,7 +176,7 @@ const CategoryAdminPanel = () => {
             color: "#111827",
           }}
         >
-          <FaUserCircle size={26} color="#9ca3af" />
+          <FaUserCircle size={28} color="#9ca3af" />
           <span>Admin</span>
           <span style={{ fontSize: "11px" }}>▼</span>
         </div>
@@ -160,7 +190,7 @@ const CategoryAdminPanel = () => {
             fontSize: "28px",
             margin: 0,
             fontWeight: "700",
-            color: "#111827",
+            color: "#000",
           }}
         >
           Categories
@@ -170,8 +200,8 @@ const CategoryAdminPanel = () => {
           style={{
             marginTop: "6px",
             color: "#6b7280",
-            fontSize: "15px",
-            marginBlockEnd: 0,
+            fontSize: "14px",
+            marginBottom: "0px"
           }}
         >
           Manage your categories
@@ -190,10 +220,10 @@ const CategoryAdminPanel = () => {
         >
           <h2
             style={{
-              margin: "0 0 20px 0",
+              marginBottom: "20px",
               fontSize: "18px",
-              fontWeight: "600",
               color: "#111827",
+              marginTop: 0
             }}
           >
             {editingId ? "Edit Category" : "Add New Category"}
@@ -232,18 +262,39 @@ const CategoryAdminPanel = () => {
                   color: "#111827",
                 }}
               >
-                Category Image URL
+                Category Image File
               </label>
               <input
-                type="url"
-                value={categoryImage}
-                onChange={(e) => setCategoryImage(e.target.value)}
-                placeholder="Enter category image URL (e.g. Cloudinary link)"
-                style={inputStyle}
+                id="categoryImageInput"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={fileInputStyle}
+                required={!editingId} // Image is mandatory only when creating new
               />
+              
+              {/* Image Preview Window */}
+              {categoryImage && (
+                <div style={{ marginTop: "12px" }}>
+                  <span style={{ display: "block", fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
+                    Image Preview:
+                  </span>
+                  <img
+                    src={categoryImage}
+                    alt="Preview Target"
+                    style={{
+                      height: "70px",
+                      width: "70px",
+                      objectFit: "cover",
+                      borderRadius: "6px",
+                      border: "1px solid #e5e7eb"
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "12px" }}>
               <button
                 type="submit"
                 disabled={loading}
@@ -256,7 +307,6 @@ const CategoryAdminPanel = () => {
                   fontSize: "14px",
                   cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: "500",
-                  transition: "background-color 0.2s",
                 }}
               >
                 {loading ? "Processing..." : editingId ? "Update" : "Submit"}
@@ -288,7 +338,7 @@ const CategoryAdminPanel = () => {
         <div
           style={{
             backgroundColor: "#fff",
-            borderRadius: "8px",
+            borderRadius: "#8px",
             padding: "24px",
             marginTop: "24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
@@ -297,10 +347,10 @@ const CategoryAdminPanel = () => {
         >
           <h2
             style={{
-              margin: "0 0 16px 0",
+              marginBottom: "16px",
               fontSize: "18px",
-              fontWeight: "600",
               color: "#111827",
+              marginTop: 0
             }}
           >
             All Categories
@@ -352,32 +402,32 @@ const CategoryAdminPanel = () => {
                       <td style={tableCell}>{item.id}</td>
                       <td style={tableCell}>
                         <img 
-                          src={item.categoryimage || "https://via.placeholder.com/40"} 
+                          src={item.categoryimage || "https://via.placeholder.com/45"} 
                           alt={item.name} 
-                          style={{ width: "40px", height: "40px", borderRadius: "4px", objectFit: "cover" }}
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/40"; }}
+                          style={{ width: "45px", height: "45px", borderRadius: "4px", objectFit: "cover" }}
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/45"; }}
                         />
                       </td>
-                      <td style={{ ...tableCell, fontWeight: "500" }}>{item.name}</td>
+                      <td style={tableCell}>{item.name}</td>
                       <td style={tableCell}>
-                        {item.created_at ? new Date(item.created_at).toLocaleString() : "N/A"}
+                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : "N/A"}
                       </td>
 
                       <td style={tableCell}>
                         <div
                           style={{
                             display: "flex",
-                            gap: "10px",
+                            gap: "8px",
                           }}
                         >
                           <button
                             onClick={() => handleEditClick(item)}
                             title="Edit Category"
                             style={{
-                              width: "32px",
-                              height: "32px",
+                              width: "34px",
+                              height: "34px",
                               borderRadius: "6px",
-                              border: "1px solid #2563eb",
+                              border: "1.5px solid #2563eb",
                               background: "#fff",
                               color: "#2563eb",
                               cursor: "pointer",
@@ -393,10 +443,10 @@ const CategoryAdminPanel = () => {
                             onClick={() => handleDelete(item.id)}
                             title="Delete Category"
                             style={{
-                              width: "32px",
-                              height: "32px",
+                              width: "34px",
+                              height: "34px",
                               borderRadius: "6px",
-                              border: "1px solid #ef4444",
+                              border: "1.5px solid #ef4444",
                               background: "#fff",
                               color: "#ef4444",
                               cursor: "pointer",
@@ -421,18 +471,18 @@ const CategoryAdminPanel = () => {
   );
 };
 
-// Updated Styles Object Matrix
+// Extracted Styles with Normalized Standard Dimensions
 const tableHeader = {
-  padding: "14px 16px",
+  padding: "14px 18px",
   fontSize: "14px",
   fontWeight: "600",
-  color: "#4b5563",
+  color: "#111827",
 };
 
 const tableCell = {
-  padding: "12px 16px",
+  padding: "14px 18px",
   fontSize: "14px",
-  color: "#111827",
+  color: "#374151",
   verticalAlign: "middle"
 };
 
@@ -446,6 +496,14 @@ const inputStyle = {
   outline: "none",
   color: "#111827",
   boxSizing: "border-box",
+};
+
+const fileInputStyle = {
+  display: "block",
+  width: "100%",
+  fontSize: "14px",
+  color: "#374151",
+  padding: "8px 0"
 };
 
 export default CategoryAdminPanel;
