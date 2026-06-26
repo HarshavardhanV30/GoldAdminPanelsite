@@ -17,7 +17,6 @@ const OrderTable = () => {
       try {
         const response = await fetch(`https://goldbackend-auyv.onrender.com/order/all`);
         const data = await response.json();
-        // Fallback to empty array if response is not formatted as expected
         setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -269,7 +268,6 @@ const OrderTable = () => {
 
                 return (
                   <tr key={idx} style={{ ...(isCancelled ? styles.cancelledRow : {}), ...styles.trHover }}>
-                    {/* Item Summary Details */}
                     <td style={styles.thtd}>
                       {item.image ? <img src={item.image} alt={item.name} style={{ width: '80px', borderRadius: '4px', objectFit: 'contain' }} /> : '—'}
                     </td>
@@ -279,13 +277,15 @@ const OrderTable = () => {
                     <td style={styles.thtd}>₹{itemPrice.toLocaleString('en-IN')}</td>
                     <td style={styles.thtd}>₹{totalPrice.toLocaleString('en-IN')}</td>
                     
-                    {/* Financial/Payment Columns from Root Object */}
-                    <td style={styles.thtd} style={{ ...styles.thtd, color: advancePaid > 0 ? '#22c55e' : 'inherit' }}>
+                    {/* Fixed styles combination here */}
+                    <td style={{ ...styles.thtd, color: advancePaid > 0 ? '#22c55e' : 'inherit' }}>
                       ₹{advancePaid.toLocaleString('en-IN')}
                     </td>
-                    <td style={styles.thtd} style={{ ...styles.thtd, color: balanceDue > 0 ? '#ef4444' : 'inherit', fontWeight: balanceDue > 0 ? '600' : 'normal' }}>
+                    {/* Fixed styles combination here */}
+                    <td style={{ ...styles.thtd, color: balanceDue > 0 ? '#ef4444' : 'inherit', fontWeight: balanceDue > 0 ? '600' : 'normal' }}>
                       ₹{balanceDue.toLocaleString('en-IN')}
                     </td>
+                    
                     <td style={styles.thtd}>
                       <span style={{ textTransform: 'uppercase', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: darkMode ? '#333' : '#e5e7eb' }}>
                         {item.order.initial_payment_type || '—'}
@@ -293,7 +293,6 @@ const OrderTable = () => {
                     </td>
                     <td style={styles.thtd}>{item.order.payment_method || '—'}</td>
                     
-                    {/* Shipping Address */}
                     <td style={styles.thtd}>
                       {item.order.address ? (
                         <div style={styles.addressInfo}>
@@ -306,7 +305,6 @@ const OrderTable = () => {
                       ) : 'No address specified'}
                     </td>
 
-                    {/* Status and Reason */}
                     <td style={styles.thtd}>
                       <span style={styles.statusBadge(item.orderStatus)}>{item.orderStatus}</span>
                     </td>
@@ -316,7 +314,6 @@ const OrderTable = () => {
                       ) : '—'}
                     </td>
 
-                    {/* Status Management Buttons */}
                     <td style={styles.thtd}>
                       {!isCancelled ? (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -329,7 +326,6 @@ const OrderTable = () => {
                       )}
                     </td>
 
-                    {/* Delete Entry */}
                     <td style={styles.thtd}>
                       <button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}>
                         <FaTrash />
