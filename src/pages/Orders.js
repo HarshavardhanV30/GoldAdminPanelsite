@@ -81,6 +81,9 @@ const OrderTable = () => {
           Purity: item.purity || '',
           Price: item.price || '',
           TotalPrice: item.quantity > 0 ? (parseFloat(item.price) * item.quantity).toFixed(2) : item.price,
+          AdvancePaid: order.advance_paid || '0.00',
+          BalanceDue: order.balance_due || '0.00',
+          InitialPaymentType: order.initial_payment_type || '',
           PaymentMethod: order.payment_method || '',
           ExpectedDelivery: order.expected_delivery || '',
           Address_Name: order.address?.name || '',
@@ -135,7 +138,7 @@ const OrderTable = () => {
     },
     tableContainer: { overflowX: 'auto', width: '100%' },
     table: { width: '100%', borderCollapse: 'collapse', transition: 'all 0.3s ease' },
-    thtd: { padding: '0.75rem', border: `1px solid ${darkMode ? '#444' : '#ccc'}`, textAlign: 'left', transition: 'all 0.3s ease' },
+    thtd: { padding: '0.75rem', border: `1px solid ${darkMode ? '#444' : '#ccc'}`, textAlign: 'left', transition: 'all 0.3s ease', fontSize: '0.9rem' },
     purityBadge: { backgroundColor: '#facc15', padding: '0.2rem 0.5rem', borderRadius: '5px', color: '#000', fontWeight: 'bold' },
     statusBadge: (status) => {
       let bg = '#22c55e';
@@ -147,7 +150,8 @@ const OrderTable = () => {
         borderRadius: '5px',
         color: '#fff',
         backgroundColor: bg,
-        textTransform: 'capitalize'
+        textTransform: 'capitalize',
+        fontWeight: '500'
       };
     },
     btn: (bg, color) => ({
@@ -156,7 +160,7 @@ const OrderTable = () => {
       transition: '0.3s', fontSize: '0.85rem'
     }),
     cancelledRow: { opacity: 0.6, backgroundColor: darkMode ? '#3a2424' : '#fee2e2' },
-    addressInfo: { lineHeight: '1.4', fontSize: '0.9rem' },
+    addressInfo: { lineHeight: '1.4', fontSize: '0.85rem' },
     trHover: { cursor: 'pointer', transition: 'background-color 0.2s ease' },
     cardsContainer: { display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' },
     card: (bgColor, active) => ({
@@ -246,7 +250,11 @@ const OrderTable = () => {
           <table style={styles.table}>
             <thead>
               <tr style={{ backgroundColor: darkMode ? '#2a2a3d' : '#e9ecef' }}>
-                {['Image','Product','Quantity','Purity','Price','Total Price','Payment Method','Shipping Address','Status','Notes / Cancellation','Update Status','Action'].map((th, i) => (
+                {[
+                  'Image', 'Product', 'Quantity', 'Purity', 'Price', 'Total Price', 
+                  'Advance Paid', 'Balance Due', 'Payment Type', 'Method', 
+                  'Shipping Address', 'Status', 'Notes', 'Update Status', 'Action'
+                ].map((th, i) => (
                   <th key={i} style={styles.thtd}>{th}</th>
                 ))}
               </tr>
@@ -255,10 +263,13 @@ const OrderTable = () => {
               {filteredOrders.length > 0 ? filteredOrders.map((item, idx) => {
                 const itemPrice = parseFloat(item.price) || 0;
                 const totalPrice = item.quantity * itemPrice;
+                const advancePaid = parseFloat(item.order.advance_paid) || 0;
+                const balanceDue = parseFloat(item.order.balance_due) || 0;
                 const isCancelled = item.orderStatus === 'cancelled';
 
                 return (
                   <tr key={idx} style={{ ...(isCancelled ? styles.cancelledRow : {}), ...styles.trHover }}>
+                    {/* Item Summary Details */}
                     <td style={styles.thtd}>
                       {item.image ? <img src={item.image} alt={item.name} style={{ width: '80px', borderRadius: '4px', objectFit: 'contain' }} /> : '—'}
                     </td>
@@ -267,7 +278,22 @@ const OrderTable = () => {
                     <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity}</span></td>
                     <td style={styles.thtd}>₹{itemPrice.toLocaleString('en-IN')}</td>
                     <td style={styles.thtd}>₹{totalPrice.toLocaleString('en-IN')}</td>
+                    
+                    {/* Financial/Payment Columns from Root Object */}
+                    <td style={styles.thtd} style={{ ...styles.thtd, color: advancePaid > 0 ? '#22c55e' : 'inherit' }}>
+                      ₹{advancePaid.toLocaleString('en-IN')}
+                    </td>
+                    <td style={styles.thtd} style={{ ...styles.thtd, color: balanceDue > 0 ? '#ef4444' : 'inherit', fontWeight: balanceDue > 0 ? '600' : 'normal' }}>
+                      ₹{balanceDue.toLocaleString('en-IN')}
+                    </td>
+                    <td style={styles.thtd}>
+                      <span style={{ textTransform: 'uppercase', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: darkMode ? '#333' : '#e5e7eb' }}>
+                        {item.order.initial_payment_type || '—'}
+                      </span>
+                    </td>
                     <td style={styles.thtd}>{item.order.payment_method || '—'}</td>
+                    
+                    {/* Shipping Address */}
                     <td style={styles.thtd}>
                       {item.order.address ? (
                         <div style={styles.addressInfo}>
@@ -275,18 +301,22 @@ const OrderTable = () => {
                           {item.order.address.flat}, {item.order.address.street}<br />
                           {item.order.address.city}, {item.order.address.state} - {item.order.address.pincode}<br />
                           <small>Phone: {item.order.address.mobile}</small><br />
-                          <span style={{ fontSize: '0.75rem', color: '#888' }}>Tag: {item.order.address.address_type}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#888' }}>Tag: {item.order.address.address_type}</span>
                         </div>
                       ) : 'No address specified'}
                     </td>
+
+                    {/* Status and Reason */}
                     <td style={styles.thtd}>
                       <span style={styles.statusBadge(item.orderStatus)}>{item.orderStatus}</span>
                     </td>
                     <td style={styles.thtd}>
                       {isCancelled && item.order.cancellation_reason ? (
-                        <span style={{ color: '#ef4444' }}>{item.order.cancellation_reason}</span>
+                        <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>{item.order.cancellation_reason}</span>
                       ) : '—'}
                     </td>
+
+                    {/* Status Management Buttons */}
                     <td style={styles.thtd}>
                       {!isCancelled ? (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -298,6 +328,8 @@ const OrderTable = () => {
                         <span style={{ color: '#888', fontSize: '0.85rem' }}>No Actions</span>
                       )}
                     </td>
+
+                    {/* Delete Entry */}
                     <td style={styles.thtd}>
                       <button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}>
                         <FaTrash />
@@ -307,7 +339,7 @@ const OrderTable = () => {
                 );
               }) : (
                 <tr>
-                  <td colSpan="12" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
+                  <td colSpan="15" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
                     No matching order records found.
                   </td>
                 </tr>
