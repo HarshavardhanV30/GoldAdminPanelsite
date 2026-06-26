@@ -54,7 +54,9 @@ const SellerProductTable = () => {
 
     if (searchQuery.trim() !== "") {
       result = result.filter((p) =>
-        (p.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+        (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.category || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.full_name || "").toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -124,7 +126,7 @@ const SellerProductTable = () => {
     try {
       return JSON.parse(images);
     } catch {
-      return [];
+      return [images]; // Fallback if single string instead of array block
     }
   };
 
@@ -180,7 +182,7 @@ const SellerProductTable = () => {
         <div style={styles.searchBox}>
           <FaSearch color={darkMode ? "#94a3b8" : "#64748b"} />
           <input
-            placeholder="Search by product name..."
+            placeholder="Search by name, category, or seller..."
             style={{
               ...styles.searchInput,
               background: darkMode ? "#1e293b" : "#fff",
@@ -224,12 +226,12 @@ const SellerProductTable = () => {
         </div>
 
         <div style={styles.redCard} onClick={showHigh}>
-          <h4>High Amount</h4>
+          <h4>High Amount (&gt;100k)</h4>
           <h2>{products.filter((p) => Number(p.price) > 100000).length}</h2>
         </div>
 
         <div style={styles.yellowCard} onClick={showLow}>
-          <h4>Low Amount</h4>
+          <h4>Low Amount (&le;100k)</h4>
           <h2>{products.filter((p) => Number(p.price) <= 100000).length}</h2>
         </div>
       </div>
@@ -238,6 +240,7 @@ const SellerProductTable = () => {
       <div style={styles.filters}>
         <input
           placeholder="Min Price"
+          type="number"
           value={minPrice}
           style={{
             ...styles.filterInput,
@@ -249,6 +252,7 @@ const SellerProductTable = () => {
         />
         <input
           placeholder="Max Price"
+          type="number"
           value={maxPrice}
           style={{
             ...styles.filterInput,
@@ -256,11 +260,11 @@ const SellerProductTable = () => {
             color: darkMode ? "#fff" : "#000",
             border: darkMode ? "1px solid #334155" : "1px solid #cbd5e1",
           }}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => setMaxPrice(e.target.value)}
         />
         <button 
           style={styles.actionBtn} 
-          onClick={() => { setMinPrice(""); setMaxPrice(""); setSearchQuery(""); }}
+          onClick={() => { setMinPrice(""); setMaxPrice(""); setSearchQuery(""); setFilteredProducts(products); }}
         >
           Reset Filters
         </button>
@@ -381,29 +385,49 @@ const SellerProductTable = () => {
         </table>
       </div>
 
-      {/* MODAL POPUP: PROMPT DETAILED WRAPPER */}
+      {/* MODAL POPUP: COMPLETE SYSTEM WRAPPER FOR ALL COLUMNS */}
       {activeProduct && (
         <div style={styles.popupOverlay} onClick={() => setActiveProduct(null)}>
           <div style={{ ...styles.popupCard, background: darkMode ? "#1e293b" : "#fff" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ color: darkMode ? "#fff" : "#000", marginBottom: 16, fontWeight: "700" }}>{activeProduct.name}</h2>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 15 }}>
+            
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
               {parseImages(activeProduct.images).map((img, i) => (
-                <img key={i} src={img} alt="" style={styles.bigImage} />
+                <img key={i} src={img} alt="" style={styles.bigImage} onClick={() => setEnlargedImage(img)} />
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+
+            <h3 style={{ fontSize: 16, borderBottom: "1px solid #475569", paddingBottom: 6, marginBottom: 12, color: "#3b82f6" }}>Product Information</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px", marginBottom: 20 }}>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Product ID:</b> #{activeProduct.id}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Category:</b> {activeProduct.category}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Weight:</b> {activeProduct.weight} gm</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Purity:</b> {activeProduct.purity}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Condition:</b> {activeProduct.condition}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Price:</b> ₹{activeProduct.price}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Selling Type:</b> {activeProduct.typeofselling}</p>
               <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}>
                 <b>Status:</b> <span style={getStatusStyle(activeProduct.status)}>{activeProduct.status || "Pending"}</span>
               </p>
-              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Seller:</b> {activeProduct.full_name}</p>
-              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Mobile:</b> {activeProduct.mobilenumber}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155", gridColumn: "1 / -1" }}><b>Description:</b> {activeProduct.description || "No description provided."}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155", gridColumn: "1 / -1" }}><b>Created At:</b> {new Date(activeProduct.created_at).toLocaleString()}</p>
             </div>
-            <button style={{ ...styles.actionBtn, marginTop: 24, width: "100%" }} onClick={() => setActiveProduct(null)}>Close Overlay View</button>
+
+            <h3 style={{ fontSize: 16, borderBottom: "1px solid #475569", paddingBottom: 6, marginBottom: 12, color: "#3b82f6" }}>Seller Contact & Address</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Full Name:</b> {activeProduct.full_name || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Mobile Number:</b> {activeProduct.mobilenumber || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Street No:</b> {activeProduct.street_no || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Landmark:</b> {activeProduct.landmark || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Mandal:</b> {activeProduct.mandal || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>District:</b> {activeProduct.district || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>State:</b> {activeProduct.state || "N/A"}</p>
+              <p style={{ ...styles.popupText, color: darkMode ? "#cbd5e1" : "#334155" }}><b>Pincode:</b> {activeProduct.pincode || "N/A"}</p>
+            </div>
+
+            <button style={{ ...styles.actionBtn, marginTop: 24, width: "100%", background: "#ef4444" }} onClick={() => setActiveProduct(null)}>
+              Close Overlay View
+            </button>
           </div>
         </div>
       )}
@@ -411,7 +435,7 @@ const SellerProductTable = () => {
       {/* LIGHTBOX MATRIX IMAGE DETECTOR */}
       {enlargedImage && (
         <div style={styles.popupOverlay} onClick={() => setEnlargedImage(null)}>
-          <img src={enlargedImage} alt="" style={{ ...styles.bigImage, maxWidth: "75%", maxHeight: "75vh", objectFit: "contain" }} />
+          <img src={enlargedImage} alt="" style={{ ...styles.bigImage, maxWidth: "75%", maxHeight: "75vh", width: "auto", height: "auto", objectFit: "contain" }} />
         </div>
       )}
     </div>
@@ -434,32 +458,28 @@ const styles = {
   yellowCard: { padding: 20, borderRadius: 16, color: "#111", background: "linear-gradient(135deg,#facc15,#eab308)", cursor: "pointer" },
   filters: { display: "flex", gap: 12, margin: "24px 0", alignItems: "center" },
   actionBtn: { border: "none", background: "#64748b", color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: "600", fontSize: 13 },
-  tableCard: { padding: 20, borderRadius: 16, overflowX: "visible" }, 
+  tableCard: { padding: 20, borderRadius: 16, overflowX: "auto" }, 
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  th: { padding: "14px 16px", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.06em" },
-  td: { padding: "14px 16px", fontSize: 14, verticalAlign: "middle" },
+  th: { padding: "14px 16px", fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" },
+  td: { padding: "14px 16px", fontSize: 14, verticalAlign: "middle", whiteSpace: "nowrap" },
   thumb: { width: 48, height: 48, borderRadius: 8, cursor: "pointer", marginRight: 6, objectFit: "cover" },
 
-  // Custom Dropdown Interactive Components
   dropdownToggleBtn: { border: "none", padding: "8px 14px", borderRadius: 8, fontWeight: "600", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 },
   dropdownMenu: { position: "absolute", right: 16, top: "80%", zIndex: 100, borderRadius: 10, padding: "6px", minWidth: "170px", display: "flex", flexDirection: "column", gap: 2 },
   dropdownItem: { background: "none", border: "none", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, borderRadius: 6, transition: "background 0.15s ease" },
 
-  // Color-coded Status Badges
   statusApproved: { background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
   statusRejected: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
   statusPending: { background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", padding: "4px 10px", borderRadius: 12, fontSize: 12, fontWeight: "700", textTransform: "capitalize" },
 
-  // Loading Modals & Overlays
   globalLoaderOverlay: { position: "fixed", inset: 0, background: "rgba(2, 6, 23, 0.65)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", color: "#fff" },
   spinner: { width: 42, height: 42, border: "4px solid rgba(255,255,255,0.2)", borderTop: "4px solid #3b82f6", borderRadius: "50%", animation: "spin 0.85s linear infinite" },
   popupOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(2px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999 },
-  popupCard: { padding: 28, borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto" },
-  popupText: { fontSize: 14, marginBottom: 4 },
-  bigImage: { width: 90, height: 90, borderRadius: 10, objectFit: "cover", border: "1px solid #cbd5e1" },
+  popupCard: { padding: 28, borderRadius: 20, width: "100%", maxWidth: 580, maxHeight: "85vh", overflowY: "auto" },
+  popupText: { fontSize: 14, margin: 0 },
+  bigImage: { width: 90, height: 90, borderRadius: 10, objectFit: "cover", border: "1px solid #cbd5e1", cursor: "pointer" },
 };
 
-// Global CSS Insertion for Spinner Keyframes
 if (typeof document !== "undefined") {
   const styleSheet = document.styleSheets[0] || document.head.appendChild(document.createElement("style")).sheet;
   try { styleSheet.insertRule("@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }", styleSheet.cssRules.length); } catch (e) {}
