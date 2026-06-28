@@ -27,23 +27,30 @@ const OrderTable = () => {
     fetchOrders();
   }, []);
 
-  // 2. Handle status updates via API
+  // 2. Handle status updates via API matching your strict endpoint configuration
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const res = await fetch('https://goldbackend-auyv.onrender.com/order/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: newStatus }),
+        body: JSON.stringify({ 
+          orderId: Number(orderId), // ensuring type parity with incoming numeric IDs
+          status: newStatus 
+        }),
       });
+      
+      const result = await res.json();
+
       if (res.ok) {
+        // Optimistically or safely update local state array values directly
         setOrders(prevOrders => 
           prevOrders.map(order =>
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
       } else {
-        const result = await res.json();
         console.error('Failed to update status:', result.message);
+        alert(`Error: ${result.message || 'Could not update status'}`);
       }
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -107,7 +114,7 @@ const OrderTable = () => {
 
   // Compute live card counts safely derived from orders state
   const totalOrders = orders.length;
-  const completedOrders = orders.filter(o => o.status === 'completed').length;
+  const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
   const pendingOrders = orders.filter(o => o.status === 'processing' || o.status === 'approved').length;
   const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
 
@@ -145,6 +152,7 @@ const OrderTable = () => {
       if (status === 'cancelled') bg = '#ef4444';
       if (status === 'processing') bg = '#f59e0b';
       if (status === 'approved') bg = '#3b82f6';
+      if (status === 'delivered') bg = '#10b981';
       return {
         padding: '0.2rem 0.5rem',
         borderRadius: '5px',
@@ -326,13 +334,13 @@ const OrderTable = () => {
 
                     <td style={styles.thtd}>
                       {!isCancelled ? (
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Process</button>
-                          <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>Step 1: Process</button>
+                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>Step 2: Approve</button>
+                          <button style={styles.btn(darkMode?'#10b981':'#10b981','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>Step 3: Deliver</button>
                         </div>
                       ) : (
-                        <span style={{ color: '#888', fontSize: '0.85rem' }}>No Actions</span>
+                        <span style={{ color: '#88', fontSize: '0.85rem' }}>No Actions</span>
                       )}
                     </td>
 
