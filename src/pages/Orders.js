@@ -17,10 +17,10 @@ const OrderTable = () => {
       try {
         const response = await fetch(`https://goldbackend-auyv.onrender.com/order/all`);
         const data = await response.json();
-        // Fallback check to match if your objects use .id or ._id
+        // Standardize IDs since standard relational databases expose 'id' or '_id'
         const normalizedData = (Array.isArray(data) ? data : []).map(order => ({
           ...order,
-          id: order.id || order._id // Normalizes ID field mismatch
+          id: order.id || order._id 
         }));
         setOrders(normalizedData);
       } catch (error) {
@@ -32,25 +32,29 @@ const OrderTable = () => {
     fetchOrders();
   }, []);
 
-  // 2. Handle status updates via POST API
+  // 2. Handle status updates using PUT API matching your backend expectations
   const handleStatusChange = async (orderId, newStatus) => {
     try {
+      // Changed method to PUT to match: router.put('/update-status')
       const res = await fetch('https://goldbackend-auyv.onrender.com/order/update-status', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: Number(orderId) || orderId, status: newStatus }),
+        body: JSON.stringify({ 
+          orderId: Number(orderId) || orderId, 
+          status: newStatus 
+        }),
       });
       
+      const result = await res.json();
+
       if (res.ok) {
-        // Live state modification so UI updates instantly without an extra page reload
+        // Live local state update so the change reflects instantly on the screen
         setOrders(prevOrders => 
           prevOrders.map(order =>
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
-        alert(`Status updated to "${newStatus}" successfully!`);
       } else {
-        const result = await res.json();
         console.error('Failed to update status:', result.message);
         alert(`Update failed: ${result.message || 'Unknown backend error'}`);
       }
@@ -60,7 +64,7 @@ const OrderTable = () => {
     }
   };
 
-  // 3. Handle order deletion via API
+  // 3. Handle order deletion via API matching: router.delete('/delete/:orderId')
   const handleDelete = async (orderId) => {
     if (!window.confirm("Are you sure you want to delete this order?")) return;
     try {
@@ -78,11 +82,20 @@ const OrderTable = () => {
     }
   };
 
-  // 4. Export formatted JSON arrays into clean Excel structure
+  // 4. Export structured datasets into clean Excel records
   const exportToExcel = () => {
     const exportData = [];
     orders.forEach(order => {
-      (order.order_summary || []).forEach(item => {
+      // Handle safe structural parsing depending on database return data types
+      const summaryItems = typeof order.order_summary === 'string' 
+        ? JSON.parse(order.order_summary) 
+        : (order.order_summary || []);
+
+      const addressData = typeof order.address === 'string' 
+        ? JSON.parse(order.address) 
+        : order.address;
+
+      summaryItems.forEach(item => {
         exportData.push({
           OrderID: order.id || '',
           Name: item.name || '',
@@ -96,14 +109,14 @@ const OrderTable = () => {
           PaymentStatus: order.payment_status || '',
           PaymentMethod: order.payment_method || '',
           ExpectedDelivery: order.expected_delivery || '',
-          Address_Name: order.address?.name || '',
-          Address_Flat: order.address?.flat || '',
-          Address_Street: order.address?.street || '',
-          Address_City: order.address?.city || '',
-          Address_State: order.address?.state || '',
-          Address_Pincode: order.address?.pincode || '',
-          Address_Mobile: order.address?.mobile || '',
-          Address_Type: order.address?.address_type || '',
+          Address_Name: addressData?.name || '',
+          Address_Flat: addressData?.flat || '',
+          Address_Street: addressData?.street || '',
+          Address_City: addressData?.city || '',
+          Address_State: addressData?.state || '',
+          Address_Pincode: addressData?.pincode || '',
+          Address_Mobile: addressData?.mobile || '',
+          Address_Type: addressData?.address_type || '',
           Status: order.status || 'processing',
           CancellationReason: order.cancellation_reason || '',
         });
@@ -115,13 +128,13 @@ const OrderTable = () => {
     XLSX.writeFile(wb, 'orders.xlsx');
   };
 
-  // Compute live card counts safely derived from orders state
+  // Compute live dashboard metrics
   const totalOrders = orders.length;
   const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
   const pendingOrders = orders.filter(o => o.status === 'processing' || o.status === 'approved').length;
   const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
 
-  // Modern component inline styles
+  // Modern UI Style configurations
   const styles = {
     container: {
       padding: '2rem',
@@ -191,9 +204,13 @@ const OrderTable = () => {
     cardCount: { fontSize: '1.5rem', fontWeight: 'bold' }
   };
 
-  // Flatten nested arrays and apply searching / filtering logic cleanly
-  const filteredOrders = orders.flatMap((order) =>
-    (order.order_summary || []).filter(item => {
+  // Safe calculation parsing strategy for sub-items
+  const filteredOrders = orders.flatMap((order) => {
+    const summaryItems = typeof order.order_summary === 'string' 
+      ? JSON.parse(order.order_summary) 
+      : (order.order_summary || []);
+
+    return summaryItems.filter(item => {
       const matchTitle = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchPurity = purityFilter === '' || item.purity === purityFilter;
       const matchPrice =
@@ -203,25 +220,25 @@ const OrderTable = () => {
         (priceFilter === 'high' && parseFloat(item.price) > 500000);
       const matchStatus = statusFilter === '' || order.status === statusFilter;
       return matchTitle && matchPurity && matchPrice && matchStatus;
-    }).map(item => ({ ...item, orderStatus: order.status, orderId: order.id, order }))
-  );
+    }).map(item => ({ ...item, orderStatus: order.status, orderId: order.id, order }));
+  });
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2>Order Details Management</h2>
+        <h2>Order Details Management Panel</h2>
         <button style={styles.themeBtn} onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? <FaSun /> : <FaMoon />}
         </button>
       </div>
 
-      {/* Summary Filter Cards */}
+      {/* Metric Visualizations */}
       <div style={styles.cardsContainer}>
         <div style={styles.card(darkMode ? '#2563eb' : '#3b82f6', statusFilter === '')} onClick={() => setStatusFilter('')}>
           <div style={styles.cardTitle}>Total Orders</div>
           <div style={styles.cardCount}>{totalOrders}</div>
         </div>
-        <div style={styles.card(darkMode ? '#16a34a' : '#22c55e', statusFilter === 'delivered')} onClick={() => setStatusFilter('delivered')}>
+        <div style={styles.card(darkMode ? '#10b981' : '#10b981', statusFilter === 'delivered')} onClick={() => setStatusFilter('delivered')}>
           <div style={styles.cardTitle}>Delivered</div>
           <div style={styles.cardCount}>{completedOrders}</div>
         </div>
@@ -235,7 +252,7 @@ const OrderTable = () => {
         </div>
       </div>
 
-      {/* Interactive Filters Grid */}
+      {/* Active Grid Filters */}
       <div style={styles.filters}>
         <input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.input} />
         <select value={purityFilter} onChange={(e) => setPurityFilter(e.target.value)} style={styles.select}>
@@ -247,15 +264,15 @@ const OrderTable = () => {
         <select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)} style={styles.select}>
           <option value="">Price Range</option>
           <option value="low">Below ₹50,000</option>
-          <option value="mid">₹50,000 - ₹5,000,000</option>
-          <option value="high">Above ₹5,000,000</option>
+          <option value="mid">₹50,000 - ₹500,000</option>
+          <option value="high">Above ₹500,000</option>
         </select>
         <button style={styles.exportBtn} onClick={exportToExcel}>📁 Export to Excel</button>
       </div>
 
-      {/* Responsive Table Grid */}
+      {/* Main Order Grid */}
       {loading ? (
-        <p>Loading records from database...</p>
+        <p>Loading active record entries from postgres cloud instance...</p>
       ) : (
         <div style={styles.tableContainer}>
           <table style={styles.table}>
@@ -273,10 +290,15 @@ const OrderTable = () => {
             <tbody>
               {filteredOrders.length > 0 ? filteredOrders.map((item, idx) => {
                 const itemPrice = parseFloat(item.price) || 0;
-                const totalPrice = item.quantity * itemPrice;
+                const totalPrice = (item.quantity || 1) * itemPrice;
                 const advancePaid = parseFloat(item.order.advance_paid) || 0;
                 const balanceDue = parseFloat(item.order.balance_due) || 0;
                 const isCancelled = item.orderStatus === 'cancelled';
+
+                // Explicit deep parse validation logic check for individual table rows
+                const addressData = typeof item.order.address === 'string' 
+                  ? JSON.parse(item.order.address) 
+                  : item.order.address;
 
                 return (
                   <tr key={idx} style={{ ...(isCancelled ? styles.cancelledRow : {}), ...styles.trHover }}>
@@ -285,45 +307,40 @@ const OrderTable = () => {
                     </td>
                     <td style={styles.thtd}><strong>{item.name}</strong></td>
                     <td style={styles.thtd}>{item.quantity}</td>
-                    <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity}</span></td>
+                    <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity || '—'}</span></td>
                     <td style={styles.thtd}>₹{itemPrice.toLocaleString('en-IN')}</td>
                     <td style={styles.thtd}>₹{totalPrice.toLocaleString('en-IN')}</td>
                     
-                    {/* Advance Paid Column */}
                     <td style={{ ...styles.thtd, color: advancePaid > 0 ? '#22c55e' : 'inherit' }}>
                       ₹{advancePaid.toLocaleString('en-IN')}
                     </td>
-                    {/* Balance Due Column */}
                     <td style={{ ...styles.thtd, color: balanceDue > 0 ? '#ef4444' : 'inherit', fontWeight: balanceDue > 0 ? '600' : 'normal' }}>
                       ₹{balanceDue.toLocaleString('en-IN')}
                     </td>
                     
-                    {/* Initial Payment Type Column */}
                     <td style={styles.thtd}>
                       <span style={{ textTransform: 'uppercase', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: darkMode ? '#333' : '#e5e7eb' }}>
                         {item.order.initial_payment_type || '—'}
                       </span>
                     </td>
 
-                    {/* Payment Status Column */}
                     <td style={styles.thtd}>
-                      <span style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#fff', background: item.order.payment_status === 'partial_paid' ? '#f59e0b' : '#22c55e' }}>
-                        {(item.order.payment_status || '—').replace('_', ' ')}
+                      <span style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#fff', background: item.order.payment_status === 'partial_paid' ? '#f59e0b' : (item.order.payment_status === 'completed' ? '#22c55e' : '#ef4444') }}>
+                        {(item.order.payment_status || 'pending').replace('_', ' ')}
                       </span>
                     </td>
 
                     <td style={styles.thtd}>{item.order.payment_method || '—'}</td>
                     
                     <td style={styles.thtd}>
-                      {item.order.address ? (
+                      {addressData ? (
                         <div style={styles.addressInfo}>
-                          <strong>{item.order.address.name}</strong><br />
-                          {item.order.address.flat}, {item.order.address.street}<br />
-                          {item.order.address.city}, {item.order.address.state} - {item.order.address.pincode}<br />
-                          <small>Phone: {item.order.address.mobile}</small><br />
-                          <span style={{ fontSize: '0.7rem', color: '#888' }}>Tag: {item.order.address.address_type}</span>
+                          <strong>{addressData.name}</strong><br />
+                          {addressData.flat}, {addressData.street}<br />
+                          {addressData.city}, {addressData.state} - {addressData.pincode}<br />
+                          <small>Phone: {addressData.mobile}</small>
                         </div>
-                      ) : 'No address specified'}
+                      ) : 'No explicit delivery address'}
                     </td>
 
                     <td style={styles.thtd}>
@@ -340,10 +357,10 @@ const OrderTable = () => {
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Process</button>
                           <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                          <button style={styles.btn(darkMode?'#10b981':'#059669','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>📦 Deliver</button>
+                          <button style={styles.btn(darkMode?'#10b981':'#10b981','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>📦 Deliver</button>
                         </div>
                       ) : (
-                        <span style={{ color: '#888', fontSize: '0.85rem' }}>No Actions</span>
+                        <span style={{ color: '#888', fontSize: '0.85rem' }}>Fulfillment Terminated</span>
                       )}
                     </td>
 
@@ -357,7 +374,7 @@ const OrderTable = () => {
               }) : (
                 <tr>
                   <td colSpan="16" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
-                    No matching order records found.
+                    No matching database order rows matching current filter flags.
                   </td>
                 </tr>
               )}
