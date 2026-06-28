@@ -11,7 +11,7 @@ const OrderTable = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [darkMode, setDarkMode] = useState(false);
 
-  // 1. Fetch data from your real API endpoint on component mount
+  // 1. Fetch data from real API endpoint on component mount
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -27,22 +27,22 @@ const OrderTable = () => {
     fetchOrders();
   }, []);
 
-  // 2. Handle status updates via API matching your strict endpoint configuration
+  // 2. Handle status updates via POST API
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const res = await fetch('https://goldbackend-auyv.onrender.com/order/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          orderId: Number(orderId), // ensuring type parity with incoming numeric IDs
+          orderId: Number(orderId), // ensuring it matches your backend payload expectations
           status: newStatus 
         }),
       });
-      
+
       const result = await res.json();
 
       if (res.ok) {
-        // Optimistically or safely update local state array values directly
+        // Correctly update the nested reference in state so UI triggers re-render
         setOrders(prevOrders => 
           prevOrders.map(order =>
             order.id === orderId ? { ...order, status: newStatus } : order
@@ -50,7 +50,7 @@ const OrderTable = () => {
         );
       } else {
         console.error('Failed to update status:', result.message);
-        alert(`Error: ${result.message || 'Could not update status'}`);
+        alert(`Error updating status: ${result.message || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -108,17 +108,17 @@ const OrderTable = () => {
     });
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
-    XLSX.writeFile(wb, 'orders.xlsx');
+    XXLSX.utils.book_append_sheet(wb, ws, 'Orders');
+    XXLSX.writeFile(wb, 'orders.xlsx');
   };
 
-  // Compute live card counts safely derived from orders state
+  // Live card metrics safely tied directly to baseline orders state
   const totalOrders = orders.length;
   const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
   const pendingOrders = orders.filter(o => o.status === 'processing' || o.status === 'approved').length;
   const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
 
-  // Modern component inline styles
+  // Modern UI theme styles
   const styles = {
     container: {
       padding: '2rem',
@@ -188,7 +188,7 @@ const OrderTable = () => {
     cardCount: { fontSize: '1.5rem', fontWeight: 'bold' }
   };
 
-  // Flatten nested arrays and apply searching / filtering logic cleanly
+  // Flatten nested arrays and apply dynamic searching / filtering logic cleanly
   const filteredOrders = orders.flatMap((order) =>
     (order.order_summary || []).filter(item => {
       const matchTitle = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -198,9 +198,18 @@ const OrderTable = () => {
         (priceFilter === 'low' && parseFloat(item.price) < 50000) ||
         (priceFilter === 'mid' && parseFloat(item.price) >= 50000 && parseFloat(item.price) <= 500000) ||
         (priceFilter === 'high' && parseFloat(item.price) > 500000);
-      const matchStatus = statusFilter === '' || order.status === statusFilter;
+      
+      const matchStatus = statusFilter === '' || 
+        order.status === statusFilter || 
+        (statusFilter === 'completed' && order.status === 'delivered');
+        
       return matchTitle && matchPurity && matchPrice && matchStatus;
-    }).map(item => ({ ...item, orderStatus: order.status, orderId: order.id, order }))
+    }).map(item => ({ 
+      ...item, 
+      orderStatus: order.status, // This correctly reflects updates made to parent state array
+      orderId: order.id, 
+      order 
+    }))
   );
 
   return (
@@ -219,7 +228,7 @@ const OrderTable = () => {
           <div style={styles.cardCount}>{totalOrders}</div>
         </div>
         <div style={styles.card(darkMode ? '#16a34a' : '#22c55e', statusFilter === 'completed')} onClick={() => setStatusFilter('completed')}>
-          <div style={styles.cardTitle}>Completed</div>
+          <div style={styles.cardTitle}>Completed / Delivered</div>
           <div style={styles.cardCount}>{completedOrders}</div>
         </div>
         <div style={styles.card(darkMode ? '#fbbf24' : '#f59e0b', statusFilter === 'processing')} onClick={() => setStatusFilter('processing')}>
@@ -334,13 +343,14 @@ const OrderTable = () => {
 
                     <td style={styles.thtd}>
                       {!isCancelled ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>Step 1: Process</button>
-                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>Step 2: Approve</button>
-                          <button style={styles.btn(darkMode?'#10b981':'#10b981','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>Step 3: Deliver</button>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Process</button>
+                          <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
+                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
+                          <button style={styles.btn('#10b981','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>📦 Deliver</button>
                         </div>
                       ) : (
-                        <span style={{ color: '#88', fontSize: '0.85rem' }}>No Actions</span>
+                        <span style={{ color: '#888', fontSize: '0.85rem' }}>No Actions</span>
                       )}
                     </td>
 
