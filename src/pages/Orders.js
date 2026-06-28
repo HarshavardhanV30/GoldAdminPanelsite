@@ -83,6 +83,7 @@ const OrderTable = () => {
           AdvancePaid: order.advance_paid || '0.00',
           BalanceDue: order.balance_due || '0.00',
           InitialPaymentType: order.initial_payment_type || '',
+          PaymentStatus: order.payment_status || '',
           PaymentMethod: order.payment_method || '',
           ExpectedDelivery: order.expected_delivery || '',
           Address_Name: order.address?.name || '',
@@ -251,7 +252,7 @@ const OrderTable = () => {
               <tr style={{ backgroundColor: darkMode ? '#2a2a3d' : '#e9ecef' }}>
                 {[
                   'Image', 'Product', 'Quantity', 'Purity', 'Price', 'Total Price', 
-                  'Advance Paid', 'Balance Due', 'Payment Type', 'Method', 
+                  'Advance Paid', 'Balance Due', 'Payment Type', 'Payment Status', 'Method', 
                   'Shipping Address', 'Status', 'Notes', 'Update Status', 'Action'
                 ].map((th, i) => (
                   <th key={i} style={styles.thtd}>{th}</th>
@@ -277,20 +278,29 @@ const OrderTable = () => {
                     <td style={styles.thtd}>₹{itemPrice.toLocaleString('en-IN')}</td>
                     <td style={styles.thtd}>₹{totalPrice.toLocaleString('en-IN')}</td>
                     
-                    {/* Fixed styles combination here */}
+                    {/* Advance Paid Column */}
                     <td style={{ ...styles.thtd, color: advancePaid > 0 ? '#22c55e' : 'inherit' }}>
                       ₹{advancePaid.toLocaleString('en-IN')}
                     </td>
-                    {/* Fixed styles combination here */}
+                    {/* Balance Due Column */}
                     <td style={{ ...styles.thtd, color: balanceDue > 0 ? '#ef4444' : 'inherit', fontWeight: balanceDue > 0 ? '600' : 'normal' }}>
                       ₹{balanceDue.toLocaleString('en-IN')}
                     </td>
                     
+                    {/* Initial Payment Type Column */}
                     <td style={styles.thtd}>
                       <span style={{ textTransform: 'uppercase', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: darkMode ? '#333' : '#e5e7eb' }}>
                         {item.order.initial_payment_type || '—'}
                       </span>
                     </td>
+
+                    {/* Payment Status Column */}
+                    <td style={styles.thtd}>
+                      <span style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#fff', background: item.order.payment_status === 'partial_paid' ? '#f59e0b' : '#22c55e' }}>
+                        {(item.order.payment_status || '—').replace('_', ' ')}
+                      </span>
+                    </td>
+
                     <td style={styles.thtd}>{item.order.payment_method || '—'}</td>
                     
                     <td style={styles.thtd}>
@@ -335,7 +345,7 @@ const OrderTable = () => {
                 );
               }) : (
                 <tr>
-                  <td colSpan="15" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
+                  <td colSpan="16" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
                     No matching order records found.
                   </td>
                 </tr>
