@@ -17,7 +17,12 @@ const OrderTable = () => {
       try {
         const response = await fetch(`https://goldbackend-auyv.onrender.com/order/all`);
         const data = await response.json();
-        setOrders(Array.isArray(data) ? data : []);
+        // Fallback check to match if your objects use .id or ._id
+        const normalizedData = (Array.isArray(data) ? data : []).map(order => ({
+          ...order,
+          id: order.id || order._id // Normalizes ID field mismatch
+        }));
+        setOrders(normalizedData);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -33,27 +38,25 @@ const OrderTable = () => {
       const res = await fetch('https://goldbackend-auyv.onrender.com/order/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          orderId: Number(orderId), // ensuring it matches your backend payload expectations
-          status: newStatus 
-        }),
+        body: JSON.stringify({ orderId: Number(orderId) || orderId, status: newStatus }),
       });
-
-      const result = await res.json();
-
+      
       if (res.ok) {
-        // Correctly update the nested reference in state so UI triggers re-render
+        // Live state modification so UI updates instantly without an extra page reload
         setOrders(prevOrders => 
           prevOrders.map(order =>
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
+        alert(`Status updated to "${newStatus}" successfully!`);
       } else {
+        const result = await res.json();
         console.error('Failed to update status:', result.message);
-        alert(`Error updating status: ${result.message || 'Unknown error'}`);
+        alert(`Update failed: ${result.message || 'Unknown backend error'}`);
       }
     } catch (err) {
       console.error('Error updating order status:', err);
+      alert('Network error occurred while updating status.');
     }
   };
 
@@ -108,17 +111,17 @@ const OrderTable = () => {
     });
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XXLSX.utils.book_append_sheet(wb, ws, 'Orders');
-    XXLSX.writeFile(wb, 'orders.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+    XLSX.writeFile(wb, 'orders.xlsx');
   };
 
-  // Live card metrics safely tied directly to baseline orders state
+  // Compute live card counts safely derived from orders state
   const totalOrders = orders.length;
   const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
   const pendingOrders = orders.filter(o => o.status === 'processing' || o.status === 'approved').length;
   const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
 
-  // Modern UI theme styles
+  // Modern component inline styles
   const styles = {
     container: {
       padding: '2rem',
@@ -188,7 +191,7 @@ const OrderTable = () => {
     cardCount: { fontSize: '1.5rem', fontWeight: 'bold' }
   };
 
-  // Flatten nested arrays and apply dynamic searching / filtering logic cleanly
+  // Flatten nested arrays and apply searching / filtering logic cleanly
   const filteredOrders = orders.flatMap((order) =>
     (order.order_summary || []).filter(item => {
       const matchTitle = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -198,18 +201,9 @@ const OrderTable = () => {
         (priceFilter === 'low' && parseFloat(item.price) < 50000) ||
         (priceFilter === 'mid' && parseFloat(item.price) >= 50000 && parseFloat(item.price) <= 500000) ||
         (priceFilter === 'high' && parseFloat(item.price) > 500000);
-      
-      const matchStatus = statusFilter === '' || 
-        order.status === statusFilter || 
-        (statusFilter === 'completed' && order.status === 'delivered');
-        
+      const matchStatus = statusFilter === '' || order.status === statusFilter;
       return matchTitle && matchPurity && matchPrice && matchStatus;
-    }).map(item => ({ 
-      ...item, 
-      orderStatus: order.status, // This correctly reflects updates made to parent state array
-      orderId: order.id, 
-      order 
-    }))
+    }).map(item => ({ ...item, orderStatus: order.status, orderId: order.id, order }))
   );
 
   return (
@@ -227,8 +221,8 @@ const OrderTable = () => {
           <div style={styles.cardTitle}>Total Orders</div>
           <div style={styles.cardCount}>{totalOrders}</div>
         </div>
-        <div style={styles.card(darkMode ? '#16a34a' : '#22c55e', statusFilter === 'completed')} onClick={() => setStatusFilter('completed')}>
-          <div style={styles.cardTitle}>Completed / Delivered</div>
+        <div style={styles.card(darkMode ? '#16a34a' : '#22c55e', statusFilter === 'delivered')} onClick={() => setStatusFilter('delivered')}>
+          <div style={styles.cardTitle}>Delivered</div>
           <div style={styles.cardCount}>{completedOrders}</div>
         </div>
         <div style={styles.card(darkMode ? '#fbbf24' : '#f59e0b', statusFilter === 'processing')} onClick={() => setStatusFilter('processing')}>
@@ -345,9 +339,8 @@ const OrderTable = () => {
                       {!isCancelled ? (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Process</button>
-                          <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
-                          <button style={styles.btn('#10b981','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>📦 Deliver</button>
+                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
+                          <button style={styles.btn(darkMode?'#10b981':'#059669','#fff')} onClick={() => handleStatusChange(item.orderId, 'delivered')}>📦 Deliver</button>
                         </div>
                       ) : (
                         <span style={{ color: '#888', fontSize: '0.85rem' }}>No Actions</span>
