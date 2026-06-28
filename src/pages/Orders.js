@@ -98,20 +98,26 @@ const OrderTable = () => {
       summaryItems.forEach(item => {
         exportData.push({
           OrderID: order.id || '',
+          User_ID: order.user_id || '',
           Name: item.name || '',
           Quantity: item.quantity || '',
           Purity: item.purity || '',
+          Weight: item.weight || '',
           Price: item.price || '',
           TotalPrice: item.quantity > 0 ? (parseFloat(item.price) * item.quantity).toFixed(2) : item.price,
+          Subtotal: order.subtotal || '',
+          TotalAmount: order.total_amount || '',
           AdvancePaid: order.advance_paid || '0.00',
           BalanceDue: order.balance_due || '0.00',
           InitialPaymentType: order.initial_payment_type || '',
           PaymentStatus: order.payment_status || '',
           PaymentMethod: order.payment_method || '',
+          OrderDate: order.order_date ? new Date(order.order_date).toLocaleString('en-IN') : '',
           ExpectedDelivery: order.expected_delivery || '',
           Address_Name: addressData?.name || '',
           Address_Flat: addressData?.flat || '',
           Address_Street: addressData?.street || '',
+          Address_Landmark: addressData?.landmark || '',
           Address_City: addressData?.city || '',
           Address_State: addressData?.state || '',
           Address_Pincode: addressData?.pincode || '',
@@ -119,6 +125,7 @@ const OrderTable = () => {
           Address_Type: addressData?.address_type || '',
           Status: order.status || 'processing',
           CancellationReason: order.cancellation_reason || '',
+          CancelledAt: order.cancelled_at ? new Date(order.cancelled_at).toLocaleString('en-IN') : '',
         });
       });
     });
@@ -279,9 +286,9 @@ const OrderTable = () => {
             <thead>
               <tr style={{ backgroundColor: darkMode ? '#2a2a3d' : '#e9ecef' }}>
                 {[
-                  'Image', 'Product', 'Quantity', 'Purity', 'Price', 'Total Price', 
+                  'Order ID', 'Image', 'Product', 'Quantity', 'Purity', 'Weight', 'Price', 'Total Price', 
                   'Advance Paid', 'Balance Due', 'Payment Type', 'Payment Status', 'Method', 
-                  'Shipping Address', 'Status', 'Notes', 'Update Status', 'Action'
+                  'Timeline Notes', 'Shipping Address', 'Status', 'Notes', 'Update Status', 'Action'
                 ].map((th, i) => (
                   <th key={i} style={styles.thtd}>{th}</th>
                 ))}
@@ -302,12 +309,14 @@ const OrderTable = () => {
 
                 return (
                   <tr key={idx} style={{ ...(isCancelled ? styles.cancelledRow : {}), ...styles.trHover }}>
+                    <td style={styles.thtd}><strong>#{item.orderId}</strong></td>
                     <td style={styles.thtd}>
                       {item.image ? <img src={item.image} alt={item.name} style={{ width: '80px', borderRadius: '4px', objectFit: 'contain' }} /> : '—'}
                     </td>
                     <td style={styles.thtd}><strong>{item.name}</strong></td>
                     <td style={styles.thtd}>{item.quantity}</td>
                     <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity || '—'}</span></td>
+                    <td style={styles.thtd}>{item.weight ? `${item.weight} g` : '—'}</td>
                     <td style={styles.thtd}>₹{itemPrice.toLocaleString('en-IN')}</td>
                     <td style={styles.thtd}>₹{totalPrice.toLocaleString('en-IN')}</td>
                     
@@ -333,10 +342,21 @@ const OrderTable = () => {
                     <td style={styles.thtd}>{item.order.payment_method || '—'}</td>
                     
                     <td style={styles.thtd}>
+                      <div style={{ fontSize: '0.8rem', lineHeight: '1.3' }}>
+                        <div>Ordered: {item.order.order_date ? new Date(item.order.order_date).toLocaleDateString('en-IN') : '—'}</div>
+                        <div>Delivery: {item.order.expected_delivery || '—'}</div>
+                        {isCancelled && item.order.cancelled_at && (
+                          <div style={{ color: '#ef4444' }}>Cancelled: {new Date(item.order.cancelled_at).toLocaleDateString('en-IN')}</div>
+                        )}
+                      </div>
+                    </td>
+
+                    <td style={styles.thtd}>
                       {addressData ? (
                         <div style={styles.addressInfo}>
-                          <strong>{addressData.name}</strong><br />
+                          <strong>{addressData.name}</strong> <span style={{fontSize: '0.75rem', background: '#3b82f6', color: '#fff', padding: '2px 4px', borderRadius: '3px'}}>{addressData.address_type}</span><br />
                           {addressData.flat}, {addressData.street}<br />
+                          {addressData.landmark ? <small style={{color: '#888'}}>Landmark: {addressData.landmark}<br /></small> : null}
                           {addressData.city}, {addressData.state} - {addressData.pincode}<br />
                           <small>Phone: {addressData.mobile}</small>
                         </div>
@@ -373,7 +393,7 @@ const OrderTable = () => {
                 );
               }) : (
                 <tr>
-                  <td colSpan="16" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
+                  <td colSpan="19" style={{ ...styles.thtd, textAlign: 'center', padding: '2rem' }}>
                     No matching database order rows matching current filter flags.
                   </td>
                 </tr>
