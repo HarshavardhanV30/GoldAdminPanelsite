@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Menu,
   UserCircle,
@@ -8,111 +8,180 @@ import {
   Trash2,
 } from "lucide-react";
 
+const BASE_URL =
+  "https://goldbackend-production-3359.up.railway.app/numbers";
+
 const AddPhoneNumber = () => {
-  // State variables
   const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const BASE_URL = "https://goldbackend-production-3359.up.railway.app/numbers";
-
-  // 1. GET ALL NUMBERS
-  const fetchNumbers = async () => {
+  // GET ALL NUMBERS
+  const fetchNumbers = useCallback(async () => {
     try {
+      setLoading(true);
+
       const response = await fetch(`${BASE_URL}/numberall`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch numbers: ${response.status}`);
+      }
+
       const result = await response.json();
+
       if (result.success) {
         setPhoneNumbers(result.data || []);
+      } else {
+        setPhoneNumbers([]);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      setPhoneNumbers([]);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNumbers();
-  }, []);
+  }, [fetchNumbers]);
 
-  // 2. POST (ADD) / PUT (EDIT) NUMBER
+  // ADD OR UPDATE NUMBER
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!phoneNumber || !email) {
+
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phoneNumber.trim();
+
+    if (!trimmedEmail || !trimmedPhone) {
       alert("Please enter both email and phone number.");
       return;
     }
 
     const payload = {
-      email: email,
-      phone_number: phoneNumber,
+      email: trimmedEmail,
+      phone_number: trimmedPhone,
     };
 
     try {
-      if (editingId) {
-        // PUT request
+      setLoading(true);
+
+      if (editingId !== null) {
+        // PUT - UPDATE
         const response = await fetch(`${BASE_URL}/number/${editingId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(payload),
         });
-        const result = await response.json();
-        if (response.ok) {
-          alert("Number updated successfully");
-          setEditingId(null);
-          setPhoneNumber("");
-          setEmail("");
-          fetchNumbers();
+
+        if (!response.ok) {
+          throw new Error(`Update failed: ${response.status}`);
         }
+
+        alert("Number updated successfully.");
+
+        setEditingId(null);
+        setPhoneNumber("");
+        setEmail("");
+
+        await fetchNumbers();
       } else {
-        // POST request
+        // POST - ADD
         const response = await fetch(`${BASE_URL}/addnumber`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(payload),
         });
+
         const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to add number.");
+        }
+
         if (result.success) {
-          alert(result.message);
+          alert(result.message || "Number added successfully.");
+
           setPhoneNumber("");
           setEmail("");
-          fetchNumbers();
+
+          await fetchNumbers();
+        } else {
+          alert(result.message || "Unable to add number.");
         }
       }
     } catch (error) {
       console.error("Error saving data:", error);
+      alert(error.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 3. DELETE NUMBER
+  // DELETE NUMBER
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this entry?")) {
-      try {
-        const response = await fetch(`${BASE_URL}/delete/${id}`, {
-          method: "DELETE",
-        });
-        if (response.ok) {
-          alert("Entry deleted successfully");
-          fetchNumbers();
-        }
-      } catch (error) {
-        console.error("Error deleting data:", error);
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this entry?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${BASE_URL}/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.status}`);
       }
+
+      alert("Entry deleted successfully.");
+
+      await fetchNumbers();
+    } catch (error) {
+      console.error("Error deleting data:", error);
+      alert(error.message || "Failed to delete entry.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Setup Form for Editing
+  // SETUP FORM FOR EDITING
   const startEdit = (item) => {
     setEditingId(item.id);
-    setPhoneNumber(item.phone_number);
+    setPhoneNumber(item.phone_number || "");
     setEmail(item.email || "");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-  // Filter list based on search
+  // CANCEL EDIT
+  const cancelEdit = () => {
+    setEditingId(null);
+    setPhoneNumber("");
+    setEmail("");
+  };
+
+  // FILTER LIST
   const filteredNumbers = phoneNumbers.filter((item) => {
-    const num = item.phone_number ? item.phone_number.toLowerCase() : "";
-    const mail = item.email ? item.email.toLowerCase() : "";
-    const query = searchQuery.toLowerCase();
+    const num = String(item.phone_number || "").toLowerCase();
+    const mail = String(item.email || "").toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+
     return num.includes(query) || mail.includes(query);
   });
 
@@ -136,7 +205,11 @@ const AddPhoneNumber = () => {
           borderBottom: "1px solid #e5e7eb",
         }}
       >
-        <Menu size={24} color="#6b7280" style={{ cursor: "pointer" }} />
+        <Menu
+          size={24}
+          color="#6b7280"
+          style={{ cursor: "pointer" }}
+        />
 
         <div
           style={{
@@ -148,13 +221,23 @@ const AddPhoneNumber = () => {
           }}
         >
           <UserCircle size={32} color="#9ca3af" />
-          <span style={{ fontWeight: "500" }}>Admin</span>
+
+          <span style={{ fontWeight: "500" }}>
+            Admin
+          </span>
+
           <ChevronDown size={16} />
         </div>
       </div>
 
       {/* Main Content */}
-      <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div
+        style={{
+          padding: "24px",
+          maxWidth: "1200px",
+          margin: "0 auto",
+        }}
+      >
         {/* Breadcrumb */}
         <div
           style={{
@@ -165,11 +248,24 @@ const AddPhoneNumber = () => {
             color: "#6b7280",
           }}
         >
-          <span style={{ color: "#2563eb", fontWeight: "600" }}>Dashboard</span>
+          <span
+            style={{
+              color: "#2563eb",
+              fontWeight: "600",
+            }}
+          >
+            Dashboard
+          </span>
+
           <span>/</span>
           <span>Phone Numbers</span>
           <span>/</span>
-          <span style={{ color: "#111827" }}>Add Phone Number</span>
+
+          <span style={{ color: "#111827" }}>
+            {editingId !== null
+              ? "Edit Phone Number"
+              : "Add Phone Number"}
+          </span>
         </div>
 
         {/* Title */}
@@ -181,7 +277,9 @@ const AddPhoneNumber = () => {
             color: "#111827",
           }}
         >
-          {editingId ? "Edit Phone Number" : "Add Phone Number"}
+          {editingId !== null
+            ? "Edit Phone Number"
+            : "Add Phone Number"}
         </h1>
 
         <p
@@ -194,7 +292,7 @@ const AddPhoneNumber = () => {
           Manage and configure phone numbers within your system records.
         </p>
 
-        {/* Add/Edit Phone Card */}
+        {/* Add/Edit Card */}
         <div
           style={{
             backgroundColor: "#fff",
@@ -208,13 +306,15 @@ const AddPhoneNumber = () => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(280px, 1fr))",
                 gap: "20px",
               }}
             >
               {/* Email Input */}
               <div>
                 <label
+                  htmlFor="email"
                   style={{
                     fontSize: "14px",
                     fontWeight: "600",
@@ -223,13 +323,18 @@ const AddPhoneNumber = () => {
                     marginBottom: "8px",
                   }}
                 >
-                  Email Address <span style={{ color: "red" }}>*</span>
+                  Email Address{" "}
+                  <span style={{ color: "red" }}>*</span>
                 </label>
+
                 <input
+                  id="email"
                   type="email"
-                  placeholder="enter user email (e.g., user@example.com)"
+                  placeholder="Enter user email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
@@ -247,6 +352,7 @@ const AddPhoneNumber = () => {
               {/* Phone Number Input */}
               <div>
                 <label
+                  htmlFor="phoneNumber"
                   style={{
                     fontSize: "14px",
                     fontWeight: "600",
@@ -255,7 +361,8 @@ const AddPhoneNumber = () => {
                     marginBottom: "8px",
                   }}
                 >
-                  Phone Number <span style={{ color: "red" }}>*</span>
+                  Phone Number{" "}
+                  <span style={{ color: "red" }}>*</span>
                 </label>
 
                 <div
@@ -282,7 +389,10 @@ const AddPhoneNumber = () => {
                     }}
                   >
                     🇮🇳
-                    <ChevronDown size={14} color="#6b7280" />
+                    <ChevronDown
+                      size={14}
+                      color="#6b7280"
+                    />
                   </div>
 
                   <div
@@ -298,10 +408,18 @@ const AddPhoneNumber = () => {
                   </div>
 
                   <input
-                    type="text"
+                    id="phoneNumber"
+                    type="tel"
                     placeholder="Enter phone number"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(e) =>
+                      setPhoneNumber(
+                        e.target.value.replace(/\D/g, "")
+                      )
+                    }
+                    maxLength={10}
+                    required
+                    disabled={loading}
                     style={{
                       flex: 1,
                       height: "100%",
@@ -325,14 +443,11 @@ const AddPhoneNumber = () => {
                 marginTop: "20px",
               }}
             >
-              {editingId && (
+              {editingId !== null && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditingId(null);
-                    setPhoneNumber("");
-                    setEmail("");
-                  }}
+                  onClick={cancelEdit}
+                  disabled={loading}
                   style={{
                     backgroundColor: "#e5e7eb",
                     color: "#374151",
@@ -347,20 +462,32 @@ const AddPhoneNumber = () => {
                   Cancel
                 </button>
               )}
+
               <button
                 type="submit"
+                disabled={loading}
                 style={{
-                  backgroundColor: editingId ? "#198754" : "#0d6efd",
+                  backgroundColor:
+                    editingId !== null
+                      ? "#198754"
+                      : "#0d6efd",
                   color: "#fff",
                   border: "none",
                   padding: "10px 30px",
                   borderRadius: "6px",
                   fontSize: "14px",
-                  cursor: "pointer",
+                  cursor: loading
+                    ? "not-allowed"
+                    : "pointer",
                   fontWeight: "500",
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
-                {editingId ? "Update Data" : "Submit"}
+                {loading
+                  ? "Please wait..."
+                  : editingId !== null
+                  ? "Update Data"
+                  : "Submit"}
               </button>
             </div>
           </form>
@@ -382,6 +509,8 @@ const AddPhoneNumber = () => {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: "16px",
+              flexWrap: "wrap",
+              gap: "12px",
             }}
           >
             <h2
@@ -389,6 +518,7 @@ const AddPhoneNumber = () => {
                 fontSize: "18px",
                 fontWeight: "600",
                 color: "#111827",
+                margin: 0,
               }}
             >
               Phone Numbers List
@@ -403,15 +533,20 @@ const AddPhoneNumber = () => {
                 borderRadius: "6px",
                 padding: "8px 12px",
                 width: "280px",
+                maxWidth: "100%",
+                boxSizing: "border-box",
                 backgroundColor: "#fff",
               }}
             >
               <Search size={16} color="#6b7280" />
+
               <input
                 type="text"
                 placeholder="Search phone or email..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) =>
+                  setSearchQuery(e.target.value)
+                }
                 style={{
                   border: "none",
                   outline: "none",
@@ -423,7 +558,7 @@ const AddPhoneNumber = () => {
             </div>
           </div>
 
-          {/* Table Container */}
+          {/* Table */}
           <div style={{ overflowX: "auto" }}>
             <table
               style={{
@@ -436,58 +571,126 @@ const AddPhoneNumber = () => {
                   style={{
                     backgroundColor: "#f9fafb",
                     textAlign: "left",
-                    borderBottom: "1px solid #e5e7eb",
+                    borderBottom:
+                      "1px solid #e5e7eb",
                   }}
                 >
                   <th style={thStyle}># ID</th>
                   <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Phone Number</th>
+                  <th style={thStyle}>
+                    Phone Number
+                  </th>
                   <th style={thStyle}>Created On</th>
-                  <th style={thStyle, { ...thStyle, textAlign: "right" }}>Actions</th>
+
+                  {/* FIXED: Removed comma operator */}
+                  <th
+                    style={{
+                      ...thStyle,
+                      textAlign: "right",
+                    }}
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredNumbers.length > 0 ? (
-                  filteredNumbers.map((item, index) => (
-                    <tr
-                      key={item.id || index}
+                {loading &&
+                phoneNumbers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
                       style={{
-                        borderBottom: "1px solid #e5e7eb",
+                        ...tdStyle,
+                        textAlign: "center",
+                        color: "#6b7280",
                       }}
                     >
-                      <td style={tdStyle}>{item.id}</td>
-                      <td style={tdStyle}>{item.email || "N/A"}</td>
-                      <td style={tdStyle, { fontWeight: "500", color: "#111827" }}>
-                        {item.phone_number}
-                      </td>
-                      <td style={tdStyle}>
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleString()
-                          : "Just now"}
-                      </td>
+                      Loading...
+                    </td>
+                  </tr>
+                ) : filteredNumbers.length > 0 ? (
+                  filteredNumbers.map(
+                    (item, index) => (
+                      <tr
+                        key={item.id || index}
+                        style={{
+                          borderBottom:
+                            "1px solid #e5e7eb",
+                        }}
+                      >
+                        <td style={tdStyle}>
+                          {item.id}
+                        </td>
 
-                      <td style={tdStyle}>
-                        <div style={{ display: "flex", gap: "14px", justifyContent: "flex-end" }}>
-                          <Pencil
-                            size={16}
-                            color="#2563eb"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => startEdit(item)}
-                          />
-                          <Trash2
-                            size={16}
-                            color="#ef4444"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => handleDelete(item.id)}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        <td style={tdStyle}>
+                          {item.email || "N/A"}
+                        </td>
+
+                        {/* FIXED: Removed comma operator */}
+                        <td
+                          style={{
+                            ...tdStyle,
+                            fontWeight: "500",
+                            color: "#111827",
+                          }}
+                        >
+                          {item.phone_number}
+                        </td>
+
+                        <td style={tdStyle}>
+                          {item.created_at
+                            ? new Date(
+                                item.created_at
+                              ).toLocaleString()
+                            : "N/A"}
+                        </td>
+
+                        <td style={tdStyle}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "14px",
+                              justifyContent:
+                                "flex-end",
+                            }}
+                          >
+                            <Pencil
+                              size={16}
+                              color="#2563eb"
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                startEdit(item)
+                              }
+                            />
+
+                            <Trash2
+                              size={16}
+                              color="#ef4444"
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                handleDelete(item.id)
+                              }
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )
                 ) : (
                   <tr>
-                    <td colSpan="5" style={{ ...tdStyle, textAlign: "center", color: "#9ca3af" }}>
+                    <td
+                      colSpan={5}
+                      style={{
+                        ...tdStyle,
+                        textAlign: "center",
+                        color: "#9ca3af",
+                      }}
+                    >
                       No phone numbers found.
                     </td>
                   </tr>
@@ -496,28 +699,40 @@ const AddPhoneNumber = () => {
             </table>
           </div>
 
-          {/* Footer Metrics */}
+          {/* Footer */}
           <div
             style={{
               marginTop: "16px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: "10px",
             }}
           >
             <p
               style={{
                 fontSize: "13px",
                 color: "#6b7280",
+                margin: 0,
               }}
             >
-              Showing {filteredNumbers.length} of {phoneNumbers.length} entries
+              Showing {filteredNumbers.length} of{" "}
+              {phoneNumbers.length} entries
             </p>
 
-            {/* Dummy Pagination */}
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button style={pageBtn}>‹</button>
+            <div
+              style={{
+                display: "flex",
+                gap: "6px",
+              }}
+            >
+              <button type="button" style={pageBtn}>
+                ‹
+              </button>
+
               <button
+                type="button"
                 style={{
                   ...pageBtn,
                   backgroundColor: "#0d6efd",
@@ -527,7 +742,10 @@ const AddPhoneNumber = () => {
               >
                 1
               </button>
-              <button style={pageBtn}>›</button>
+
+              <button type="button" style={pageBtn}>
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -536,12 +754,12 @@ const AddPhoneNumber = () => {
   );
 };
 
-// Scaled down table styles for perfect screens
 const thStyle = {
   padding: "12px 16px",
   fontSize: "13px",
   color: "#4b5563",
   fontWeight: "600",
+  whiteSpace: "nowrap",
 };
 
 const tdStyle = {
