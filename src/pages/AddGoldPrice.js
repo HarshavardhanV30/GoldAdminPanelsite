@@ -64,7 +64,7 @@ const GoldPriceDashboard = () => {
   const fetchPrices = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get("https://goldbackend-auyv.onrender.com/Goldprices/all");
+      const response = await axios.get("https://goldbackend-production-3359.up.railway.app/Goldprices/all");
       const dataArray = Array.isArray(response.data) 
         ? response.data 
         : response.data.data 
@@ -110,11 +110,11 @@ const GoldPriceDashboard = () => {
     try {
       if (editingId) {
         // PUT Request
-        await axios.put(`https://goldbackend-auyv.onrender.com/Goldprices/${editingId}`, payload);
+        await axios.put(`https://goldbackend-production-3359.up.railway.app/Goldprices/${editingId}`, payload);
         alert("Record updated successfully!");
       } else {
         // POST Request (Aligned to match standard API route rules)
-        await axios.post("https://goldbackend-auyv.onrender.com/Goldprices/add", payload);
+        await axios.post("https://goldbackend-production-3359.up.railway.app/Goldprices/add", payload);
         alert("Record added successfully!");
       }
       handleReset();
@@ -129,7 +129,7 @@ const GoldPriceDashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to permanently delete this pricing history item?")) {
       try {
-        await axios.delete(`https://goldbackend-auyv.onrender.com/Goldprices/delete/${id}`);
+        await axios.delete(`https://goldbackend-production-3359.up.railway.app/Goldprices/delete/${id}`);
         alert("Record deleted successfully.");
         fetchPrices();
       } catch (error) {

@@ -80,7 +80,7 @@ const SellGoldPrice = () => {
   const fetchPrices = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get("https://goldbackend-auyv.onrender.com/sellprice/all");
+      const response = await axios.get("https://goldbackend-production-3359.up.railway.app/sellprice/all");
       
       // Robust structural parser handling raw array response vs nested object response setups
       const dataArray = Array.isArray(response.data) 
@@ -130,11 +130,11 @@ const SellGoldPrice = () => {
       if (editingId) {
         // PUT Request: /sellprice/YOUR_RECORD_ID
         // Note: target payload retains expected fields matching properties requirements
-        await axios.put(`https://goldbackend-auyv.onrender.com/sellprice/${editingId}`, payload);
+        await axios.put(`https://goldbackend-production-3359.up.railway.app/sellprice/${editingId}`, payload);
         alert("Selling rate updated successfully!");
       } else {
         // POST Request: /sellprice/add
-        await axios.post("https://goldbackend-auyv.onrender.com/sellprice/add", payload);
+        await axios.post("https://goldbackend-production-3359.up.railway.app/sellprice/add", payload);
         alert("Selling rate added successfully!");
       }
       handleReset();
@@ -154,7 +154,7 @@ const SellGoldPrice = () => {
     if (window.confirm("Are you sure you want to permanently delete this selling price history item?")) {
       try {
         // DELETE Request: /sellprice/delete/YOUR_RECORD_ID
-        await axios.delete(`https://goldbackend-auyv.onrender.com/sellprice/delete/${id}`);
+        await axios.delete(`https://goldbackend-production-3359.up.railway.app/sellprice/delete/${id}`);
         alert("Record deleted successfully.");
         fetchPrices();
       } catch (error) {

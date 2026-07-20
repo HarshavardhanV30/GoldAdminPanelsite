@@ -43,7 +43,7 @@ const AddProduct = () => {
 
     try {
       const response = await axios.post(
-        "https://goldbackend-auyv.onrender.com/products/add",
+        "https://goldbackend-production-3359.up.railway.app/products/add",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

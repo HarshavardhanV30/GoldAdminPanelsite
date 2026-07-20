@@ -21,7 +21,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const res = await axios.get(
-        "https://goldbackend-auyv.onrender.com/users/all"
+        "https://goldbackend-production-3359.up.railway.app/users/all"
       );
       setUsers(res.data);
     } catch (error) {
@@ -34,7 +34,7 @@ const UserManagement = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await axios.delete(
-        `https://goldbackend-auyv.onrender.com/users/${id}`
+        `https://goldbackend-production-3359.up.railway.app/users/${id}`
       );
       fetchUsers();
     } catch (error) {

@@ -54,11 +54,11 @@ export default function AdvancedDashboard() {
         ordersRes,
         loansRes,
       ] = await Promise.all([
-        axios.get("https://goldbackend-auyv.onrender.com/users/all"),
-        axios.get("https://goldbackend-auyv.onrender.com/seller/all"),
-        axios.get("https://goldbackend-auyv.onrender.com/products/all"),
-        axios.get("https://goldbackend-auyv.onrender.com/order/all"),
-        axios.get("https://goldbackend-auyv.onrender.com/loan/all"),
+        axios.get("https://goldbackend-production-3359.up.railway.app/users/all"),
+        axios.get("https://goldbackend-production-3359.up.railway.app/seller/all"),
+        axios.get("https://goldbackend-production-3359.up.railway.app/products/all"),
+        axios.get("https://goldbackend-production-3359.up.railway.app/order/all"),
+        axios.get("https://goldbackend-production-3359.up.railway.app/loan/all"),
       ]);
 
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);

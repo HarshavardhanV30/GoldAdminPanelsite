@@ -23,7 +23,7 @@ export default function GoldLoanRequests() {
   const rowsPerPage = 5;
   const [searchText, setSearchText] = useState("");
 
-  const API_BASE = "https://goldbackend-auyv.onrender.com";
+  const API_BASE = "https://goldbackend-production-3359.up.railway.app";
 
   /* ================= FETCH ================= */
   useEffect(() => {

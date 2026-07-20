@@ -16,7 +16,7 @@ const AddPhoneNumber = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  const BASE_URL = "https://goldbackend-auyv.onrender.com/numbers";
+  const BASE_URL = "https://goldbackend-production-3359.up.railway.app/numbers";
 
   // 1. GET ALL NUMBERS
   const fetchNumbers = async () => {

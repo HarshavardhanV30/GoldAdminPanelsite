@@ -15,7 +15,7 @@ const BannerManagement = () => {
   // 1. GET ALL Banners
   const fetchBanners = async () => {
     try {
-      const response = await fetch("https://goldbackend-auyv.onrender.com/banners/bannerall");
+      const response = await fetch("https://goldbackend-production-3359.up.railway.app/banners/bannerall");
       const data = await response.json();
       setBanners(data);
     } catch (error) {
@@ -61,11 +61,11 @@ const BannerManagement = () => {
     if (imageFile) formData.append("bannerimage", imageFile);
 
     try {
-      let url = "https://goldbackend-auyv.onrender.com/banners/add";
+      let url = "https://goldbackend-production-3359.up.railway.app/banners/add";
       let method = "POST";
 
       if (editId) {
-        url = `https://goldbackend-auyv.onrender.com/banners/update/${editId}`;
+        url = `https://goldbackend-production-3359.up.railway.app/banners/update/${editId}`;
         method = "PUT";
       }
 
@@ -101,7 +101,7 @@ const BannerManagement = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this banner?")) {
       try {
-        const response = await fetch(`https://goldbackend-auyv.onrender.com/banners/${id}`, {
+        const response = await fetch(`https://goldbackend-production-3359.up.railway.app/banners/${id}`, {
           method: "DELETE",
         });
 
