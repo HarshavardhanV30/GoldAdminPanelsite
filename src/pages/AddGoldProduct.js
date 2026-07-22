@@ -48,13 +48,14 @@ const AddProduct = () => {
     formData.append("district", product.district);
     formData.append("mandal", product.mandal);
 
-    // Append image files under the key expected by backend
+    // Append image files
     product.product_images.forEach((file) => {
       formData.append("product_images", file);
     });
 
     try {
-      const response = await axios.post(
+      // Made request directly without storing unused 'response' variable
+      await axios.post(
         "https://goldbackend-production-3359.up.railway.app/products/add",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
