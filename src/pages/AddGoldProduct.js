@@ -30,6 +30,7 @@ const GoldProductsDashboard = () => {
     state: "",
     district: "",
     mandal: "",
+    pincode:"",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -138,6 +139,7 @@ const GoldProductsDashboard = () => {
       "state",
       "district",
       "mandal",
+      "pincode",
     ];
 
     const missingFields = requiredFields.filter((field) => !formData[field]);
@@ -169,6 +171,7 @@ const GoldProductsDashboard = () => {
       multiPartPayload.append("state", formData.state);
       multiPartPayload.append("district", formData.district);
       multiPartPayload.append("mandal", formData.mandal);
+      multiPartPayload.append("pincode", formData.pincode);
 
       formData.product_images.forEach((fileObject) => {
         multiPartPayload.append("product_images", fileObject);
@@ -460,7 +463,8 @@ const GoldProductsDashboard = () => {
                 <FormSelect label="State" options={["Andhra Pradesh", "Telangana", "California"]} value={formData.state} onChange={(val) => handleInputChange("state", val)} required />
                 <FormSelect label="District" options={["Anantapur", "Chittoor", "YSR Kadapa", "Los Angeles"]} value={formData.district} onChange={(val) => handleInputChange("district", val)} required />
                 <FormSelect label="Mandal" options={["Anantapur", "Dharmavaram", "Gooty", "Central"]} value={formData.mandal} onChange={(val) => handleInputChange("mandal", val)} required />
-              </div>
+                <FormInput label="Pincode"type="text"placeholder="Enter 6-digit pincode"value={formData.pincode}onChange={(val) => handleInputChange("pincode", val)}required />
+                </div>
 
               {/* Footer Form Navigation controls */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f3f4f6", paddingTop: "24px" }}>
