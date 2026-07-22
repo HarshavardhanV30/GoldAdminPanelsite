@@ -20,13 +20,13 @@ const AddProduct = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Handle standard text inputs
+  // Handle standard input field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle image file selection
+  // Handle raw file selection
   const handleFileChange = (e) => {
     if (e.target.files) {
       setImageFiles(Array.from(e.target.files));
@@ -37,10 +37,9 @@ const AddProduct = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Create FormData object for multipart/form-data request
+    // Build FormData payload
     const formData = new FormData();
 
-    // Append text fields
     formData.append("product_id", product.product_id);
     formData.append("product_name", product.product_name);
     formData.append("category_name", product.category_name);
@@ -54,9 +53,8 @@ const AddProduct = () => {
     formData.append("district", product.district);
     formData.append("mandal", product.mandal);
 
-    // Append raw image files
+    // Append image files under the key expected by Multer/Formidable
     imageFiles.forEach((file) => {
-      // Note: "product_images" matches your backend field key
       formData.append("product_images", file);
     });
 
@@ -74,7 +72,7 @@ const AddProduct = () => {
       setLoading(false);
       alert(`Product added successfully! System ID: ${response.data.product?.id || "Success"}`);
 
-      // Reset form state
+      // Reset form on success
       setProduct({
         product_id: "",
         product_name: "",
@@ -92,8 +90,23 @@ const AddProduct = () => {
       setImageFiles([]);
     } catch (error) {
       setLoading(false);
-      console.error("Error adding product:", error);
-      alert("Failed to add product! Please check input or server logs.");
+      console.error("Full Axios Error Object:", error);
+
+      // Detailed Error Handling
+      if (error.response) {
+        // Server responded with a status code outside 2xx
+        const serverMsg =
+          error.response.data?.message ||
+          error.response.data?.error ||
+          JSON.stringify(error.response.data);
+
+        alert(`Backend Error (${error.response.status}): ${serverMsg}`);
+      } else if (error.request) {
+        // Request was sent but no response received (CORS error or backend down)
+        alert("Network Error: No response from server. Check CORS configuration on backend.");
+      } else {
+        alert(`Request Error: ${error.message}`);
+      }
     }
   };
 
@@ -107,7 +120,7 @@ const AddProduct = () => {
         <div style={styles.card}>
           <h2 style={styles.sectionTitle}>Product Details</h2>
           <p style={styles.sectionSubtitle}>
-            Fill in the information below to upload a new product with images.
+            Fill in the details below to upload a new product with image files.
           </p>
 
           <form onSubmit={handleSubmit} style={styles.form}>
@@ -264,9 +277,9 @@ const AddProduct = () => {
               />
             </div>
 
-            {/* File Upload Input */}
+            {/* Image Upload Input */}
             <div style={styles.formGroupFull}>
-              <label style={styles.label}>Upload Product Images *</label>
+              <label style={styles.label}>Product Images *</label>
               <input
                 type="file"
                 accept="image/*"
@@ -277,7 +290,7 @@ const AddProduct = () => {
               />
               {imageFiles.length > 0 && (
                 <p style={styles.fileCount}>
-                  Selected {imageFiles.length} file(s): {imageFiles.map(f => f.name).join(", ")}
+                  Selected {imageFiles.length} file(s): {imageFiles.map((f) => f.name).join(", ")}
                 </p>
               )}
             </div>
