@@ -12,56 +12,67 @@ const AddProduct = () => {
     stock_quantity: "",
     product_place: "",
     product_description: "",
-    product_images: "", // Stored as comma-separated text in input
     state: "",
     district: "",
     mandal: "",
   });
 
+  const [imageFiles, setImageFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Handle standard text inputs
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle image file selection
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      setImageFiles(Array.from(e.target.files));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Format images string into array of trimmed URLs
-    const imageArray = product.product_images
-      ? product.product_images.split(",").map((url) => url.trim()).filter(Boolean)
-      : [];
+    // Create FormData object for multipart/form-data request
+    const formData = new FormData();
 
-    // Construct JSON payload matching the target API schema
-    const payload = {
-      product_id: product.product_id,
-      product_name: product.product_name,
-      category_name: product.category_name,
-      weight: parseFloat(product.weight) || 0,
-      offer_price: parseFloat(product.offer_price) || 0,
-      original_price: parseFloat(product.original_price) || 0,
-      stock_quantity: parseInt(product.stock_quantity, 10) || 0,
-      product_place: product.product_place,
-      product_description: product.product_description,
-      product_images: imageArray,
-      state: product.state,
-      district: product.district,
-      mandal: product.mandal,
-    };
+    // Append text fields
+    formData.append("product_id", product.product_id);
+    formData.append("product_name", product.product_name);
+    formData.append("category_name", product.category_name);
+    formData.append("weight", parseFloat(product.weight) || 0);
+    formData.append("offer_price", parseFloat(product.offer_price) || 0);
+    formData.append("original_price", parseFloat(product.original_price) || 0);
+    formData.append("stock_quantity", parseInt(product.stock_quantity, 10) || 0);
+    formData.append("product_place", product.product_place);
+    formData.append("product_description", product.product_description);
+    formData.append("state", product.state);
+    formData.append("district", product.district);
+    formData.append("mandal", product.mandal);
+
+    // Append raw image files
+    imageFiles.forEach((file) => {
+      // Note: "product_images" matches your backend field key
+      formData.append("product_images", file);
+    });
 
     try {
       const response = await axios.post(
         "https://goldbackend-production-3359.up.railway.app/products/add",
-        payload,
+        formData,
         {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
       setLoading(false);
-      alert(`Product added successfully! System ID: ${response.data.product.id}`);
+      alert(`Product added successfully! System ID: ${response.data.product?.id || "Success"}`);
 
       // Reset form state
       setProduct({
@@ -74,15 +85,15 @@ const AddProduct = () => {
         stock_quantity: "",
         product_place: "",
         product_description: "",
-        product_images: "",
         state: "",
         district: "",
         mandal: "",
       });
+      setImageFiles([]);
     } catch (error) {
       setLoading(false);
       console.error("Error adding product:", error);
-      alert("Failed to add product! Please check your input and try again.");
+      alert("Failed to add product! Please check input or server logs.");
     }
   };
 
@@ -96,7 +107,7 @@ const AddProduct = () => {
         <div style={styles.card}>
           <h2 style={styles.sectionTitle}>Product Details</h2>
           <p style={styles.sectionSubtitle}>
-            Fill in the information below to list a new product.
+            Fill in the information below to upload a new product with images.
           </p>
 
           <form onSubmit={handleSubmit} style={styles.form}>
@@ -253,17 +264,22 @@ const AddProduct = () => {
               />
             </div>
 
-            {/* Product Images */}
+            {/* File Upload Input */}
             <div style={styles.formGroupFull}>
-              <label style={styles.label}>Product Image URLs (Comma Separated)</label>
+              <label style={styles.label}>Upload Product Images *</label>
               <input
-                type="text"
-                name="product_images"
-                placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg"
-                value={product.product_images}
-                onChange={handleChange}
-                style={styles.input}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                required
+                style={styles.fileInput}
               />
+              {imageFiles.length > 0 && (
+                <p style={styles.fileCount}>
+                  Selected {imageFiles.length} file(s): {imageFiles.map(f => f.name).join(", ")}
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -282,7 +298,7 @@ const AddProduct = () => {
             {/* Submit Button */}
             <div style={styles.formGroupFull}>
               <button type="submit" style={styles.button} disabled={loading}>
-                {loading ? "Adding Product..." : "+ Add Product"}
+                {loading ? "Uploading Product..." : "+ Add Product"}
               </button>
             </div>
           </form>
@@ -353,7 +369,17 @@ const styles = {
     border: "1px solid #ccc",
     fontSize: "14px",
     outline: "none",
-    transition: "border 0.2s",
+  },
+  fileInput: {
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    padding: "10px",
+    backgroundColor: "#fff",
+  },
+  fileCount: {
+    fontSize: "12px",
+    color: "#007bff",
+    marginTop: "5px",
   },
   textarea: {
     padding: "10px 12px",
@@ -373,7 +399,6 @@ const styles = {
     fontWeight: "500",
     fontSize: "14px",
     cursor: "pointer",
-    transition: "background 0.3s",
   },
 };
 
