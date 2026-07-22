@@ -2,31 +2,25 @@ import axios from "axios";
 import { useState } from "react";
 
 const AddProduct = () => {
-  const initialFormState = {
-    product_id: "",
-    product_name: "",
-    category_name: "",
+  const [product, setProduct] = useState({
+    productId: "",
+    title: "",
+    purity: "",
     weight: "",
-    offer_price: "",
-    original_price: "",
-    stock_quantity: "",
-    product_place: "",
-    product_description: "",
-    state: "",
-    district: "",
-    mandal: "",
-    product_images: [],
-  };
+    price: "",
+    stock: "",
+    featured: "No",
+    image_urls: [],
+  });
 
-  const [product, setProduct] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     if (type === "file") {
-      setProduct((prev) => ({ ...prev, [name]: Array.from(files) }));
+      setProduct({ ...product, [name]: Array.from(files) });
     } else {
-      setProduct((prev) => ({ ...prev, [name]: value }));
+      setProduct({ ...product, [name]: value });
     }
   };
 
@@ -35,43 +29,40 @@ const AddProduct = () => {
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("product_id", product.product_id);
-    formData.append("product_name", product.product_name);
-    formData.append("category_name", product.category_name);
-    formData.append("weight", parseFloat(product.weight) || 0);
-    formData.append("offer_price", parseFloat(product.offer_price) || 0);
-    formData.append("original_price", parseFloat(product.original_price) || 0);
-    formData.append("stock_quantity", parseInt(product.stock_quantity, 10) || 0);
-    formData.append("product_place", product.product_place);
-    formData.append("product_description", product.product_description);
-    formData.append("state", product.state);
-    formData.append("district", product.district);
-    formData.append("mandal", product.mandal);
+    formData.append("productId", product.productId);
+    formData.append("title", product.title);
+    formData.append("purity", product.purity);
+    formData.append("weight", product.weight);
+    formData.append("price", product.price);
+    formData.append("stock", product.stock);
+    formData.append("featured", product.featured === "Yes" ? true : false);
 
-    // Append image files
-    product.product_images.forEach((file) => {
-      formData.append("product_images", file);
+    product.image_urls.forEach((file) => {
+      formData.append("image_urls", file);
     });
 
     try {
-      // Made request directly without storing unused 'response' variable
-      await axios.post(
+      const response = await axios.post(
         "https://goldbackend-production-3359.up.railway.app/products/add",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-
       setLoading(false);
-      alert("Product added successfully!");
-      setProduct(initialFormState);
+      alert(`Product added successfully! ID: ${response.data.product.id}`);
+      setProduct({
+        productId: "",
+        title: "",
+        purity: "",
+        weight: "",
+        price: "",
+        stock: "",
+        featured: "No",
+        image_urls: [],
+      });
     } catch (error) {
       setLoading(false);
       console.error("Error adding product:", error);
-      alert(
-        `Failed to add product: ${
-          error.response?.data?.message || "Please check backend logs."
-        }`
-      );
+      alert("Failed to add product! Please try again.");
     }
   };
 
@@ -83,9 +74,9 @@ const AddProduct = () => {
         </div>
 
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Product Details</h2>
+          <h2 style={styles.sectionTitle}>Basic Information</h2>
           <p style={styles.sectionSubtitle}>
-            Fill out the details below to add a new gold item to inventory.
+            Information to help define a product.
           </p>
 
           <form onSubmit={handleSubmit} style={styles.form}>
@@ -94,51 +85,49 @@ const AddProduct = () => {
               <label style={styles.label}>Product ID</label>
               <input
                 type="text"
-                name="product_id"
-                placeholder="e.g., PRD002"
-                value={product.product_id}
+                name="productId"
+                value={product.productId}
                 onChange={handleChange}
                 required
                 style={styles.input}
               />
             </div>
 
-            {/* Product Name */}
+            {/* Title */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Product Name</label>
+              <label style={styles.label}>Title</label>
               <input
                 type="text"
-                name="product_name"
-                placeholder="e.g., Gold Necklace"
-                value={product.product_name}
+                name="title"
+                value={product.title}
                 onChange={handleChange}
                 required
                 style={styles.input}
               />
             </div>
 
-            {/* Category Name */}
+            {/* Purity */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Category Name</label>
+              <label style={styles.label}>Purity</label>
+              <select
+                name="purity"
+                value={product.purity}
+                onChange={handleChange}
+                required
+                style={styles.select}
+              >
+                <option value="">Select</option>
+                <option value="22k">22K</option>
+                <option value="24k">24K</option>
+              </select>
+            </div>
+
+            {/* Weight */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Weight</label>
               <input
                 type="text"
-                name="category_name"
-                placeholder="e.g., Necklaces"
-                value={product.category_name}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* Weight (grams) */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Weight (grams)</label>
-              <input
-                type="number"
-                step="0.01"
                 name="weight"
-                placeholder="e.g., 25.75"
                 value={product.weight}
                 onChange={handleChange}
                 required
@@ -146,118 +135,44 @@ const AddProduct = () => {
               />
             </div>
 
-            {/* Original Price */}
+            {/* Price */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Original Price (₹)</label>
+              <label style={styles.label}>Price (₹)</label>
               <input
                 type="number"
-                step="0.01"
-                name="original_price"
-                placeholder="e.g., 135000"
-                value={product.original_price}
+                name="price"
+                value={product.price}
                 onChange={handleChange}
                 required
                 style={styles.input}
               />
             </div>
 
-            {/* Offer Price */}
+            {/* Stock */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Offer Price (₹)</label>
+              <label style={styles.label}>Stock</label>
               <input
                 type="number"
-                step="0.01"
-                name="offer_price"
-                placeholder="e.g., 125000"
-                value={product.offer_price}
+                name="stock"
+                value={product.stock}
                 onChange={handleChange}
                 required
                 style={styles.input}
               />
             </div>
 
-            {/* Stock Quantity */}
+            {/* Featured */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Stock Quantity</label>
-              <input
-                type="number"
-                name="stock_quantity"
-                placeholder="e.g., 5"
-                value={product.stock_quantity}
+              <label style={styles.label}>Featured</label>
+              <select
+                name="featured"
+                value={product.featured}
                 onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* Product Place */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Product Place / Store</label>
-              <input
-                type="text"
-                name="product_place"
-                placeholder="e.g., Vijayawada"
-                value={product.product_place}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* State */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>State</label>
-              <input
-                type="text"
-                name="state"
-                placeholder="e.g., Andhra Pradesh"
-                value={product.state}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* District */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>District</label>
-              <input
-                type="text"
-                name="district"
-                placeholder="e.g., NTR"
-                value={product.district}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* Mandal */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Mandal</label>
-              <input
-                type="text"
-                name="mandal"
-                placeholder="e.g., Vijayawada Urban"
-                value={product.mandal}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-            </div>
-
-            {/* Description */}
-            <div style={styles.formGroupFull}>
-              <label style={styles.label}>Product Description</label>
-              <textarea
-                name="product_description"
-                rows="3"
-                placeholder="Enter description..."
-                value={product.product_description}
-                onChange={handleChange}
-                required
-                style={{ ...styles.input, resize: "vertical" }}
-              />
+                style={styles.select}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
             </div>
 
             {/* Images */}
@@ -265,7 +180,7 @@ const AddProduct = () => {
               <label style={styles.label}>Product Images</label>
               <input
                 type="file"
-                name="product_images"
+                name="image_urls"
                 accept="image/*"
                 multiple
                 onChange={handleChange}
@@ -349,6 +264,13 @@ const styles = {
     fontSize: "14px",
     outline: "none",
     transition: "border 0.2s",
+  },
+  select: {
+    padding: "10px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+    backgroundColor: "#fff",
   },
   fileInput: {
     border: "1px solid #ccc",
