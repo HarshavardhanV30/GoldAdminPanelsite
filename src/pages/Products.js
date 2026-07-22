@@ -28,7 +28,9 @@ const Products = () => {
     const purityMatch = purityFilter === 'All' || product.purity === purityFilter;
     const categoryMatch =
       categoryFilter === 'All' ||
-      product.title?.toLowerCase().includes(categoryFilter.toLowerCase());
+      product.category_name?.toLowerCase() === categoryFilter.toLowerCase() ||
+      product.product_name?.toLowerCase().includes(categoryFilter.toLowerCase());
+
     return purityMatch && categoryMatch;
   });
 
@@ -43,8 +45,9 @@ const Products = () => {
     }
   };
 
-  // Safe image array parser
+  // Safe image array parser handling API property `product_images`
   const getImageArray = (imageField) => {
+    if (!imageField) return [];
     try {
       if (Array.isArray(imageField)) return imageField;
       if (typeof imageField === 'string') return JSON.parse(imageField);
@@ -54,10 +57,10 @@ const Products = () => {
     return [];
   };
 
-  // Get full URL for each image
+  // Resolve absolute image paths
   const getFullImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('/')) return `${BASE_URL}${url}`;
     return `${BASE_URL}/uploads/${url}`;
   };
@@ -168,6 +171,12 @@ const Products = () => {
           padding: 6px 9px;
           font-size: 14px;
         }
+        .old-price {
+          text-decoration: line-through;
+          color: #888;
+          font-size: 0.85rem;
+          margin-left: 5px;
+        }
       `}</style>
 
       <div className="products-header">
@@ -199,6 +208,7 @@ const Products = () => {
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
             <option value="All">All</option>
+            <option value="Necklaces">Necklaces</option>
             <option value="Bars">Bars</option>
             <option value="Coins">Coins</option>
             <option value="Jewellery">Jewellery</option>
@@ -213,12 +223,12 @@ const Products = () => {
           <thead>
             <tr>
               <th>Product ID</th>
-              <th>Title</th>
-              <th>Purity</th>
-              <th>Weight</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Weight (g)</th>
               <th>Price</th>
               <th>Stock</th>
-              <th>Featured</th>
+              <th>Location</th>
               <th>Product Images</th>
               <th>Actions</th>
             </tr>
@@ -226,32 +236,35 @@ const Products = () => {
           <tbody>
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product, index) => (
-                <tr key={index}>
+                <tr key={product.id || product.product_id || index}>
                   <td>{product.product_id}</td>
-                  <td>{product.title}</td>
                   <td>
-                    <span className="badge bg-warning text-dark">{product.purity}</span>
+                    <strong>{product.product_name}</strong>
                   </td>
-                  <td>{product.weight}</td>
-                  <td>₹{product.price}</td>
-                  <td>{product.stock}</td>
                   <td>
-                    <span
-                      className={`badge ${
-                        product.featured === true || product.featured === 'true'
-                          ? 'bg-success'
-                          : 'bg-secondary'
-                      }`}
-                    >
-                      {product.featured === true || product.featured === 'true' ? 'Yes' : 'No'}
+                    <span className="badge bg-info text-dark">
+                      {product.category_name || 'N/A'}
                     </span>
                   </td>
+                  <td>{product.weight}g</td>
                   <td>
-                    {getImageArray(product.image_urls).map((imgUrl, i) => (
+                    ₹{product.offer_price}
+                    {product.original_price && (
+                      <span className="old-price">₹{product.original_price}</span>
+                    )}
+                  </td>
+                  <td>{product.stock_quantity}</td>
+                  <td>
+                    {product.product_place
+                      ? `${product.product_place}, ${product.state}`
+                      : 'N/A'}
+                  </td>
+                  <td>
+                    {getImageArray(product.product_images).map((imgUrl, i) => (
                       <img
                         key={i}
                         src={getFullImageUrl(imgUrl)}
-                        alt={`${product.title} ${i + 1}`}
+                        alt={`${product.product_name} ${i + 1}`}
                         width="50"
                         height="50"
                         className="product-image me-1"
@@ -259,12 +272,14 @@ const Products = () => {
                     ))}
                   </td>
                   <td>
-                    <button className="btn btn-sm btn-outline-primary me-2 action-btn">
-                      <FaEdit />
-                    </button>
+                    <Link to={`/editproduct/${product.id || product.product_id}`}>
+                      <button className="btn btn-sm btn-outline-primary me-2 action-btn">
+                        <FaEdit />
+                      </button>
+                    </Link>
                     <button
                       className="btn btn-sm btn-outline-danger action-btn"
-                      onClick={() => handleDelete(product.id)}
+                      onClick={() => handleDelete(product.id || product.product_id)}
                     >
                       <FaTrash />
                     </button>
