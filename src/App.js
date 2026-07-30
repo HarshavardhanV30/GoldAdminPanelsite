@@ -59,7 +59,7 @@ const App = () => {
           <Route path="/AddPhonenumbers" element={<AddPhoneNumber/>}/>
           <Route path="/AddGoldPrice" element={<GoldPriceDashboard/>}/>
           <Route path="/SellGold" element={<SellGoldPrice/>}/>
-          <Route path="/policies" element={<policy/>}/>
+          <Route path="/policy" element={<policy/>}/>
         </Routes>
       </Layout>
     </Router>
