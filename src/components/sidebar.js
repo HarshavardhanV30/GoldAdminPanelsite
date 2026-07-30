@@ -34,7 +34,7 @@ export default function SidebarOnly() {
             {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
 
-          <NavLink to="/policies" className="nav-item">
+          <NavLink to="/policy" className="nav-item">
             <FaBox className="icon" />
             {isOpen && <span className="nav-text">Policy</span>}
             {isOpen && <FaEllipsisH className="ellipsis" />}
