@@ -16,7 +16,7 @@ import AddPhoneNumber from "./pages/PhoneNumber";
 import GoldPriceDashboard from "./pages/AddGoldPrice";
 import SellGoldPrice  from "./pages/SellGoldPrice";
 import Sidebar from "../src/components/sidebar";
-import policy from "./pages/policy";
+import LegalPolicies from "./pages/policy";
 
 import "./App.css";
 import AddGoldProduct from "./pages/AddGoldProduct";
@@ -59,7 +59,7 @@ const App = () => {
           <Route path="/AddPhonenumbers" element={<AddPhoneNumber/>}/>
           <Route path="/AddGoldPrice" element={<GoldPriceDashboard/>}/>
           <Route path="/SellGold" element={<SellGoldPrice/>}/>
-          <Route path="/policy" element={<policy/>}/>
+          <Route path="/policy" element={<LegalPolicies/>}/>
         </Routes>
       </Layout>
     </Router>
