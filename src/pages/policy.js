@@ -4,11 +4,11 @@ const LegalPolicies = () => {
   const [activeTab, setActiveTab] = useState('all');
 
   const companyDetails = {
-    name: "gbuyers gold sell and buy",
-    website: "www.website.com",
-    contactEmail: "support@website.com",
-    address: "Registered Office Address Here, City, State, India",
-    phone: "+91 00000 00000"
+    name: "G-buyer",
+    website: "https://goldappadminpanel.vercel.app/",
+    contactEmail: "rajureddi60@gmail.com",
+    address: "1-31A Maturu,Atchuthapuram mandal,duppituru,visakhapatnam",
+    phone: "+91 8186009630"
   };
 
   return (
