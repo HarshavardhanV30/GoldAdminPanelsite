@@ -461,8 +461,8 @@ const GoldProductsDashboard = () => {
               {/* Location Selection Grid */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "24px", marginBottom: "40px" }}>
                 <FormSelect label="State" options={["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"]} value={formData.state} onChange={(val) => handleInputChange("state", val)} required />
-                <FormInput label="District" placeholder="Enter District" value={formData.district} onChange={(val) => handleInputChange("district", val)} required/>
-                <FormInput label="Mandal" placeholder="Enter Mandal" value={formData.mandal} onChange={(val) => handleInputChange("mandal", val)} required/>
+                <FormInput label="District" placeholder="Enter District Name" value={formData.district} onChange={(val) => handleInputChange("district", val)} required/>
+                <FormInput label="Mandal" placeholder="Enter Mandal Name" value={formData.mandal} onChange={(val) => handleInputChange("mandal", val)} required/>
                 <FormInput label="Pincode"type="text"placeholder="Enter 6-digit pincode"value={formData.pincode}onChange={(val) => handleInputChange("pincode", val)}required />
                 </div>
 
