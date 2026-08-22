@@ -33,11 +33,12 @@ export default function GoldLoanRequests() {
   const fetchLoans = async () => {
     try {
       setLoading(true);
+      setError("");
       const res = await axios.get(`${API_BASE}/loan/all`);
-      const data = res.data.data || [];
+      const data = res.data.data || res.data || [];
       setLoans(data);
       setFilteredLoans(data);
-    } catch {
+    } catch (err) {
       setError("Failed to load loan requests");
     } finally {
       setLoading(false);
@@ -96,7 +97,7 @@ export default function GoldLoanRequests() {
   /* ================= SEARCH ================= */
   useEffect(() => {
     const filtered = loans.filter((l) =>
-      l.fullname.toLowerCase().includes(searchText.toLowerCase())
+      l.fullname?.toLowerCase().includes(searchText.toLowerCase())
     );
     setFilteredLoans(filtered);
     setCurrentPage(1);
@@ -106,17 +107,17 @@ export default function GoldLoanRequests() {
   const indexOfLast = currentPage * rowsPerPage;
   const indexOfFirst = indexOfLast - rowsPerPage;
   const currentRows = filteredLoans.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredLoans.length / rowsPerPage);
+  const totalPages = Math.ceil(filteredLoans.length / rowsPerPage) || 1;
 
   const theme = darkMode
-    ? { bg: "#020617", card: "#020617", text: "#e5e7eb" }
-    : { bg: "#f8fafc", card: "#ffffff", text: "#020617" };
+    ? { bg: "#020617", card: "#0f172a", text: "#e5e7eb", border: "#334155" }
+    : { bg: "#f8fafc", card: "#ffffff", text: "#020617", border: "#cbd5e1" };
 
   return (
     <div style={{ ...styles.page, background: theme.bg, color: theme.text }}>
       {/* HEADER */}
       <div style={styles.header}>
-        <div style={styles.searchBox}>
+        <div style={{ ...styles.searchBox, borderColor: theme.border }}>
           <FaSearch />
           <input
             placeholder="Search by name..."
@@ -127,11 +128,11 @@ export default function GoldLoanRequests() {
         </div>
 
         <div style={styles.headerIcons}>
-          <FaFileExcel onClick={exportToExcel} />
+          <FaFileExcel title="Export Excel" onClick={exportToExcel} />
           {darkMode ? (
-            <FaSun onClick={() => setDarkMode(false)} />
+            <FaSun title="Light Mode" onClick={() => setDarkMode(false)} />
           ) : (
-            <FaMoon onClick={() => setDarkMode(true)} />
+            <FaMoon title="Dark Mode" onClick={() => setDarkMode(true)} />
           )}
         </div>
       </div>
@@ -161,10 +162,7 @@ export default function GoldLoanRequests() {
           <h2>{loans.filter((l) => Number(l.loanamount) > 100000).length}</h2>
         </div>
 
-        <div
-          style={{ ...styles.card, ...styles.yellow }}
-          onClick={showLowAmount}
-        >
+        <div style={{ ...styles.card, ...styles.yellow }} onClick={showLowAmount}>
           <h4>Low Amount</h4>
           <h2>{loans.filter((l) => Number(l.loanamount) <= 100000).length}</h2>
         </div>
@@ -175,9 +173,9 @@ export default function GoldLoanRequests() {
       {/* TABLE */}
       <div style={{ ...styles.tableCard, background: theme.card }}>
         {loading ? (
-          <p>Loading...</p>
+          <p style={{ textAlign: "center", padding: 20 }}>Loading...</p>
         ) : error ? (
-          <p style={{ color: "red" }}>{error}</p>
+          <p style={{ color: "red", textAlign: "center", padding: 20 }}>{error}</p>
         ) : (
           <>
             <div style={{ overflowX: "auto" }}>
@@ -197,66 +195,90 @@ export default function GoldLoanRequests() {
                       "Date",
                       "Actions",
                     ].map((h) => (
-                      <th key={h} style={styles.th}>
+                      <th key={h} style={{ ...styles.th, borderColor: theme.border }}>
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {currentRows.map((loan) => (
-                    <tr key={loan.id}>
-                      <td>{loan.id}</td>
-                      <td>
-                        <div style={styles.imageCell}>
-                          {loan.image.map((img, i) => (
-                            <img
-                              key={i}
-                              src={img}
-                              alt=""
-                              style={styles.thumb}
-                              onClick={() => setPopupImage(img)}
-                            />
-                          ))}
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{loan.fullname}</td>
-                      <td>{loan.mobile}</td>
-                      <td>{loan.address}</td>
-                      <td>{loan.goldtype}</td>
-                      <td>{loan.goldweight} g</td>
-                      <td>₹{Number(loan.loanamount).toLocaleString()}</td>
-                      <td>{loan.bank}</td>
-                      <td>{new Date(loan.created_at).toLocaleDateString()}</td>
-                      <td>
-                        <div style={styles.actions}>
-                          <FaEye onClick={() => setPopupLoan(loan)} />
-                          <FaTrash
-                            onClick={() => handleDelete(loan.id)}
-                            style={{ color: "#ef4444" }}
-                          />
-                        </div>
+                  {currentRows.length === 0 ? (
+                    <tr>
+                      <td colSpan="11" style={{ textAlign: "center", padding: 20 }}>
+                        No records found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    currentRows.map((loan) => (
+                      <tr key={loan.id} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                        <td style={styles.td}>{loan.id}</td>
+                        <td style={styles.td}>
+                          <div style={styles.imageCell}>
+                            {Array.isArray(loan.image) &&
+                              loan.image.map((img, i) => (
+                                <img
+                                  key={i}
+                                  src={img}
+                                  alt="loan"
+                                  style={styles.thumb}
+                                  onClick={() => setPopupImage(img)}
+                                />
+                              ))}
+                          </div>
+                        </td>
+                        <td style={{ ...styles.td, fontWeight: 600 }}>{loan.fullname}</td>
+                        <td style={styles.td}>{loan.mobile}</td>
+                        <td style={styles.td}>{loan.address}</td>
+                        <td style={styles.td}>{loan.goldtype}</td>
+                        <td style={styles.td}>{loan.goldweight} g</td>
+                        <td style={styles.td}>₹{Number(loan.loanamount || 0).toLocaleString()}</td>
+                        <td style={styles.td}>{loan.bank}</td>
+                        <td style={styles.td}>
+                          {loan.created_at ? new Date(loan.created_at).toLocaleDateString() : ""}
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.actions}>
+                            <FaEye title="View Details" onClick={() => setPopupLoan(loan)} style={{ cursor: "pointer" }} />
+                            <FaTrash
+                              title="Delete"
+                              onClick={() => handleDelete(loan.id)}
+                              style={{ color: "#ef4444", cursor: "pointer" }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
             {/* PAGINATION */}
             <div style={styles.pagination}>
-              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}>
+              <button
+                style={styles.pageBtn}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              >
                 Prev
               </button>
               {[...Array(totalPages)].map((_, i) => (
-                <button key={i} onClick={() => setCurrentPage(i + 1)}>
+                <button
+                  key={i}
+                  style={{
+                    ...styles.pageBtn,
+                    background: currentPage === i + 1 ? "#2563eb" : "transparent",
+                    color: currentPage === i + 1 ? "#fff" : theme.text,
+                  }}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
                   {i + 1}
                 </button>
               ))}
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(p + 1, totalPages))
-                }
+                style={styles.pageBtn}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               >
                 Next
               </button>
@@ -268,16 +290,17 @@ export default function GoldLoanRequests() {
       {/* IMAGE POPUP */}
       {popupImage && (
         <div style={styles.popupOverlay} onClick={() => setPopupImage(null)}>
-          <img src={popupImage} alt="" style={styles.popupImage} />
+          <img src={popupImage} alt="Large view" style={styles.popupImage} />
         </div>
       )}
 
       {/* VIEW DETAILS POPUP */}
       {popupLoan && (
         <div style={styles.popupOverlay} onClick={() => setPopupLoan(null)}>
-          <div style={{ ...styles.popupCard, background: theme.card }}>
+          <div style={{ ...styles.popupCard, background: theme.card }} onClick={(e) => e.stopPropagation()}>
             <FaTimes style={styles.close} onClick={() => setPopupLoan(null)} />
             <h2>Loan Details</h2>
+            <p><b>ID:</b> {popupLoan.id}</p>
             <p><b>Name:</b> {popupLoan.fullname}</p>
             <p><b>Mobile:</b> {popupLoan.mobile}</p>
             <p><b>Address:</b> {popupLoan.address}</p>
@@ -285,6 +308,7 @@ export default function GoldLoanRequests() {
             <p><b>Weight:</b> {popupLoan.goldweight} g</p>
             <p><b>Loan Amount:</b> ₹{popupLoan.loanamount}</p>
             <p><b>Bank:</b> {popupLoan.bank}</p>
+            <p><b>Date:</b> {new Date(popupLoan.created_at).toLocaleString()}</p>
           </div>
         </div>
       )}
@@ -295,16 +319,18 @@ export default function GoldLoanRequests() {
 /* ================= STYLES ================= */
 const styles = {
   page: { minHeight: "100vh", padding: 20, fontFamily: "Inter, sans-serif" },
-  header: { display: "flex", justifyContent: "space-between", marginBottom: 20 },
+  header: { display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems: "center" },
   searchBox: {
     display: "flex",
+    alignItems: "center",
     gap: 8,
-    border: "1px solid #334155",
+    border: "1px solid",
     padding: "8px 12px",
     borderRadius: 10,
+    width: "300px",
   },
-  searchInput: { border: "none", outline: "none", background: "transparent" },
-  headerIcons: { display: "flex", gap: 15, cursor: "pointer" },
+  searchInput: { border: "none", outline: "none", background: "transparent", width: "100%" },
+  headerIcons: { display: "flex", gap: 15, cursor: "pointer", fontSize: 18, alignItems: "center" },
   title: { fontSize: 26, marginBottom: 20 },
 
   cards: {
@@ -328,18 +354,26 @@ const styles = {
     color: "#020617",
   },
 
-  tableCard: { borderRadius: 16, padding: 20 },
+  tableCard: { borderRadius: 16, padding: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" },
   table: { width: "100%", minWidth: 1300, borderCollapse: "collapse" },
-  th: { padding: 12, borderBottom: "1px solid #334155" },
+  th: { padding: 12, borderBottom: "1px solid", textAlign: "left" },
+  td: { padding: 12, fontSize: 14 },
   imageCell: { display: "flex", gap: 6 },
-  thumb: { width: 42, height: 42, borderRadius: 6, cursor: "pointer" },
-  actions: { display: "flex", gap: 12 },
+  thumb: { width: 42, height: 42, borderRadius: 6, cursor: "pointer", objectFit: "cover" },
+  actions: { display: "flex", gap: 12, alignItems: "center" },
 
   pagination: {
-    marginTop: 15,
+    marginTop: 20,
     display: "flex",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
+  },
+  pageBtn: {
+    padding: "6px 12px",
+    borderRadius: 6,
+    border: "1px solid #334155",
+    cursor: "pointer",
+    background: "transparent",
   },
 
   popupOverlay: {
@@ -351,7 +385,7 @@ const styles = {
     alignItems: "center",
     zIndex: 9999,
   },
-  popupImage: { maxHeight: "80vh", borderRadius: 10 },
-  popupCard: { padding: 20, borderRadius: 12, width: 600 },
-  close: { position: "absolute", top: 12, right: 12, cursor: "pointer" },
+  popupImage: { maxHeight: "80vh", maxWidth: "90vw", borderRadius: 10 },
+  popupCard: { padding: 25, borderRadius: 12, width: 450, position: "relative" },
+  close: { position: "absolute", top: 15, right: 15, cursor: "pointer", fontSize: 18 },
 };
