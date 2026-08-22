@@ -55,7 +55,6 @@ const Products = () => {
         return Array.isArray(parsed) ? parsed : [parsed];
       }
     } catch {
-      // If JSON.parse fails, treat it as a single comma-separated or plain string URL
       if (typeof imageField === 'string') {
         return imageField.split(',').map((img) => img.trim());
       }
