@@ -21,7 +21,7 @@ const SellerProductTable = () => {
   const [maxPrice, setMaxPrice] = useState("");
   const [darkMode, setDarkMode] = useState(true);
 
-  const API_URL = "https://goldbackend-production-3359.up.railway.app/seller/all";
+  const API_URL = "https://goldbackend-production-eaef.up.railway.app/seller/all";
 
   /* ================= FETCH ================= */
   const fetchProducts = async () => {
@@ -44,7 +44,7 @@ const SellerProductTable = () => {
       return;
 
     try {
-      await axios.delete(`https://goldbackend-production-3359.up.railway.app/seller/${id}`);
+      await axios.delete(`https://goldbackend-production-eaef.up.railway.app/seller/${id}`);
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -57,7 +57,7 @@ const SellerProductTable = () => {
     try {
       // Correctly targets the requested dynamic PATCH endpoint: /seller/:id/status
       await axios.patch(
-        `https://goldbackend-production-3359.up.railway.app/seller/${id}/status`,
+        `https://goldbackend-production-eaef.up.railway.app/seller/${id}/status`,
         {
           status: statusValue, // Send requested body structure ("approved", "cancelled", "pending")
         }
