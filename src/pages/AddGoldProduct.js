@@ -39,7 +39,7 @@ const GoldProductsDashboard = () => {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("https://goldbackend-production-3359.up.railway.app/products/all");
+      const response = await fetch("https://goldbackend-production-eaef.up.railway.app/products/all");
       const data = await response.json();
       setProducts(Array.isArray(data) ? data : data.products || []);
     } catch (error) {
@@ -53,7 +53,7 @@ const GoldProductsDashboard = () => {
   const fetchProductById = async (id) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://goldbackend-production-3359.up.railway.app/products/${id}`);
+      const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/products/${id}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -177,7 +177,7 @@ const GoldProductsDashboard = () => {
         multiPartPayload.append("product_images", fileObject);
       });
 
-      const response = await fetch("https://goldbackend-production-3359.up.railway.app/products/add", {
+      const response = await fetch("https://goldbackend-production-eaef.up.railway.app/products/add", {
         method: "POST",
         body: multiPartPayload,
       });
@@ -204,7 +204,7 @@ const GoldProductsDashboard = () => {
     e.stopPropagation(); // Avoid triggering details modal fetch logic
     if (!window.confirm("Delete this product?")) return;
     try {
-      const response = await fetch(`https://goldbackend-production-3359.up.railway.app/products/${id}`, { method: "DELETE" });
+      const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/products/${id}`, { method: "DELETE" });
       if (response.ok) {
         alert("Deleted successfully.");
         fetchProducts();
