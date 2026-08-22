@@ -27,22 +27,37 @@ const OrderTable = () => {
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
+    let cancellationReason = '';
+    
+    if (newStatus === 'cancelled') {
+      cancellationReason = window.prompt("Please enter the reason for cancellation:");
+      if (cancellationReason === null) return; // User cancelled the prompt
+    }
+
     try {
+      const payload = { orderId, status: newStatus };
+      if (newStatus === 'cancelled') {
+        payload.cancellation_reason = cancellationReason;
+      }
+
       const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: newStatus }),
+        body: JSON.stringify(payload),
       });
+
       if (res.ok) {
         setOrders(orders.map(order =>
-          order.id === orderId ? { ...order, status: newStatus } : order
+          order.id === orderId ? { ...order, status: newStatus, cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason } : order
         ));
       } else {
         const result = await res.json();
         console.error('Failed to update status:', result.message);
+        alert('Failed to update status: ' + (result.message || 'Unknown error'));
       }
     } catch (err) {
       console.error('Error updating order status:', err);
+      alert('Error updating order status.');
     }
   };
 
@@ -57,9 +72,11 @@ const OrderTable = () => {
       } else {
         const result = await res.json();
         console.error('Failed to delete order:', result.message);
+        alert('Failed to delete order.');
       }
     } catch (err) {
       console.error('Error deleting order:', err);
+      alert('Error deleting order.');
     }
   };
 
@@ -299,13 +316,12 @@ const OrderTable = () => {
                     </td>
                     <td style={styles.thtd}>{item.orderStatus === 'cancelled' && item.order.cancellation_reason ? <strong>{item.order.cancellation_reason}</strong> : '—'}</td>
                     <td style={styles.thtd}>
-                      {item.orderStatus !== 'cancelled' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
-                          <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
+                        <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
+                        <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
+                        <button style={styles.btn(darkMode?'#dc2626':'#ef4444','#fff')} onClick={() => handleStatusChange(item.orderId, 'cancelled')}>❌ Cancel</button>
+                      </div>
                     </td>
                     <td style={styles.thtd}><button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}><FaTrash /></button></td>
                   </tr>
