@@ -31,33 +31,55 @@ const OrderTable = () => {
     
     if (newStatus === 'cancelled') {
       cancellationReason = window.prompt("Please enter the reason for cancellation:");
-      if (cancellationReason === null) return; // User cancelled the prompt
+      if (cancellationReason === null) return; // User cancelled prompt
     }
 
     try {
-      const payload = { orderId, status: newStatus };
+      const payload = { 
+        orderId: orderId, 
+        status: newStatus 
+      };
+      
       if (newStatus === 'cancelled') {
         payload.cancellation_reason = cancellationReason;
       }
 
       const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(payload),
       });
 
+      const responseText = await res.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        result = { message: responseText };
+      }
+
       if (res.ok) {
-        setOrders(orders.map(order =>
-          order.id === orderId ? { ...order, status: newStatus, cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason } : order
-        ));
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  status: newStatus, 
+                  cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason 
+                } 
+              : order
+          )
+        );
       } else {
-        const result = await res.json();
-        console.error('Failed to update status:', result.message);
-        alert('Failed to update status: ' + (result.message || 'Unknown error'));
+        console.error('Failed to update status:', result);
+        alert('Failed to update status: ' + (result.message || JSON.stringify(result)));
       }
     } catch (err) {
-      console.error('Error updating order status:', err);
-      alert('Error updating order status.');
+      console.error('Network or code error updating order status:', err);
+      alert('Network error updating order status. Check console for details.');
     }
   };
 
@@ -70,9 +92,9 @@ const OrderTable = () => {
       if (res.ok) {
         setOrders(orders.filter(order => order.id !== orderId));
       } else {
-        const result = await res.json();
+        const result = await res.json().catch(() => ({}));
         console.error('Failed to delete order:', result.message);
-        alert('Failed to delete order.');
+        alert('Failed to delete order: ' + (result.message || 'Unknown error'));
       }
     } catch (err) {
       console.error('Error deleting order:', err);
