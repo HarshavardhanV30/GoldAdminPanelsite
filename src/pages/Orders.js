@@ -36,7 +36,7 @@ const OrderTable = () => {
 
     try {
       const payload = { 
-        orderId: orderId, 
+        orderId, 
         status: newStatus 
       };
       
