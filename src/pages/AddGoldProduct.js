@@ -83,13 +83,20 @@ finally{setIsLoading(false);}
 
 const handleDelete=async(id,e)=>{
 e.stopPropagation();
-if(!window.confirm("Delete this product?"))return;
+if(!window.confirm("Are you sure you want to delete this product?"))return;
 try{
 const res=await fetch(`${API}/products/${id}`,{method:"DELETE"});
 const data=await res.json().catch(()=>({}));
-if(res.ok){alert("Deleted successfully");fetchProducts();}
-else alert(data.message||"Failed to delete");
-}catch(err){console.error(err);alert("Failed to delete");}
+if(res.ok){
+alert("Product deleted successfully");
+fetchProducts();
+}else{
+alert(data.message||"Failed to delete product");
+}
+}catch(err){
+console.error(err);
+alert("Failed to connect to server for deletion");
+}
 };
 
 const parseProductImages=raw=>{
