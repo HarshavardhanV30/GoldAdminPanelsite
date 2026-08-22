@@ -14,7 +14,7 @@ const OrderTable = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/orders/all`);
+        const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/all`);
         const data = await response.json();
         setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -44,8 +44,8 @@ const OrderTable = () => {
         payload.cancellation_reason = cancellationReason;
       }
 
-      const res = await fetch('https://goldbackend-production-eaef.up.railway.app/orders/update-status', {
-        method: 'PUT', // Fixed to match backend router method
+      const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -86,7 +86,7 @@ const OrderTable = () => {
   const handleDelete = async (orderId) => {
     if (!window.confirm("Are you sure you want to delete this order?")) return;
     try {
-      const res = await fetch(`https://goldbackend-production-eaef.up.railway.app/orders/delete/${orderId}`, {
+      const res = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/delete/${orderId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -129,7 +129,7 @@ const OrderTable = () => {
           Address_Pincode: order.address?.pincode || '',
           Address_Mobile: order.address?.mobile || '',
           Address_Type: order.address?.address_type || '',
-          Status: order.status || 'processing',
+          Status: order.status || 'Processing',
           CancellationReason: order.cancellation_reason || '',
         });
       });
@@ -184,7 +184,7 @@ const OrderTable = () => {
       padding: '0.2rem 0.5rem',
       borderRadius: '5px',
       color: '#fff',
-      backgroundColor: status === 'completed' || status === 'paid' ? '#22c55e' : '#3b82f6'
+      backgroundColor: status === 'paid' ? '#22c55e' : '#3b82f6'
     }),
     btn: (bg, color) => ({
       margin: '0 0.2rem', padding: '0.3rem 0.5rem',
@@ -223,7 +223,7 @@ const OrderTable = () => {
         (priceFilter === 'high' && parseFloat(item.price) > 30000);
       const matchStatus = statusFilter === '' || order.status === statusFilter;
       return matchTitle && matchPurity && matchPrice && matchStatus;
-    }).map(item => ({ ...item, orderStatus: order.status || 'processing', orderId: order.id, order }))
+    }).map(item => ({ ...item, orderStatus: order.status, orderId: order.id, order }))
   );
 
   return (
@@ -320,7 +320,7 @@ const OrderTable = () => {
                       <div><strong>Balance:</strong> ₹{parseFloat(item.order.balance_due || 0).toLocaleString('en-IN')}</div>
                     </td>
                     <td style={styles.thtd}>
-                      <span style={styles.paymentBadge(item.order.payment_status)}>{item.order.payment_status || 'pending'}</span>
+                      <span style={styles.paymentBadge(item.order.payment_status)}>{item.order.payment_status}</span>
                     </td>
                     <td style={styles.thtd}>
                       {item.order.address ? (
