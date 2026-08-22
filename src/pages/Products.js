@@ -8,7 +8,7 @@ const Products = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [products, setProducts] = useState([]);
 
-  const API_URL = 'https://goldbackend-production-3359.up.railway.app/products/all';
+  const API_URL = 'https://goldbackend-production-eaef.up.railway.app/products/all';
   const BASE_URL = 'https://goldbackend-production-3359.up.railway.app';
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const Products = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      await axios.delete(`https://goldbackend-production-3359.up.railway.app/products/${id}`);
+      await axios.delete(`https://goldbackend-production-eaef.up.railway.app/products/${id}`);
       fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
