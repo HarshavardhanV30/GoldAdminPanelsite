@@ -65,13 +65,14 @@ export default function GoldLoanRequests() {
 
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this loan request?")) return;
+    if (!window.confirm("Are you sure you want to delete this loan request?")) return;
     try {
       await axios.delete(`${API_BASE}/loan/${id}`);
       setLoans((prev) => prev.filter((l) => l.id !== id));
       setFilteredLoans((prev) => prev.filter((l) => l.id !== id));
-    } catch {
-      alert("Delete failed");
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed. Please try again.");
     }
   };
 
