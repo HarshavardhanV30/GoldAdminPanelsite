@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaBars, FaUserCircle, FaPen, FaTrash, FaTimes } from "react-icons/fa";
 
-const BASE_URL = "https://goldbackend-production-3359.up.railway.app/category";
+const BASE_URL = "https://goldbackend-production-eaef.up.railway.app/category";
 
 const CategoryAdminPanel = () => {
   const [categories, setCategories] = useState([]);
