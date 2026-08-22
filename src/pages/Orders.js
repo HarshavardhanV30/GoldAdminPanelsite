@@ -69,12 +69,18 @@ const OrderTable = () => {
       (order.order_summary || []).forEach(item => {
         exportData.push({
           OrderID: order.id || '',
+          OrderDate: order.order_date ? new Date(order.order_date).toLocaleString() : '',
           Name: item.name || '',
           Quantity: item.quantity || '',
           Purity: item.purity || '',
+          Weight: item.weight || '',
           Price: item.price || '',
           TotalPrice: item.quantity > 1 ? (parseFloat(item.price) * item.quantity).toFixed(2) : item.price,
           PaymentMethod: order.payment_method || '',
+          InitialPaymentType: order.initial_payment_type || '',
+          AdvancePaid: order.advance_paid || '',
+          BalanceDue: order.balance_due || '',
+          PaymentStatus: order.payment_status || '',
           ExpectedDelivery: order.expected_delivery || '',
           Address_Name: order.address?.name || '',
           Address_Flat: order.address?.flat || '',
@@ -109,6 +115,7 @@ const OrderTable = () => {
       backgroundColor: darkMode ? '#1e1e2f' : '#f8f9fa',
       color: darkMode ? '#f5f5f5' : '#1e1e2f',
       transition: 'all 0.3s ease',
+      overflowX: 'auto',
     },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' },
     themeBtn: { fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' },
@@ -125,14 +132,20 @@ const OrderTable = () => {
       cursor: 'pointer', backgroundColor: darkMode ? '#16a34a' : '#22c55e',
       color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px'
     },
-    table: { width: '100%', borderCollapse: 'collapse', transition: 'all 0.3s ease' },
-    thtd: { padding: '0.5rem', border: `1px solid ${darkMode ? '#444' : '#ccc'}`, textAlign: 'left', transition: 'all 0.3s ease' },
-    purityBadge: { backgroundColor: '#facc15', padding: '0.2rem 0.5rem', borderRadius: '5px' },
+    table: { width: '100%', borderCollapse: 'collapse', transition: 'all 0.3s ease', minWidth: '1400px' },
+    thtd: { padding: '0.5rem', border: `1px solid ${darkMode ? '#444' : '#ccc'}`, textAlign: 'left', transition: 'all 0.3s ease', fontSize: '0.9rem' },
+    purityBadge: { backgroundColor: '#facc15', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '5px', fontWeight: 'bold' },
     statusBadge: (status) => ({
       padding: '0.2rem 0.5rem',
       borderRadius: '5px',
       color: '#fff',
-      backgroundColor: status === 'cancelled' ? '#ef4444' : '#22c55e'
+      backgroundColor: status === 'cancelled' ? '#ef4444' : status === 'completed' ? '#22c55e' : '#f59e0b'
+    }),
+    paymentBadge: (status) => ({
+      padding: '0.2rem 0.5rem',
+      borderRadius: '5px',
+      color: '#fff',
+      backgroundColor: status === 'paid' ? '#22c55e' : '#3b82f6'
     }),
     btn: (bg, color) => ({
       margin: '0 0.2rem', padding: '0.3rem 0.5rem',
@@ -194,7 +207,7 @@ const OrderTable = () => {
           <div style={styles.cardCount}>{completedOrders}</div>
         </div>
         <div style={styles.card(darkMode ? '#fbbf24' : '#f59e0b', statusFilter === 'processing')} onClick={() => setStatusFilter('processing')}>
-          <div style={styles.cardTitle}>processing</div>
+          <div style={styles.cardTitle}>Processing</div>
           <div style={styles.cardCount}>{pendingOrders}</div>
         </div>
         <div style={styles.card(darkMode ? '#dc2626' : '#ef4444', statusFilter === 'cancelled')} onClick={() => setStatusFilter('cancelled')}>
@@ -225,58 +238,84 @@ const OrderTable = () => {
       {loading ? (
         <p>Loading orders...</p>
       ) : (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              {['Image','Product','Quantity','Purity','Price','Total Price','Payment','Address','Status','Cancellation Reason','Actions','Delete'].map((th, i) => (
-                <th key={i} style={styles.thtd}>{th}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.length > 0 ? filteredOrders.map((item, idx) => {
-              const totalPrice = item.quantity > 1 ? parseFloat(item.price) * item.quantity : null;
-              return (
-                <tr key={idx} style={{ ...(item.orderStatus === 'cancelled' ? styles.cancelledRow : {}), ...styles.trHover }}>
-                  <td style={styles.thtd}>{item.image ? <img src={item.image} alt={item.name} style={{ width: '100px' }} /> : '—'}</td>
-                  <td style={styles.thtd}>{item.name}</td>
-                  <td style={styles.thtd}>{item.quantity}</td>
-                  <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity}</span></td>
-                  <td style={styles.thtd}>₹{parseFloat(item.price).toLocaleString('en-IN')}</td>
-                  <td style={styles.thtd}>{totalPrice ? `₹${totalPrice.toLocaleString('en-IN')}` : '—'}</td>
-                  <td style={styles.thtd}>{item.order.payment_method}</td>
-                  <td style={styles.thtd}>
-                    {item.order.address ? (
-                      <div style={styles.addressInfo}>
-                        <strong>{item.order.address.name}</strong><br />
-                        {item.order.address.flat}, {item.order.address.street}<br />
-                        {item.order.address.city}, {item.order.address.state} - {item.order.address.pincode}<br />
-                        <small>{item.order.address.mobile}</small><br />
-                        <em>{item.order.address.address_type}</em>
-                      </div>
-                    ) : 'No address found'}
-                  </td>
-                  <td style={styles.thtd}>
-                    <span style={styles.statusBadge(item.orderStatus)}>{item.orderStatus}</span>
-                  </td>
-                  <td style={styles.thtd}>{item.orderStatus === 'cancelled' && item.order.cancellation_reason ? <strong>{item.order.cancellation_reason}</strong> : '—'}</td>
-                  <td style={styles.thtd}>
-                    {item.orderStatus !== 'cancelled' && (
-                      <>
-                        <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
-                        <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                        <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
-                      </>
-                    )}
-                  </td>
-                  <td style={styles.thtd}><button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}><FaTrash /></button></td>
-                </tr>
-              )
-            }) : (
-              <tr><td colSpan="12" style={styles.thtd}>No orders found</td></tr>
-            )}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                {[
+                  'Image', 
+                  'Product', 
+                  'Order Date', 
+                  'Qty / Weight', 
+                  'Purity', 
+                  'Price', 
+                  'Total Price', 
+                  'Payment Info', 
+                  'Payment Status', 
+                  'Address', 
+                  'Status', 
+                  'Cancellation Reason', 
+                  'Actions', 
+                  'Delete'
+                ].map((th, i) => (
+                  <th key={i} style={styles.thtd}>{th}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.length > 0 ? filteredOrders.map((item, idx) => {
+                const totalPrice = item.quantity > 1 ? parseFloat(item.price) * item.quantity : null;
+                return (
+                  <tr key={idx} style={{ ...(item.orderStatus === 'cancelled' ? styles.cancelledRow : {}), ...styles.trHover }}>
+                    <td style={styles.thtd}>{item.image ? <img src={item.image} alt={item.name} style={{ width: '60px', borderRadius: '4px' }} /> : '—'}</td>
+                    <td style={styles.thtd}><strong>{item.name}</strong></td>
+                    <td style={styles.thtd}>{item.order.order_date ? new Date(item.order.order_date).toLocaleDateString() : '—'}</td>
+                    <td style={styles.thtd}>{item.quantity} ({item.weight}g)</td>
+                    <td style={styles.thtd}><span style={styles.purityBadge}>{item.purity}</span></td>
+                    <td style={styles.thtd}>₹{parseFloat(item.price).toLocaleString('en-IN')}</td>
+                    <td style={styles.thtd}>{totalPrice ? `₹${totalPrice.toLocaleString('en-IN')}` : '—'}</td>
+                    <td style={styles.thtd}>
+                      <div><strong>Method:</strong> {item.order.payment_method?.toUpperCase()}</div>
+                      <div><strong>Type:</strong> {item.order.initial_payment_type}</div>
+                      <div><strong>Advance:</strong> ₹{parseFloat(item.order.advance_paid || 0).toLocaleString('en-IN')}</div>
+                      <div><strong>Balance:</strong> ₹{parseFloat(item.order.balance_due || 0).toLocaleString('en-IN')}</div>
+                    </td>
+                    <td style={styles.thtd}>
+                      <span style={styles.paymentBadge(item.order.payment_status)}>{item.order.payment_status}</span>
+                    </td>
+                    <td style={styles.thtd}>
+                      {item.order.address ? (
+                        <div style={styles.addressInfo}>
+                          <strong>{item.order.address.name}</strong><br />
+                          {item.order.address.flat}, {item.order.address.street}<br />
+                          {item.order.address.city}, {item.order.address.state} - {item.order.address.pincode}<br />
+                          <small>{item.order.address.mobile}</small><br />
+                          <em>{item.order.address.address_type}</em>
+                        </div>
+                      ) : 'No address found'}
+                    </td>
+                    <td style={styles.thtd}>
+                      <span style={styles.statusBadge(item.orderStatus)}>{item.orderStatus}</span>
+                    </td>
+                    <td style={styles.thtd}>{item.orderStatus === 'cancelled' && item.order.cancellation_reason ? <strong>{item.order.cancellation_reason}</strong> : '—'}</td>
+                    <td style={styles.thtd}>
+                      {item.orderStatus !== 'cancelled' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
+                          <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
+                          <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
+                        </div>
+                      )}
+                    </td>
+                    <td style={styles.thtd}><button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}><FaTrash /></button></td>
+                  </tr>
+                )
+              }) : (
+                <tr><td colSpan="14" style={styles.thtd}>No orders found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
