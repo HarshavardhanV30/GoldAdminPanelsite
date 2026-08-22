@@ -9,7 +9,7 @@ const Products = () => {
   const [products, setProducts] = useState([]);
 
   const API_URL = 'https://goldbackend-production-eaef.up.railway.app/products/all';
-  const BASE_URL = 'https://goldbackend-production-3359.up.railway.app';
+  const BASE_URL = 'https://goldbackend-production-eaef.up.railway.app';
 
   useEffect(() => {
     fetchProducts();
@@ -50,8 +50,15 @@ const Products = () => {
     if (!imageField) return [];
     try {
       if (Array.isArray(imageField)) return imageField;
-      if (typeof imageField === 'string') return JSON.parse(imageField);
+      if (typeof imageField === 'string') {
+        const parsed = JSON.parse(imageField);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      }
     } catch {
+      // If JSON.parse fails, treat it as a single comma-separated or plain string URL
+      if (typeof imageField === 'string') {
+        return imageField.split(',').map((img) => img.trim());
+      }
       return [];
     }
     return [];
