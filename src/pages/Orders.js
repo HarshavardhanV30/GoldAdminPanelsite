@@ -37,15 +37,17 @@ const OrderTable = () => {
     try {
       const payload = { 
         orderId, 
-        status: newStatus 
+        status: newStatus,
+        paymentStatus: newStatus === 'completed' ? 'completed' : undefined
       };
       
       if (newStatus === 'cancelled') {
         payload.cancellation_reason = cancellationReason;
       }
 
+      // Updated to PUT method and corrected URL path to match backend
       const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -68,6 +70,7 @@ const OrderTable = () => {
               ? { 
                   ...order, 
                   status: newStatus, 
+                  payment_status: newStatus === 'completed' ? 'completed' : order.payment_status,
                   cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason 
                 } 
               : order
@@ -184,7 +187,7 @@ const OrderTable = () => {
       padding: '0.2rem 0.5rem',
       borderRadius: '5px',
       color: '#fff',
-      backgroundColor: status === 'paid' ? '#22c55e' : '#3b82f6'
+      backgroundColor: status === 'paid' || status === 'completed' ? '#22c55e' : '#3b82f6'
     }),
     btn: (bg, color) => ({
       margin: '0 0.2rem', padding: '0.3rem 0.5rem',
