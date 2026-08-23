@@ -14,7 +14,7 @@ const OrderTable = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/orders/all`);
+        const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/all`);
         const data = await response.json();
         setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -37,17 +37,15 @@ const OrderTable = () => {
     try {
       const payload = { 
         orderId, 
-        status: newStatus,
-        paymentStatus: newStatus === 'completed' ? 'completed' : undefined
+        status: newStatus 
       };
       
       if (newStatus === 'cancelled') {
         payload.cancellation_reason = cancellationReason;
       }
 
-      // Updated to PUT method and corrected URL path to match backend
-      const res = await fetch('https://goldbackend-production-eaef.up.railway.app/orders/update-status', {
-        method: 'PUT',
+      const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -70,7 +68,6 @@ const OrderTable = () => {
               ? { 
                   ...order, 
                   status: newStatus, 
-                  payment_status: newStatus === 'completed' ? 'completed' : order.payment_status,
                   cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason 
                 } 
               : order
@@ -89,7 +86,7 @@ const OrderTable = () => {
   const handleDelete = async (orderId) => {
     if (!window.confirm("Are you sure you want to delete this order?")) return;
     try {
-      const res = await fetch(`https://goldbackend-production-eaef.up.railway.app/orders/delete/${orderId}`, {
+      const res = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/delete/${orderId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -187,7 +184,7 @@ const OrderTable = () => {
       padding: '0.2rem 0.5rem',
       borderRadius: '5px',
       color: '#fff',
-      backgroundColor: status === 'paid' || status === 'completed' ? '#22c55e' : '#3b82f6'
+      backgroundColor: status === 'paid' ? '#22c55e' : '#3b82f6'
     }),
     btn: (bg, color) => ({
       margin: '0 0.2rem', padding: '0.3rem 0.5rem',
