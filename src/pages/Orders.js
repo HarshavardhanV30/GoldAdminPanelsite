@@ -26,7 +26,7 @@ const OrderTable = () => {
     fetchOrders();
   }, []);
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleStatusChange = async (orderId, newStatus, newPaymentStatus = undefined) => {
     let cancellationReason = '';
     
     if (newStatus === 'cancelled') {
@@ -38,14 +38,15 @@ const OrderTable = () => {
       const payload = { 
         orderId, 
         status: newStatus,
-        paymentStatus: newStatus === 'completed' ? 'completed' : undefined
+        paymentStatus: newPaymentStatus !== undefined 
+          ? newPaymentStatus 
+          : (newStatus === 'completed' ? 'completed' : undefined)
       };
       
       if (newStatus === 'cancelled') {
         payload.cancellation_reason = cancellationReason;
       }
 
-      // Updated to PUT method and corrected URL path to match backend
       const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
         method: 'PUT',
         headers: { 
@@ -70,7 +71,7 @@ const OrderTable = () => {
               ? { 
                   ...order, 
                   status: newStatus, 
-                  payment_status: newStatus === 'completed' ? 'completed' : order.payment_status,
+                  payment_status: payload.paymentStatus ? payload.paymentStatus : order.payment_status,
                   cancellation_reason: newStatus === 'cancelled' ? cancellationReason : order.cancellation_reason 
                 } 
               : order
@@ -174,7 +175,7 @@ const OrderTable = () => {
       cursor: 'pointer', backgroundColor: darkMode ? '#16a34a' : '#22c55e',
       color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px'
     },
-    table: { width: '100%', borderCollapse: 'collapse', transition: 'all 0.3s ease', minWidth: '1400px' },
+    table: { width: '100%', borderCollapse: 'collapse', transition: 'all 0.3s ease', minWidth: '1500px' },
     thtd: { padding: '0.5rem', border: `1px solid ${darkMode ? '#444' : '#ccc'}`, textAlign: 'left', transition: 'all 0.3s ease', fontSize: '0.9rem' },
     purityBadge: { backgroundColor: '#facc15', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '5px', fontWeight: 'bold' },
     statusBadge: (status) => ({
@@ -187,12 +188,12 @@ const OrderTable = () => {
       padding: '0.2rem 0.5rem',
       borderRadius: '5px',
       color: '#fff',
-      backgroundColor: status === 'paid' || status === 'completed' ? '#22c55e' : '#3b82f6'
+      backgroundColor: status === 'paid' || status === 'completed' ? '#22c55e' : status === 'processing' ? '#f59e0b' : '#3b82f6'
     }),
     btn: (bg, color) => ({
-      margin: '0 0.2rem', padding: '0.3rem 0.5rem',
+      margin: '0.1rem 0', padding: '0.3rem 0.5rem',
       backgroundColor: bg, color: color, border: 'none', borderRadius: '5px', cursor: 'pointer',
-      transition: '0.3s',
+      transition: '0.3s', fontSize: '0.8rem', width: '100%'
     }),
     cancelledRow: { opacity: 0.6 },
     addressInfo: { lineHeight: '1.2' },
@@ -294,6 +295,7 @@ const OrderTable = () => {
                   'Total Price', 
                   'Payment Info', 
                   'Payment Status', 
+                  'Update Payment',
                   'Address', 
                   'Status', 
                   'Cancellation Reason', 
@@ -325,6 +327,14 @@ const OrderTable = () => {
                     <td style={styles.thtd}>
                       <span style={styles.paymentBadge(item.order.payment_status)}>{item.order.payment_status}</span>
                     </td>
+                    {/* New Update Payment Column with 3 Buttons */}
+                    <td style={styles.thtd}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <button style={styles.btn(darkMode ? '#374151' : '#e5e7eb', darkMode ? '#fff' : '#000')} onClick={() => handleStatusChange(item.orderId, item.orderStatus, 'pending')}>⌛ Pending</button>
+                        <button style={styles.btn(darkMode ? '#d97706' : '#fbbf24', '#000')} onClick={() => handleStatusChange(item.orderId, item.orderStatus, 'processing')}>🕐 Processing</button>
+                        <button style={styles.btn(darkMode ? '#16a34a' : '#22c55e', '#fff')} onClick={() => handleStatusChange(item.orderId, item.orderStatus, 'completed')}>✅ Completed</button>
+                      </div>
+                    </td>
                     <td style={styles.thtd}>
                       {item.order.address ? (
                         <div style={styles.addressInfo}>
@@ -342,17 +352,17 @@ const OrderTable = () => {
                     <td style={styles.thtd}>{item.orderStatus === 'cancelled' && item.order.cancellation_reason ? <strong>{item.order.cancellation_reason}</strong> : '—'}</td>
                     <td style={styles.thtd}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <button style={styles.btn(darkMode?'#d97706':'#fbbf24','#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
-                        <button style={styles.btn(darkMode?'#16a34a':'#22c55e','#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
-                        <button style={styles.btn(darkMode?'#2563eb':'#3b82f6','#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
-                        <button style={styles.btn(darkMode?'#dc2626':'#ef4444','#fff')} onClick={() => handleStatusChange(item.orderId, 'cancelled')}>❌ Cancel</button>
+                        <button style={styles.btn(darkMode ? '#d97706' : '#fbbf24', '#000')} onClick={() => handleStatusChange(item.orderId, 'processing')}>🕐 Processing</button>
+                        <button style={styles.btn(darkMode ? '#16a34a' : '#22c55e', '#fff')} onClick={() => handleStatusChange(item.orderId, 'approved')}>✅ Approve</button>
+                        <button style={styles.btn(darkMode ? '#2563eb' : '#3b82f6', '#fff')} onClick={() => handleStatusChange(item.orderId, 'completed')}>🏁 Complete</button>
+                        <button style={styles.btn(darkMode ? '#dc2626' : '#ef4444', '#fff')} onClick={() => handleStatusChange(item.orderId, 'cancelled')}>❌ Cancel</button>
                       </div>
                     </td>
-                    <td style={styles.thtd}><button style={styles.btn('#ef4444','#fff')} onClick={() => handleDelete(item.orderId)}><FaTrash /></button></td>
+                    <td style={styles.thtd}><button style={styles.btn('#ef4444', '#fff')} onClick={() => handleDelete(item.orderId)}><FaTrash /></button></td>
                   </tr>
                 )
               }) : (
-                <tr><td colSpan="14" style={styles.thtd}>No orders found</td></tr>
+                <tr><td colSpan="15" style={styles.thtd}>No orders found</td></tr>
               )}
             </tbody>
           </table>
