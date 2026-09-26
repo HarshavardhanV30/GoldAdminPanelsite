@@ -14,7 +14,7 @@ const OrderTable = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/all`);
+        const response = await fetch(`https://goldbackend-production-5c2a.up.railway.app/order/all`);
         const data = await response.json();
         setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -47,7 +47,7 @@ const OrderTable = () => {
         payload.cancellation_reason = cancellationReason;
       }
 
-      const res = await fetch('https://goldbackend-production-eaef.up.railway.app/order/update-status', {
+      const res = await fetch('https://goldbackend-production-5c2a.up.railway.app/order/update-status', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ const OrderTable = () => {
   const handleDelete = async (orderId) => {
     if (!window.confirm("Are you sure you want to delete this order?")) return;
     try {
-      const res = await fetch(`https://goldbackend-production-eaef.up.railway.app/order/delete/${orderId}`, {
+      const res = await fetch(`https://goldbackend-production-5c2a.up.railway.app/order/delete/${orderId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
