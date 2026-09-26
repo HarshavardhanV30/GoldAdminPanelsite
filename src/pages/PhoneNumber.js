@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const BASE_URL =
-  "https://goldbackend-production-eaef.up.railway.app/numbers";
+  "https://goldbackend-production-5c2a.up.railway.app/numbers";
 
 const AddPhoneNumber = () => {
   const [phoneNumbers, setPhoneNumbers] = useState([]);
