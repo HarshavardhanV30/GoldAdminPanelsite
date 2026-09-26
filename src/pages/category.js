@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaBars, FaUserCircle, FaPen, FaTrash, FaTimes } from "react-icons/fa";
 
+// Fixed BASE_URL (removed markdown link formatting)
 const BASE_URL = "https://goldbackend-production-5c2a.up.railway.app/category";
 
 const CategoryAdminPanel = () => {
@@ -23,7 +24,7 @@ const CategoryAdminPanel = () => {
       const response = await fetch(`${BASE_URL}/all`);
       if (!response.ok) throw new Error("Failed to fetch categories");
       const data = await response.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching categories:", error);
       alert("Error loading categories. Please check API.");
@@ -36,7 +37,7 @@ const CategoryAdminPanel = () => {
     fetchCategories();
   }, []);
 
-  // 2. Add New Category (POST)
+  // 2. Add New Category / Banner (POST)
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -53,14 +54,15 @@ const CategoryAdminPanel = () => {
     try {
       const response = await fetch(`${BASE_URL}/add`, {
         method: "POST",
-        body: formData,
+        body: formData, // Browser automatically sets 'multipart/form-data' with boundary
       });
 
       if (!response.ok) throw new Error("Failed to add category");
 
+      // Reset form states
       setName("");
       setFile(null);
-      // Reset file input UI
+      
       const fileInput = document.getElementById("categoryImageInput");
       if (fileInput) fileInput.value = "";
 
@@ -267,7 +269,7 @@ const CategoryAdminPanel = () => {
                   id="categoryImageInput"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setFile(e.target.files[0])}
+                  onChange={(e) => setFile(e.target.files[0] || null)}
                   style={{
                     width: "100%",
                     height: "40px",
@@ -367,7 +369,7 @@ const CategoryAdminPanel = () => {
 
                     return (
                       <tr
-                        key={item.id}
+                        key={item.id || index}
                         style={{
                           borderTop: "1px solid #e5e7eb",
                         }}
@@ -380,7 +382,7 @@ const CategoryAdminPanel = () => {
                             <input
                               type="file"
                               accept="image/*"
-                              onChange={(e) => setEditFile(e.target.files[0])}
+                              onChange={(e) => setEditFile(e.target.files[0] || null)}
                               style={{ fontSize: "12px" }}
                             />
                           ) : item.categoryimage ? (
@@ -515,14 +517,12 @@ const CategoryAdminPanel = () => {
     </div>
   );
 };
-
 const tableHeader = {
   padding: "12px 16px",
   fontSize: "14px",
   fontWeight: "600",
   color: "#374151",
 };
-
 const tableCell = {
   padding: "12px 16px",
   fontSize: "14px",
