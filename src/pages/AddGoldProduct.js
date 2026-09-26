@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState}from"react";
 import{Menu,RotateCcw,X,Save,Trash2,Plus,Info,MapPin,Upload,Eye}from"lucide-react";
 
-const API="https://goldbackend-production-eaef.up.railway.app";
+const API="https://goldbackend-production-5c2a.up.railway.app";
 
 const GoldProductsDashboard=()=>{
 const initialFormState={product_id:"",product_name:"",category_name:"",purity:"",weight:"",offer_price:"",original_price:"",stock_quantity:"",product_place:"",product_description:"",product_images:[],imagePreviews:[],state:"",district:"",mandal:"",pincode:""};
