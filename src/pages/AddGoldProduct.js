@@ -1,197 +1,233 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Menu,
-  RotateCcw,
-  X,
-  Save,
-  Trash2,
-  Plus,
-  Info,
-  MapPin,
-  Upload,
-  Eye,
+  Menu, RotateCcw, X, Save, Trash2, Plus, Info,
+  MapPin, Upload, Eye,
 } from "lucide-react";
 
 const API = "https://goldbackend-production-5c2a.up.railway.app";
 
 const categories = [
-  "Gold Rings","Gold Necklaces","Gold Pendants","Gold Earrings","Gold Bracelets",
-  "Gold Bangles","Gold Chains","Gold Mangalsutra","Gold Anklets",
-  "Gold Nose Pins & Septum Rings","Gold Brooches & Pins","Gold Toe Rings",
-  "Gold Armlets / Bajuband","Gold Maang Tikka & Head Jewelry","Gold Jewelry Sets",
-  "Gold Cufflinks & Shirt Studs","Gold Charm Bracelets & Anklets","Gold Lockets",
-  "Gold Waist Chains / Kamarbandh","Gold Coins & Bars","Silver Rings",
-  "Silver Necklaces","Silver Pendants","Silver Earrings","Silver Bracelets",
-  "Silver Bangles","Silver Chains","Silver Mangalsutra","Silver Anklets",
-  "Silver Nose Pins & Septum Rings","Silver Brooches & Pins","Silver Toe Rings",
-  "Silver Armlets / Bajuband","Silver Maang Tikka & Head Jewelry",
-  "Silver Jewelry Sets","Silver Cufflinks & Shirt Studs",
-  "Silver Charm Bracelets & Anklets","Silver Lockets",
-  "Silver Waist Chains / Kamarbandh","Silver Coins & Bars",
+  "Gold Rings","Gold Necklaces","Gold Pendants","Gold Earrings",
+  "Gold Bracelets","Gold Bangles","Gold Chains","Gold Mangalsutra",
+  "Gold Anklets","Gold Nose Pins & Septum Rings","Gold Brooches & Pins",
+  "Gold Toe Rings","Gold Armlets / Bajuband","Gold Maang Tikka & Head Jewelry",
+  "Gold Jewelry Sets","Gold Cufflinks & Shirt Studs",
+  "Gold Charm Bracelets & Anklets","Gold Lockets",
+  "Gold Waist Chains / Kamarbandh","Gold Coins & Bars",
+  "Silver Rings","Silver Necklaces","Silver Pendants","Silver Earrings",
+  "Silver Bracelets","Silver Bangles","Silver Chains","Silver Mangalsutra",
+  "Silver Anklets","Silver Nose Pins & Septum Rings","Silver Brooches & Pins",
+  "Silver Toe Rings","Silver Armlets / Bajuband",
+  "Silver Maang Tikka & Head Jewelry","Silver Jewelry Sets",
+  "Silver Cufflinks & Shirt Studs","Silver Charm Bracelets & Anklets",
+  "Silver Lockets","Silver Waist Chains / Kamarbandh","Silver Coins & Bars",
 ];
 
 const purities = [
-  "24K","22K","18K","Fine Silver (999 Silver)",
-  "Sterling Silver (925 Silver)","Coin Silver (900 Silver)",
-  "Britannia Silver (958 Silver)","Argentium Silver (960 Purity)",
+  "24K",
+  "22K",
+  "18K",
+  "Fine Silver (999 Silver)",
+  "Sterling Silver (925 Silver)",
+  "Coin Silver (900 Silver)",
+  "Britannia Silver (958 Silver)",
+  "Argentium Silver (960 Purity)",
   "Tibetan / Tribal Silver (Alloy with lower silver content, often 30% to 50%)",
 ];
 
 const states = [
-  "Andhra Pradesh","Telangana","Karnataka","Tamil Nadu",
-  "Kerala","Maharashtra","Delhi","Other",
+  "Andhra Pradesh",
+  "Telangana",
+  "Karnataka",
+  "Tamil Nadu",
+  "Kerala",
+  "Maharashtra",
+  "Delhi",
+  "Other",
 ];
 
 const emptyForm = {
-  product_id: "", product_name: "", category_name: "", purity: "",
-  weight: "", offer_price: "", original_price: "", stock_quantity: "",
-  product_place: "", product_description: "", product_images: [],
-  imagePreviews: [], state: "", district: "", mandal: "", pincode: "",
+  product_id: "",
+  product_name: "",
+  category_name: "",
+  purity: "",
+  weight: "",
+  offer_price: "",
+  original_price: "",
+  stock_quantity: "",
+  product_place: "",
+  product_description: "",
+  product_images: [],
+  imagePreviews: [],
+  state: "",
+  district: "",
+  mandal: "",
+  pincode: "",
 };
 
-const inputStyle = {
-  width: "100%", height: 42, padding: "0 10px", boxSizing: "border-box",
-  border: "1px solid #ccc", borderRadius: 6, outline: "none",
+const input = {
+  width: "100%",
+  height: 42,
+  padding: "0 10px",
+  boxSizing: "border-box",
+  border: "1px solid #ccc",
+  borderRadius: 6,
 };
 
-const labelStyle = {
-  display: "block", fontSize: 13, fontWeight: 700, marginBottom: 7,
+const label = {
+  display: "block",
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 7,
 };
 
-const buttonStyle = {
-  border: 0, borderRadius: 6, padding: "10px 18px",
-  cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+const button = {
+  border: 0,
+  borderRadius: 6,
+  padding: "10px 18px",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
 };
 
-const FormInput = ({ label, value, onChange, type = "text", required }) => (
+const FormInput = ({ label: title, value, onChange, type = "text", required }) => (
   <div>
-    <label style={labelStyle}>{label}{required && " *"}</label>
+    <label style={label}>
+      {title}{required && " *"}
+    </label>
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={inputStyle}
+      style={input}
+      required={required}
     />
   </div>
 );
 
-const FormSelect = ({ label, options, value, onChange, required }) => (
+const FormSelect = ({ label: title, options, value, onChange, required }) => (
   <div>
-    <label style={labelStyle}>{label}{required && " *"}</label>
-    <select value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
-      <option value="">Select {label}</option>
-      {options.map((item) => <option key={item}>{item}</option>)}
+    <label style={label}>
+      {title}{required && " *"}
+    </label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={input}
+      required={required}
+    >
+      <option value="">Select {title}</option>
+      {options.map((item) => (
+        <option key={item} value={item}>{item}</option>
+      ))}
     </select>
   </div>
 );
 
-const GoldProductsDashboard = () => {
+const imagesFrom = (value) => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map(String);
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+    } catch {}
+
+    return value
+      .replace(/[{}[\]"]/g, "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+export default function GoldProductsDashboard() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selected, setSelected] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showView, setShowView] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [purityFilter, setPurityFilter] = useState("All");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [purity, setPurity] = useState("All");
+  const [category, setCategory] = useState("All");
   const fileRef = useRef(null);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const update = (key, value) =>
+    setForm((old) => ({ ...old, [key]: value }));
+
+  const loadProducts = async () => {
     try {
+      setLoading(true);
+
       const res = await fetch(`${API}/products/all`);
-      if (!res.ok) throw new Error("Failed to fetch products");
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to load products");
+      }
+
       setProducts(Array.isArray(data) ? data : data.products || []);
     } catch (error) {
-      console.error("Fetch products:", error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const viewProduct = async (id) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/products/${id}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Product not found");
-      setSelectedProduct(data.product || data);
-      setShowView(true);
-    } catch (error) {
-      console.error(error);
-      alert(error.message || "Backend server error");
+      console.error("GET PRODUCTS:", error);
+      alert(`Unable to load products: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  const updateForm = (key, value) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  const resetForm = () => {
+  const reset = () => {
     form.imagePreviews.forEach((url) => URL.revokeObjectURL(url));
     setForm(emptyForm);
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const closeAdd = () => {
-    resetForm();
+    reset();
     setShowAdd(false);
   };
 
-  const addImages = (e) => {
+  const selectImages = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
     const previews = files.map((file) => URL.createObjectURL(file));
 
-    setForm((prev) => ({
-      ...prev,
-      product_images: [...prev.product_images, ...files],
-      imagePreviews: [...prev.imagePreviews, ...previews],
+    setForm((old) => ({
+      ...old,
+      product_images: [...old.product_images, ...files],
+      imagePreviews: [...old.imagePreviews, ...previews],
     }));
 
     e.target.value = "";
   };
 
-  const removeImage = (index, e) => {
-    e.stopPropagation();
-
+  const removeImage = (index) => {
     URL.revokeObjectURL(form.imagePreviews[index]);
 
-    setForm((prev) => ({
-      ...prev,
-      product_images: prev.product_images.filter((_, i) => i !== index),
-      imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
+    setForm((old) => ({
+      ...old,
+      product_images: old.product_images.filter((_, i) => i !== index),
+      imagePreviews: old.imagePreviews.filter((_, i) => i !== index),
     }));
   };
 
   const saveProduct = async (e) => {
-    e?.preventDefault();
-
-    const required = [
-      "product_id", "product_name", "category_name", "purity", "weight",
-      "offer_price", "original_price", "stock_quantity", "product_place",
-      "product_description", "state", "district", "mandal", "pincode",
-    ];
-
-    for (const field of required) {
-      if (!String(form[field] || "").trim()) {
-        return alert(
-          `Please fill in required field: ${field.replaceAll("_", " ")}`
-        );
-      }
-    }
+    e.preventDefault();
 
     if (!form.product_images.length) {
-      return alert("Please upload at least one image");
+      alert("Please upload at least one product image.");
+      return;
     }
 
     setLoading(true);
@@ -199,12 +235,50 @@ const GoldProductsDashboard = () => {
     try {
       const fd = new FormData();
 
-      required.forEach((field) => {
-        fd.append(field, String(form[field]).trim());
+      /*
+        IMPORTANT:
+        These names must match your Express multer/backend field names.
+      */
+      const fields = [
+        "product_id",
+        "product_name",
+        "category_name",
+        "purity",
+        "weight",
+        "offer_price",
+        "original_price",
+        "stock_quantity",
+        "product_place",
+        "product_description",
+        "state",
+        "district",
+        "mandal",
+        "pincode",
+      ];
+
+      fields.forEach((key) => {
+        fd.append(key, String(form[key] ?? "").trim());
       });
 
       form.product_images.forEach((file) => {
         fd.append("product_images", file);
+      });
+
+      console.log("Sending product:", {
+        product_id: form.product_id,
+        product_name: form.product_name,
+        category_name: form.category_name,
+        purity: form.purity,
+        weight: form.weight,
+        offer_price: form.offer_price,
+        original_price: form.original_price,
+        stock_quantity: form.stock_quantity,
+        product_place: form.product_place,
+        state: form.state,
+        district: form.district,
+        mandal: form.mandal,
+        pincode: form.pincode,
+        images: form.product_images.map((x) => x.name),
       });
 
       const res = await fetch(`${API}/products/add`, {
@@ -212,18 +286,58 @@ const GoldProductsDashboard = () => {
         body: fd,
       });
 
-      const data = await res.json().catch(() => ({}));
+      const text = await res.text();
 
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to save product");
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { message: text };
       }
 
-      alert("Product added successfully!");
+      console.log("ADD PRODUCT RESPONSE:", res.status, data);
+
+      if (!res.ok) {
+        throw new Error(
+          data.message ||
+          data.error ||
+          `Server returned HTTP ${res.status}`
+        );
+      }
+
+      alert(data.message || "Product added successfully!");
+
       closeAdd();
-      await fetchProducts();
+      await loadProducts();
+
     } catch (error) {
-      console.error("Save product:", error);
-      alert(error.message || "Error saving product");
+      console.error("ADD PRODUCT ERROR:", error);
+
+      alert(
+        `Product was not added.\n\n${error.message}\n\nCheck the browser Console for the exact backend error.`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewProduct = async (id) => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API}/products/${id}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to get product");
+      }
+
+      setSelected(data.product || data);
+      setShowView(true);
+
+    } catch (error) {
+      console.error("VIEW PRODUCT:", error);
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -232,76 +346,62 @@ const GoldProductsDashboard = () => {
   const deleteProduct = async (id, e) => {
     e.stopPropagation();
 
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-
-    setLoading(true);
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return;
+    }
 
     try {
-      const res = await fetch(`${API}/products/${id}`, { method: "DELETE" });
+      setLoading(true);
+
+      const res = await fetch(`${API}/products/${id}`, {
+        method: "DELETE",
+      });
+
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to delete product");
+        throw new Error(data.message || "Delete failed");
       }
 
-      alert("Product deleted successfully");
-      await fetchProducts();
+      alert(data.message || "Product deleted successfully.");
+      await loadProducts();
+
     } catch (error) {
-      console.error("Delete:", error);
-      alert(error.message || "Failed to connect to server");
+      console.error("DELETE PRODUCT:", error);
+      alert(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const parseImages = (raw) => {
-    if (!raw) return [];
-
-    if (Array.isArray(raw)) {
-      return raw.filter(Boolean).map(String);
-    }
-
-    if (typeof raw === "string") {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
-      } catch {}
-
-      return raw
-        .replace(/[{}[\]"]/g, "")
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean);
-    }
-
-    return [];
-  };
-
-  const getImages = (product) =>
-    parseImages(
-      product?.product_images ||
-      product?.product_image ||
-      product?.images
-    );
-
-  const filteredProducts = products.filter((p) =>
-    (purityFilter === "All" || (p.purity || "22K") === purityFilter) &&
-    (categoryFilter === "All" || p.category_name === categoryFilter)
+  const filtered = products.filter(
+    (p) =>
+      (purity === "All" || (p.purity || "22K") === purity) &&
+      (category === "All" || p.category_name === category)
   );
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#f8f9fa",
-      fontFamily: "Arial, sans-serif",
+      minHeight: "100vh",
+      background: "#f8f9fa",
+      fontFamily: "Arial,sans-serif",
     }}>
 
-      {/* NAVBAR */}
-      <div style={{
-        height: 64, background: "#fff", display: "flex",
-        alignItems: "center", justifyContent: "space-between",
-        padding: "0 24px", borderBottom: "1px solid #ddd",
+      {/* HEADER */}
+      <header style={{
+        height: 64,
+        background: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
+        borderBottom: "1px solid #ddd",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 15,
+        }}>
           <Menu size={22} />
           <h1 style={{ fontSize: 20, margin: 0 }}>
             Gold Products Management
@@ -310,84 +410,115 @@ const GoldProductsDashboard = () => {
 
         <button
           onClick={() => setShowAdd(true)}
-          style={{ ...buttonStyle, background: "#d97706", color: "#fff" }}
+          style={{
+            ...button,
+            background: "#d97706",
+            color: "#fff",
+          }}
         >
           <Plus size={18} />
           Add Product
         </button>
-      </div>
+      </header>
 
-      {/* CONTENT */}
-      <div style={{ padding: 24 }}>
+      <main style={{ padding: 24 }}>
 
         {/* FILTERS */}
         <div style={{
-          background: "#fff", padding: 20, borderRadius: 8,
-          display: "flex", gap: 24, marginBottom: 24,
-          border: "1px solid #ddd", flexWrap: "wrap",
+          background: "#fff",
+          padding: 20,
+          borderRadius: 8,
+          display: "flex",
+          gap: 20,
+          flexWrap: "wrap",
+          marginBottom: 20,
+          border: "1px solid #ddd",
         }}>
           <div>
-            <label style={labelStyle}>Filter by Purity</label>
+            <label style={label}>Filter by Purity</label>
             <select
-              value={purityFilter}
-              onChange={(e) => setPurityFilter(e.target.value)}
-              style={{ ...inputStyle, width: 260 }}
+              value={purity}
+              onChange={(e) => setPurity(e.target.value)}
+              style={{ ...input, width: 260 }}
             >
               <option value="All">All Purity Levels</option>
-              {purities.map((p) => <option key={p}>{p}</option>)}
+              {purities.map((x) => <option key={x}>{x}</option>)}
             </select>
           </div>
 
           <div>
-            <label style={labelStyle}>Filter by Category</label>
+            <label style={label}>Filter by Category</label>
             <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ ...inputStyle, width: 280 }}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{ ...input, width: 280 }}
             >
               <option value="All">All Categories</option>
-              {categories.map((c) => <option key={c}>{c}</option>)}
+              {categories.map((x) => <option key={x}>{x}</option>)}
             </select>
           </div>
         </div>
 
-        {/* TABLE */}
+        {/* PRODUCTS TABLE */}
         <div style={{
-          background: "#fff", overflowX: "auto",
-          border: "1px solid #ddd", borderRadius: 8,
+          background: "#fff",
+          overflowX: "auto",
+          border: "1px solid #ddd",
+          borderRadius: 8,
         }}>
           <table style={{
-            width: "100%", minWidth: 1200,
+            width: "100%",
+            minWidth: 1200,
             borderCollapse: "collapse",
           }}>
             <thead>
               <tr style={{ background: "#f0fdf4" }}>
                 {[
-                  "Product ID", "Title", "Category", "Purity", "Weight",
-                  "Offer Price", "Original Price", "Stock", "Location",
-                  "Images", "Actions",
-                ].map((head) => (
+                  "Product ID",
+                  "Title",
+                  "Category",
+                  "Purity",
+                  "Weight",
+                  "Offer Price",
+                  "Original Price",
+                  "Stock",
+                  "Location",
+                  "Images",
+                  "Actions",
+                ].map((x) => (
                   <th
-                    key={head}
-                    style={{ padding: 14, textAlign: "left", whiteSpace: "nowrap" }}
+                    key={x}
+                    style={{
+                      padding: 14,
+                      textAlign: "left",
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    {head}
+                    {x}
                   </th>
                 ))}
               </tr>
             </thead>
 
             <tbody>
-              {!filteredProducts.length ? (
+              {!filtered.length ? (
                 <tr>
-                  <td colSpan="11" style={{ padding: 50, textAlign: "center" }}>
-                    {loading ? "Loading products..." : "No products found"}
+                  <td
+                    colSpan="11"
+                    style={{
+                      padding: 50,
+                      textAlign: "center",
+                    }}
+                  >
+                    {loading ? "Loading..." : "No products found"}
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => {
-                  const images = getImages(product);
-                  const id = product.id || product.product_id;
+                filtered.map((p) => {
+                  const id = p.id || p.product_id;
+                  const images = imagesFrom(
+                    p.product_images || p.product_image || p.images
+                  );
 
                   return (
                     <tr
@@ -395,62 +526,76 @@ const GoldProductsDashboard = () => {
                       onClick={() => viewProduct(id)}
                       style={{ cursor: "pointer" }}
                     >
-                      <td style={td}>{product.product_id}</td>
-                      <td style={td}>{product.product_name}</td>
-                      <td style={td}>{product.category_name}</td>
-                      <td style={td}>{product.purity || "22K"}</td>
-                      <td style={td}>{product.weight}g</td>
+                      <td style={td}>{p.product_id}</td>
+                      <td style={td}>{p.product_name}</td>
+                      <td style={td}>{p.category_name}</td>
+                      <td style={td}>{p.purity || "22K"}</td>
+                      <td style={td}>{p.weight}g</td>
 
-                      <td style={{ ...td, color: "#16a34a", fontWeight: 600 }}>
-                        ₹{Number(product.offer_price || 0).toLocaleString("en-IN")}
+                      <td style={{
+                        ...td,
+                        color: "#16a34a",
+                        fontWeight: 600,
+                      }}>
+                        ₹{Number(p.offer_price || 0).toLocaleString("en-IN")}
                       </td>
 
-                      <td style={{ ...td, color: "#dc2626" }}>
-                        ₹{Number(product.original_price || 0).toLocaleString("en-IN")}
+                      <td style={{
+                        ...td,
+                        color: "#dc2626",
+                      }}>
+                        ₹{Number(p.original_price || 0).toLocaleString("en-IN")}
                       </td>
 
-                      <td style={td}>{product.stock_quantity}</td>
+                      <td style={td}>{p.stock_quantity}</td>
 
                       <td style={td}>
-                        <b>{product.product_place}</b>
+                        <b>{p.product_place}</b>
                         <br />
-                        {product.mandal}, {product.district}, {product.state}
+                        {p.mandal}, {p.district}, {p.state}
                       </td>
 
                       <td style={td}>
                         <div style={{
-                          display: "flex", gap: 5,
+                          display: "flex",
+                          gap: 5,
                           flexWrap: "wrap",
                         }}>
-                          {images.length ? images.map((url, i) => (
-                            <img
-                              key={i}
-                              src={url}
-                              alt="product"
-                              style={{
-                                width: 40, height: 40,
-                                objectFit: "cover", borderRadius: 5,
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          )) : "No Image"}
+                          {images.length ? (
+                            images.map((url, i) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt="product"
+                                style={{
+                                  width: 42,
+                                  height: 42,
+                                  objectFit: "cover",
+                                  borderRadius: 5,
+                                }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ))
+                          ) : (
+                            "No Image"
+                          )}
                         </div>
                       </td>
 
                       <td style={td}>
-                        <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{
+                          display: "flex",
+                          gap: 8,
+                        }}>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               viewProduct(id);
                             }}
-                            style={{
-                              background: "none", border: 0,
-                              cursor: "pointer", color: "#d97706",
-                            }}
+                            style={iconBtn}
                           >
                             <Eye size={17} />
                           </button>
@@ -459,8 +604,8 @@ const GoldProductsDashboard = () => {
                             type="button"
                             onClick={(e) => deleteProduct(id, e)}
                             style={{
-                              background: "none", border: 0,
-                              cursor: "pointer", color: "#dc2626",
+                              ...iconBtn,
+                              color: "#dc2626",
                             }}
                           >
                             <Trash2 size={17} />
@@ -474,18 +619,29 @@ const GoldProductsDashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </main>
 
-      {/* ADD PRODUCT MODAL */}
+      {/* ADD PRODUCT */}
       {showAdd && (
         <div style={overlay}>
-          <div style={{ ...modal, maxWidth: 1400 }}>
+          <form
+            onSubmit={saveProduct}
+            style={{
+              ...modal,
+              maxWidth: 1400,
+            }}
+          >
             <div style={modalHead}>
               <h2 style={{ margin: 0 }}>Add Gold Product</h2>
-              <X size={22} style={{ cursor: "pointer" }} onClick={closeAdd} />
+              <X
+                size={22}
+                style={{ cursor: "pointer" }}
+                onClick={closeAdd}
+              />
             </div>
 
             <div style={{ padding: 30 }}>
+
               <h3 style={section}>
                 <Info size={18} />
                 Product Information
@@ -495,14 +651,14 @@ const GoldProductsDashboard = () => {
                 <FormInput
                   label="Product Name"
                   value={form.product_name}
-                  onChange={(v) => updateForm("product_name", v)}
+                  onChange={(v) => update("product_name", v)}
                   required
                 />
 
                 <FormInput
                   label="Product ID"
                   value={form.product_id}
-                  onChange={(v) => updateForm("product_id", v)}
+                  onChange={(v) => update("product_id", v)}
                   required
                 />
 
@@ -510,7 +666,7 @@ const GoldProductsDashboard = () => {
                   label="Category Name"
                   options={categories}
                   value={form.category_name}
-                  onChange={(v) => updateForm("category_name", v)}
+                  onChange={(v) => update("category_name", v)}
                   required
                 />
 
@@ -518,7 +674,7 @@ const GoldProductsDashboard = () => {
                   label="Purity"
                   options={purities}
                   value={form.purity}
-                  onChange={(v) => updateForm("purity", v)}
+                  onChange={(v) => update("purity", v)}
                   required
                 />
 
@@ -526,7 +682,7 @@ const GoldProductsDashboard = () => {
                   label="Weight (grams)"
                   type="number"
                   value={form.weight}
-                  onChange={(v) => updateForm("weight", v)}
+                  onChange={(v) => update("weight", v)}
                   required
                 />
 
@@ -534,7 +690,7 @@ const GoldProductsDashboard = () => {
                   label="Offer Price"
                   type="number"
                   value={form.offer_price}
-                  onChange={(v) => updateForm("offer_price", v)}
+                  onChange={(v) => update("offer_price", v)}
                   required
                 />
 
@@ -542,7 +698,7 @@ const GoldProductsDashboard = () => {
                   label="Original Price"
                   type="number"
                   value={form.original_price}
-                  onChange={(v) => updateForm("original_price", v)}
+                  onChange={(v) => update("original_price", v)}
                   required
                 />
 
@@ -550,37 +706,43 @@ const GoldProductsDashboard = () => {
                   label="Stock Quantity"
                   type="number"
                   value={form.stock_quantity}
-                  onChange={(v) => updateForm("stock_quantity", v)}
+                  onChange={(v) => update("stock_quantity", v)}
                   required
                 />
               </div>
 
               <div style={grid2}>
+
                 <div>
-                  <label style={labelStyle}>Product Description *</label>
+                  <label style={label}>
+                    Product Description *
+                  </label>
+
                   <textarea
                     value={form.product_description}
                     onChange={(e) =>
-                      updateForm("product_description", e.target.value)
+                      update("product_description", e.target.value)
                     }
+                    required
                     style={{
-                      ...inputStyle,
+                      ...input,
                       height: 130,
                       padding: 10,
-                      resize: "vertical",
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Product Images *</label>
+                  <label style={label}>
+                    Product Images *
+                  </label>
 
                   <input
                     ref={fileRef}
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={addImages}
+                    onChange={selectImages}
                     style={{ display: "none" }}
                   />
 
@@ -588,7 +750,7 @@ const GoldProductsDashboard = () => {
                     type="button"
                     onClick={() => fileRef.current?.click()}
                     style={{
-                      ...buttonStyle,
+                      ...button,
                       background: "#fef3c7",
                       border: "1px dashed #d97706",
                     }}
@@ -598,27 +760,41 @@ const GoldProductsDashboard = () => {
                   </button>
 
                   <div style={{
-                    display: "flex", gap: 8,
-                    flexWrap: "wrap", marginTop: 12,
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    marginTop: 12,
                   }}>
                     {form.imagePreviews.map((url, i) => (
-                      <div key={url} style={{ position: "relative" }}>
+                      <div
+                        key={url}
+                        style={{ position: "relative" }}
+                      >
                         <img
                           src={url}
                           alt="preview"
                           style={{
-                            width: 70, height: 70,
-                            objectFit: "cover", borderRadius: 5,
+                            width: 70,
+                            height: 70,
+                            objectFit: "cover",
+                            borderRadius: 5,
                           }}
                         />
+
                         <button
                           type="button"
-                          onClick={(e) => removeImage(i, e)}
+                          onClick={() => removeImage(i)}
                           style={{
-                            position: "absolute", right: -5, top: -5,
-                            border: 0, borderRadius: "50%",
-                            background: "#dc2626", color: "#fff",
-                            cursor: "pointer", width: 20, height: 20,
+                            position: "absolute",
+                            right: -6,
+                            top: -6,
+                            width: 20,
+                            height: 20,
+                            border: 0,
+                            borderRadius: "50%",
+                            background: "#dc2626",
+                            color: "#fff",
+                            cursor: "pointer",
                           }}
                         >
                           ×
@@ -633,7 +809,7 @@ const GoldProductsDashboard = () => {
                 <FormInput
                   label="Product Place"
                   value={form.product_place}
-                  onChange={(v) => updateForm("product_place", v)}
+                  onChange={(v) => update("product_place", v)}
                   required
                 />
               </div>
@@ -648,41 +824,39 @@ const GoldProductsDashboard = () => {
                   label="State"
                   options={states}
                   value={form.state}
-                  onChange={(v) => updateForm("state", v)}
+                  onChange={(v) => update("state", v)}
                   required
                 />
 
                 <FormInput
                   label="District"
                   value={form.district}
-                  onChange={(v) => updateForm("district", v)}
+                  onChange={(v) => update("district", v)}
                   required
                 />
 
                 <FormInput
                   label="Mandal"
                   value={form.mandal}
-                  onChange={(v) => updateForm("mandal", v)}
+                  onChange={(v) => update("mandal", v)}
                   required
                 />
 
                 <FormInput
                   label="Pincode"
+                  type="number"
                   value={form.pincode}
-                  onChange={(v) => updateForm("pincode", v)}
+                  onChange={(v) => update("pincode", v)}
                   required
                 />
               </div>
 
-              <div style={{
-                display: "flex", justifyContent: "space-between",
-                borderTop: "1px solid #eee", paddingTop: 20,
-              }}>
+              <div style={footer}>
                 <button
                   type="button"
-                  onClick={resetForm}
+                  onClick={reset}
                   style={{
-                    ...buttonStyle,
+                    ...button,
                     background: "#fff",
                     border: "1px solid #ccc",
                   }}
@@ -692,12 +866,11 @@ const GoldProductsDashboard = () => {
                 </button>
 
                 <button
-                  type="button"
-                  onClick={saveProduct}
+                  type="submit"
                   disabled={loading}
                   style={{
-                    ...buttonStyle,
-                    background: loading ? "#9ca3af" : "#ca8a04",
+                    ...button,
+                    background: loading ? "#999" : "#ca8a04",
                     color: "#fff",
                   }}
                 >
@@ -706,49 +879,60 @@ const GoldProductsDashboard = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
-      {/* VIEW PRODUCT MODAL */}
-      {showView && selectedProduct && (
+      {/* VIEW PRODUCT */}
+      {showView && selected && (
         <div style={overlay}>
           <div style={{ ...modal, maxWidth: 850 }}>
+
             <div style={modalHead}>
-              <h2 style={{ margin: 0, fontSize: 20 }}>Product Details</h2>
+              <h2 style={{ margin: 0 }}>Product Details</h2>
+
               <X
                 size={22}
                 style={{ cursor: "pointer" }}
                 onClick={() => {
                   setShowView(false);
-                  setSelectedProduct(null);
+                  setSelected(null);
                 }}
               />
             </div>
 
             <div style={{ padding: 30 }}>
               <div style={grid2}>
+
                 <div>
                   <div style={{
-                    display: "flex", gap: 10,
+                    display: "flex",
+                    gap: 10,
                     flexWrap: "wrap",
                   }}>
-                    {getImages(selectedProduct).map((url, i) => (
+                    {imagesFrom(
+                      selected.product_images ||
+                      selected.product_image ||
+                      selected.images
+                    ).map((url, i) => (
                       <img
                         key={i}
                         src={url}
                         alt="product"
                         style={{
-                          width: 100, height: 100,
-                          objectFit: "cover", borderRadius: 7,
+                          width: 100,
+                          height: 100,
+                          objectFit: "cover",
+                          borderRadius: 7,
                         }}
                       />
                     ))}
                   </div>
 
                   <h4>Description</h4>
+
                   <p>
-                    {selectedProduct.product_description || "No description"}
+                    {selected.product_description || "No description"}
                   </p>
                 </div>
 
@@ -758,35 +942,35 @@ const GoldProductsDashboard = () => {
                   gap: 10,
                 }}>
                   {[
-                    ["Product ID", selectedProduct.product_id],
-                    ["Product Name", selectedProduct.product_name],
-                    ["Category", selectedProduct.category_name],
-                    ["Purity", selectedProduct.purity || "22K"],
-                    ["Weight", `${selectedProduct.weight || 0} grams`],
+                    ["Product ID", selected.product_id],
+                    ["Product Name", selected.product_name],
+                    ["Category", selected.category_name],
+                    ["Purity", selected.purity],
+                    ["Weight", `${selected.weight || 0} grams`],
                     [
                       "Offer Price",
                       `₹${Number(
-                        selectedProduct.offer_price || 0
+                        selected.offer_price || 0
                       ).toLocaleString("en-IN")}`,
                     ],
                     [
                       "Original Price",
                       `₹${Number(
-                        selectedProduct.original_price || 0
+                        selected.original_price || 0
                       ).toLocaleString("en-IN")}`,
                     ],
-                    ["Stock", selectedProduct.stock_quantity],
-                    ["Place", selectedProduct.product_place],
+                    ["Stock", selected.stock_quantity],
+                    ["Place", selected.product_place],
                     [
                       "Location",
-                      `${selectedProduct.mandal || ""}, ${
-                        selectedProduct.district || ""
-                      }, ${selectedProduct.state || ""}`,
+                      `${selected.mandal || ""}, ${
+                        selected.district || ""
+                      }, ${selected.state || ""}`,
                     ],
-                    ["Pincode", selectedProduct.pincode],
-                  ].map(([label, value]) => (
+                    ["Pincode", selected.pincode],
+                  ].map(([title, value]) => (
                     <div
-                      key={label}
+                      key={title}
                       style={{
                         background: "#f8fafc",
                         padding: 12,
@@ -797,7 +981,7 @@ const GoldProductsDashboard = () => {
                         gap: 5,
                       }}
                     >
-                      <small>{label}</small>
+                      <small>{title}</small>
                       <b>{value || "-"}</b>
                     </div>
                   ))}
@@ -809,12 +993,19 @@ const GoldProductsDashboard = () => {
       )}
     </div>
   );
-};
+}
 
 const td = {
   padding: 14,
   borderBottom: "1px solid #eee",
   fontSize: 13,
+};
+
+const iconBtn = {
+  background: "none",
+  border: 0,
+  cursor: "pointer",
+  color: "#d97706",
 };
 
 const overlay = {
@@ -851,7 +1042,7 @@ const section = {
 
 const grid4 = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
+  gridTemplateColumns: "repeat(4,1fr)",
   gap: 18,
   marginBottom: 20,
 };
@@ -863,4 +1054,9 @@ const grid2 = {
   marginBottom: 20,
 };
 
-export default GoldProductsDashboard;
+const footer = {
+  display: "flex",
+  justifyContent: "space-between",
+  borderTop: "1px solid #eee",
+  paddingTop: 20,
+};
