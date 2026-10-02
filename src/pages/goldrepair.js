@@ -65,12 +65,12 @@ export default function GoldRepair() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
-
-  // Calendar date
   const [selectedDate, setSelectedDate] = useState("");
-
-  // Full detail modal
   const [showDetails, setShowDetails] = useState(false);
+
+  // =========================================================
+  // FETCH BOOKINGS
+  // =========================================================
 
   const fetchBookings = async () => {
     try {
@@ -105,16 +105,18 @@ export default function GoldRepair() {
     fetchBookings();
   }, []);
 
-  // --------------------------------------------------
-  // DATE HELPERS
-  // --------------------------------------------------
+  // =========================================================
+  // DATE FUNCTIONS
+  // =========================================================
 
   const getLocalDate = (dateValue) => {
     if (!dateValue) return "";
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -128,7 +130,9 @@ export default function GoldRepair() {
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) return "N/A";
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
 
     return date.toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -142,7 +146,9 @@ export default function GoldRepair() {
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) return "N/A";
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
 
     return date.toLocaleString("en-IN", {
       day: "2-digit",
@@ -153,13 +159,9 @@ export default function GoldRepair() {
     });
   };
 
-  const clearDateFilter = () => {
-    setSelectedDate("");
-  };
-
-  // --------------------------------------------------
+  // =========================================================
   // STATISTICS
-  // --------------------------------------------------
+  // =========================================================
 
   const statistics = useMemo(() => {
     const completed = bookings.filter(
@@ -193,15 +195,14 @@ export default function GoldRepair() {
     };
   }, [bookings]);
 
-  // --------------------------------------------------
-  // FILTER BOOKINGS
-  // --------------------------------------------------
+  // =========================================================
+  // FILTER
+  // =========================================================
 
   const filteredBookings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     return bookings.filter((item) => {
-      // Search
       const searchMatch =
         !query ||
         [
@@ -209,6 +210,7 @@ export default function GoldRepair() {
           item.service_id,
           item.service_name,
           item.jewellery_type,
+          item.issue_description,
           item.full_name,
           item.phone,
           item.city,
@@ -221,12 +223,10 @@ export default function GoldRepair() {
           .toLowerCase()
           .includes(query);
 
-      // Calendar filter
       const dateMatch =
         !selectedDate ||
         getLocalDate(item.booking_date) === selectedDate;
 
-      // Status filter
       const status = item.status || "IN_PROGRESS";
 
       const statusMatch =
@@ -239,9 +239,9 @@ export default function GoldRepair() {
     });
   }, [bookings, searchQuery, selectedDate, activeTab]);
 
-  // --------------------------------------------------
-  // SELECT BOOKING
-  // --------------------------------------------------
+  // =========================================================
+  // OPEN DETAILS
+  // =========================================================
 
   const openDetails = (booking) => {
     setSelectedBooking(booking);
@@ -252,43 +252,9 @@ export default function GoldRepair() {
     setShowDetails(false);
   };
 
-  // --------------------------------------------------
-  // STATUS COLORS
-  // --------------------------------------------------
-
-  const getStatusStyle = (status) => {
-    const currentStatus = status || "IN_PROGRESS";
-
-    if (currentStatus === "COMPLETED") {
-      return {
-        color: COLORS.green,
-        background: "#ECFDF5",
-      };
-    }
-
-    if (currentStatus === "PENDING") {
-      return {
-        color: COLORS.red,
-        background: "#FEF2F2",
-      };
-    }
-
-    if (currentStatus === "CANCELLED") {
-      return {
-        color: COLORS.red,
-        background: "#FEF2F2",
-      };
-    }
-
-    return {
-      color: COLORS.amber,
-      background: "#FFF7ED",
-    };
-  };
-
-  // --------------------------------------------------
+  // =========================================================
   // LOADING
-  // --------------------------------------------------
+  // =========================================================
 
   if (loading) {
     return (
@@ -328,9 +294,9 @@ export default function GoldRepair() {
     );
   }
 
-  // --------------------------------------------------
+  // =========================================================
   // ERROR
-  // --------------------------------------------------
+  // =========================================================
 
   if (error) {
     return (
@@ -378,9 +344,9 @@ export default function GoldRepair() {
 
   return (
     <div style={styles.page}>
-      {/* =========================================================
+      {/* =====================================================
           HEADER
-      ========================================================== */}
+      ====================================================== */}
 
       <header
         style={{
@@ -394,7 +360,12 @@ export default function GoldRepair() {
           flexWrap: "wrap",
         }}
       >
-        <div style={{ flex: 1, minWidth: 260, maxWidth: 550 }}>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 260,
+          }}
+        >
           <div
             style={{
               fontSize: 20,
@@ -420,7 +391,7 @@ export default function GoldRepair() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
             flexWrap: "wrap",
           }}
         >
@@ -434,22 +405,47 @@ export default function GoldRepair() {
               fontWeight: 700,
             }}
           >
-            📅 {selectedDate ? selectedDate : "All Dates"}
+            📅 {selectedDate || "All Dates"}
           </div>
-
-          <div style={{ fontSize: 20 }}>🔔</div>
 
           <div
             style={{
-              width: 34,
-              height: 34,
+              position: "relative",
+              fontSize: 20,
+            }}
+          >
+            🔔
+
+            <span
+              style={{
+                position: "absolute",
+                top: -5,
+                right: -6,
+                width: 15,
+                height: 15,
+                borderRadius: "50%",
+                background: COLORS.red,
+                color: "#fff",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 8,
+                fontWeight: 900,
+              }}
+            >
+              3
+            </span>
+          </div>
+
+          <div
+            style={{
+              width: 35,
+              height: 35,
               borderRadius: "50%",
               background: COLORS.dark,
               color: "#fff",
               display: "grid",
               placeItems: "center",
               fontWeight: 800,
-              fontSize: 13,
             }}
           >
             A
@@ -457,14 +453,64 @@ export default function GoldRepair() {
         </div>
       </header>
 
-      {/* =========================================================
+      {/* =====================================================
+          TITLE
+      ====================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 15,
+          marginBottom: 15,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 22,
+              fontWeight: 900,
+            }}
+          >
+            Repair Bookings
+          </h1>
+
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: COLORS.muted,
+              fontSize: 11,
+            }}
+          >
+            View, search and manage gold repair bookings
+          </p>
+        </div>
+
+        <button
+          style={{
+            ...styles.button,
+            background:
+              "linear-gradient(135deg,#006D6B,#008F90)",
+            color: "#fff",
+            boxShadow: "0 5px 15px rgba(0,143,144,.2)",
+          }}
+        >
+          ＋ Add Booking
+        </button>
+      </div>
+
+      {/* =====================================================
           KPI CARDS
-      ========================================================== */}
+      ====================================================== */}
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit,minmax(170px,1fr))",
           gap: 12,
           marginBottom: 18,
         }}
@@ -499,7 +545,7 @@ export default function GoldRepair() {
             "#FEF2F2",
           ],
           [
-            "Revenue",
+            "Total Revenue",
             `₹${statistics.revenue.toLocaleString("en-IN")}`,
             "₹",
             COLORS.blue,
@@ -558,9 +604,9 @@ export default function GoldRepair() {
         ))}
       </div>
 
-      {/* =========================================================
-          FILTER BAR
-      ========================================================== */}
+      {/* =====================================================
+          FILTER PANEL
+      ====================================================== */}
 
       <div
         style={{
@@ -586,7 +632,7 @@ export default function GoldRepair() {
                 fontWeight: 900,
               }}
             >
-              Booking Schedule
+              📅 Booking Calendar
             </div>
 
             <div
@@ -602,7 +648,7 @@ export default function GoldRepair() {
 
           {selectedDate && (
             <button
-              onClick={clearDateFilter}
+              onClick={() => setSelectedDate("")}
               style={{
                 ...styles.button,
                 background: "#FEF2F2",
@@ -617,25 +663,23 @@ export default function GoldRepair() {
         <div
           style={{
             display: "flex",
-            gap: 8,
             alignItems: "center",
+            gap: 8,
             flexWrap: "wrap",
           }}
         >
-          {/* CALENDAR */}
+          {/* DATE */}
           <div
             style={{
               position: "relative",
-              display: "flex",
-              alignItems: "center",
             }}
           >
             <span
               style={{
                 position: "absolute",
                 left: 10,
+                top: 8,
                 zIndex: 1,
-                fontSize: 14,
               }}
             >
               📅
@@ -644,12 +688,13 @@ export default function GoldRepair() {
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(event) =>
+                setSelectedDate(event.target.value)
+              }
               style={{
                 ...styles.input,
                 paddingLeft: 32,
-                minWidth: 170,
-                cursor: "pointer",
+                minWidth: 175,
               }}
             />
           </div>
@@ -658,12 +703,14 @@ export default function GoldRepair() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) =>
+              setSearchQuery(event.target.value)
+            }
             placeholder="Search ID, customer, phone, service..."
             style={{
               ...styles.input,
               flex: 1,
-              minWidth: 230,
+              minWidth: 240,
             }}
           />
 
@@ -679,7 +726,7 @@ export default function GoldRepair() {
           </button>
         </div>
 
-        {/* STATUS TABS */}
+        {/* STATUS */}
         <div
           style={{
             display: "flex",
@@ -691,9 +738,18 @@ export default function GoldRepair() {
           {[
             ["ALL", `All (${bookings.length})`],
             ["PENDING", `Pending (${statistics.pending})`],
-            ["IN_PROGRESS", `In Progress (${statistics.inProgress})`],
-            ["COMPLETED", `Completed (${statistics.completed})`],
-            ["CANCELLED", `Cancelled (${statistics.cancelled})`],
+            [
+              "IN_PROGRESS",
+              `In Progress (${statistics.inProgress})`,
+            ],
+            [
+              "COMPLETED",
+              `Completed (${statistics.completed})`,
+            ],
+            [
+              "CANCELLED",
+              `Cancelled (${statistics.cancelled})`,
+            ],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -702,8 +758,11 @@ export default function GoldRepair() {
                 ...styles.button,
                 padding: "7px 11px",
                 background:
-                  activeTab === key ? COLORS.dark : "#F3F7F7",
-                color: activeTab === key ? "#fff" : COLORS.muted,
+                  activeTab === key
+                    ? COLORS.dark
+                    : "#F3F7F7",
+                color:
+                  activeTab === key ? "#fff" : COLORS.muted,
               }}
             >
               {label}
@@ -711,7 +770,7 @@ export default function GoldRepair() {
           ))}
         </div>
 
-        {/* DATE RESULT */}
+        {/* RESULT */}
         <div
           style={{
             marginTop: 12,
@@ -724,7 +783,9 @@ export default function GoldRepair() {
           }}
         >
           {selectedDate
-            ? `Showing ${filteredBookings.length} booking(s) for ${new Date(
+            ? `Showing ${
+                filteredBookings.length
+              } booking(s) for ${new Date(
                 `${selectedDate}T00:00:00`
               ).toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -735,9 +796,9 @@ export default function GoldRepair() {
         </div>
       </div>
 
-      {/* =========================================================
-          TABLE
-      ========================================================== */}
+      {/* =====================================================
+          BOOKING TABLE
+      ====================================================== */}
 
       <div
         style={{
@@ -750,12 +811,15 @@ export default function GoldRepair() {
             padding: "14px 16px",
             borderBottom: `1px solid ${COLORS.border}`,
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
           }}
         >
           <div>
-            <b style={{ fontSize: 14 }}>Repair Bookings</b>
+            <b style={{ fontSize: 14 }}>
+              Gold Repair Orders
+            </b>
 
             <div
               style={{
@@ -764,7 +828,7 @@ export default function GoldRepair() {
                 marginTop: 3,
               }}
             >
-              Click any booking to view complete information
+              Click any booking to view complete details
             </div>
           </div>
 
@@ -782,11 +846,15 @@ export default function GoldRepair() {
           </span>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
           <table
             style={{
               width: "100%",
-              minWidth: 900,
+              minWidth: 950,
               borderCollapse: "collapse",
               fontSize: 11,
             }}
@@ -836,7 +904,9 @@ export default function GoldRepair() {
                       color: COLORS.muted,
                     }}
                   >
-                    <div style={{ fontSize: 35 }}>📭</div>
+                    <div style={{ fontSize: 35 }}>
+                      📭
+                    </div>
 
                     <div
                       style={{
@@ -858,132 +928,161 @@ export default function GoldRepair() {
                   </td>
                 </tr>
               ) : (
-                filteredBookings.map((item) => {
-                  const statusStyle = getStatusStyle(item.status);
-
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => openDetails(item)}
+                filteredBookings.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => openDetails(item)}
+                    style={{
+                      cursor: "pointer",
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                    }}
+                  >
+                    <td
                       style={{
-                        cursor: "pointer",
-                        borderBottom: `1px solid ${COLORS.border}`,
-                        background: "#fff",
+                        padding: "12px 10px",
+                        fontWeight: 900,
+                        color: COLORS.dark,
                       }}
                     >
-                      <td
+                      #{item.id}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <b>
+                        {item.service_name || "N/A"}
+                      </b>
+
+                      <small
                         style={{
-                          padding: "12px 10px",
-                          fontWeight: 900,
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        {item.service_id || "N/A"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <b>
+                        {item.full_name || "N/A"}
+                      </b>
+
+                      <small
+                        style={{
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        {item.phone || "N/A"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {item.jewellery_type || "N/A"}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {formatDate(item.booking_date)}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {item.start_time || "--"}
+
+                      <small
+                        style={{
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        to {item.end_time || "--"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "5px 8px",
+                          borderRadius: 7,
+                          background: "#F1F5F9",
+                          fontSize: 9,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {item.service_type || "N/A"}
+                      </span>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: 900,
+                      }}
+                    >
+                      ₹
+                      {Number(
+                        item.total_amount || 0
+                      ).toLocaleString("en-IN")}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openDetails(item);
+                        }}
+                        style={{
+                          ...styles.button,
+                          padding: "6px 10px",
+                          background: COLORS.light,
                           color: COLORS.dark,
                         }}
                       >
-                        #{item.id}
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        <b>{item.service_name || "N/A"}</b>
-
-                        <small
-                          style={{
-                            display: "block",
-                            color: COLORS.muted,
-                            marginTop: 3,
-                          }}
-                        >
-                          {item.service_id || "N/A"}
-                        </small>
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        <b>{item.full_name || "N/A"}</b>
-
-                        <small
-                          style={{
-                            display: "block",
-                            color: COLORS.muted,
-                            marginTop: 3,
-                          }}
-                        >
-                          {item.phone || "N/A"}
-                        </small>
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        {item.jewellery_type || "N/A"}
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        {formatDate(item.booking_date)}
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        {item.start_time || "--"}
-                        <small
-                          style={{
-                            display: "block",
-                            color: COLORS.muted,
-                            marginTop: 3,
-                          }}
-                        >
-                          to {item.end_time || "--"}
-                        </small>
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        <span
-                          style={{
-                            padding: "5px 8px",
-                            borderRadius: 7,
-                            background: "#F1F5F9",
-                            fontSize: 9,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {item.service_type || "N/A"}
-                        </span>
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "12px 10px",
-                          fontWeight: 900,
-                        }}
-                      >
-                        ₹
-                        {Number(
-                          item.total_amount || 0
-                        ).toLocaleString("en-IN")}
-                      </td>
-
-                      <td style={{ padding: "12px 10px" }}>
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openDetails(item);
-                          }}
-                          style={{
-                            ...styles.button,
-                            padding: "6px 10px",
-                            background: COLORS.light,
-                            color: COLORS.dark,
-                          }}
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           FULL DETAILS MODAL
-      ========================================================== */}
+      ====================================================== */}
 
       {showDetails && selectedBooking && (
         <div
@@ -991,7 +1090,7 @@ export default function GoldRepair() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(7,40,40,.65)",
+            background: "rgba(7,40,40,.68)",
             backdropFilter: "blur(6px)",
             zIndex: 9999,
             padding: 20,
@@ -999,21 +1098,24 @@ export default function GoldRepair() {
           }}
         >
           <div
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
             style={{
               width: "min(1100px,100%)",
               margin: "20px auto",
               background: COLORS.white,
               borderRadius: 20,
               overflow: "hidden",
-              boxShadow: "0 30px 80px rgba(0,0,0,.25)",
+              boxShadow:
+                "0 30px 80px rgba(0,0,0,.25)",
             }}
           >
             {/* MODAL HEADER */}
             <div
               style={{
                 background:
-                  "linear-gradient(135deg,#006D6B 0%,#008F90 55%,#00A6A2 100%)",
+                  "linear-gradient(135deg,#006D6B,#008F90,#00A6A2)",
                 color: "#fff",
                 padding: "18px 22px",
                 display: "flex",
@@ -1039,7 +1141,8 @@ export default function GoldRepair() {
                     marginTop: 4,
                   }}
                 >
-                  Complete information for Booking #{selectedBooking.id}
+                  Complete information for Booking #
+                  {selectedBooking.id}
                 </div>
               </div>
 
@@ -1048,8 +1151,10 @@ export default function GoldRepair() {
                 style={{
                   width: 34,
                   height: 34,
-                  border: "1px solid rgba(255,255,255,.3)",
-                  background: "rgba(255,255,255,.12)",
+                  border:
+                    "1px solid rgba(255,255,255,.3)",
+                  background:
+                    "rgba(255,255,255,.12)",
                   color: "#fff",
                   borderRadius: 9,
                   cursor: "pointer",
@@ -1062,7 +1167,7 @@ export default function GoldRepair() {
 
             {/* MODAL CONTENT */}
             <div style={{ padding: 22 }}>
-              {/* TOP SUMMARY */}
+              {/* SUMMARY */}
               <div
                 style={{
                   display: "grid",
@@ -1073,12 +1178,30 @@ export default function GoldRepair() {
                 }}
               >
                 {[
-                  ["Booking ID", `#${selectedBooking.id}`],
-                  ["Service ID", selectedBooking.service_id],
-                  ["Service", selectedBooking.service_name],
-                  ["Customer", selectedBooking.full_name],
-                  ["Phone", selectedBooking.phone],
-                  ["Total Amount", `₹${selectedBooking.total_amount}`],
+                  [
+                    "Booking ID",
+                    `#${selectedBooking.id}`,
+                  ],
+                  [
+                    "Service ID",
+                    selectedBooking.service_id,
+                  ],
+                  [
+                    "Service",
+                    selectedBooking.service_name,
+                  ],
+                  [
+                    "Customer",
+                    selectedBooking.full_name,
+                  ],
+                  [
+                    "Phone",
+                    selectedBooking.phone,
+                  ],
+                  [
+                    "Total Amount",
+                    `₹${selectedBooking.total_amount || "0.00"}`,
+                  ],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -1114,7 +1237,7 @@ export default function GoldRepair() {
                 ))}
               </div>
 
-              {/* ALL DATA */}
+              {/* INFORMATION + IMAGES */}
               <div
                 style={{
                   display: "grid",
@@ -1123,7 +1246,7 @@ export default function GoldRepair() {
                   gap: 20,
                 }}
               >
-                {/* LEFT INFORMATION */}
+                {/* ALL FIELDS */}
                 <div>
                   <div
                     style={{
@@ -1145,89 +1268,183 @@ export default function GoldRepair() {
                   >
                     {[
                       ["id", selectedBooking.id],
-                      ["service_id", selectedBooking.service_id],
-                      ["service_name", selectedBooking.service_name],
-                      ["jewellery_type", selectedBooking.jewellery_type],
+                      [
+                        "service_id",
+                        selectedBooking.service_id,
+                      ],
+                      [
+                        "service_name",
+                        selectedBooking.service_name,
+                      ],
+                      [
+                        "jewellery_type",
+                        selectedBooking.jewellery_type,
+                      ],
                       [
                         "issue_description",
                         selectedBooking.issue_description,
                       ],
-                      ["booking_date", formatDate(selectedBooking.booking_date)],
+                      [
+                        "jewellery_images",
+                        Array.isArray(
+                          selectedBooking.jewellery_images
+                        )
+                          ? `${selectedBooking.jewellery_images.length} image(s)`
+                          : "0 images",
+                      ],
+                      [
+                        "booking_date",
+                        formatDate(
+                          selectedBooking.booking_date
+                        ),
+                      ],
                       [
                         "booking_date_raw",
                         selectedBooking.booking_date,
                       ],
-                      ["start_time", selectedBooking.start_time],
-                      ["end_time", selectedBooking.end_time],
-                      ["service_type", selectedBooking.service_type],
-                      ["customer_type", selectedBooking.customer_type],
-                      ["full_name", selectedBooking.full_name],
-                      ["phone", selectedBooking.phone],
-                      ["house_no", selectedBooking.house_no],
-                      ["street", selectedBooking.street],
-                      ["area", selectedBooking.area],
-                      ["landmark", selectedBooking.landmark],
-                      ["city", selectedBooking.city],
-                      ["district", selectedBooking.district],
-                      ["state", selectedBooking.state],
-                      ["pincode", selectedBooking.pincode],
+                      [
+                        "start_time",
+                        selectedBooking.start_time,
+                      ],
+                      [
+                        "end_time",
+                        selectedBooking.end_time,
+                      ],
+                      [
+                        "service_type",
+                        selectedBooking.service_type,
+                      ],
+                      [
+                        "customer_type",
+                        selectedBooking.customer_type,
+                      ],
+                      [
+                        "full_name",
+                        selectedBooking.full_name,
+                      ],
+                      [
+                        "phone",
+                        selectedBooking.phone,
+                      ],
+                      [
+                        "house_no",
+                        selectedBooking.house_no,
+                      ],
+                      [
+                        "street",
+                        selectedBooking.street,
+                      ],
+                      [
+                        "area",
+                        selectedBooking.area,
+                      ],
+                      [
+                        "landmark",
+                        selectedBooking.landmark,
+                      ],
+                      [
+                        "city",
+                        selectedBooking.city,
+                      ],
+                      [
+                        "district",
+                        selectedBooking.district,
+                      ],
+                      [
+                        "state",
+                        selectedBooking.state,
+                      ],
+                      [
+                        "pincode",
+                        selectedBooking.pincode,
+                      ],
                       [
                         "special_instructions",
                         selectedBooking.special_instructions,
                       ],
-                      ["service_fee", selectedBooking.service_fee],
-                      ["tax_amount", selectedBooking.tax_amount],
-                      ["total_amount", selectedBooking.total_amount],
-                      ["created_at", formatDateTime(selectedBooking.created_at)],
-                      ["updated_at", formatDateTime(selectedBooking.updated_at)],
-                      ["status", selectedBooking.status || "IN_PROGRESS"],
-                    ].map(([key, value], index) => (
-                      <div
-                        key={`${key}-${index}`}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "180px 1fr",
-                          gap: 15,
-                          padding: "10px 12px",
-                          background:
-                            index % 2 === 0 ? "#FAFCFC" : "#fff",
-                          borderBottom:
-                            index === 27
-                              ? "none"
-                              : `1px solid ${COLORS.border}`,
-                        }}
-                      >
+                      [
+                        "service_fee",
+                        selectedBooking.service_fee,
+                      ],
+                      [
+                        "tax_amount",
+                        selectedBooking.tax_amount,
+                      ],
+                      [
+                        "total_amount",
+                        selectedBooking.total_amount,
+                      ],
+                      [
+                        "created_at",
+                        formatDateTime(
+                          selectedBooking.created_at
+                        ),
+                      ],
+                      [
+                        "updated_at",
+                        formatDateTime(
+                          selectedBooking.updated_at
+                        ),
+                      ],
+                      [
+                        "status",
+                        selectedBooking.status ||
+                          "IN_PROGRESS",
+                      ],
+                    ].map(
+                      ([key, value], index, array) => (
                         <div
+                          key={`${key}-${index}`}
                           style={{
-                            color: COLORS.muted,
-                            fontSize: 10,
-                            fontWeight: 800,
-                            wordBreak: "break-word",
+                            display: "grid",
+                            gridTemplateColumns:
+                              "180px 1fr",
+                            gap: 15,
+                            padding: "10px 12px",
+                            background:
+                              index % 2 === 0
+                                ? "#FAFCFC"
+                                : "#fff",
+                            borderBottom:
+                              index === array.length - 1
+                                ? "none"
+                                : `1px solid ${COLORS.border}`,
                           }}
                         >
-                          {key}
-                        </div>
+                          <div
+                            style={{
+                              color: COLORS.muted,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              wordBreak:
+                                "break-word",
+                            }}
+                          >
+                            {key}
+                          </div>
 
-                        <div
-                          style={{
-                            color: COLORS.text,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {value !== undefined &&
-                          value !== null &&
-                          value !== ""
-                            ? String(value)
-                            : "N/A"}
+                          <div
+                            style={{
+                              color: COLORS.text,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              wordBreak:
+                                "break-word",
+                            }}
+                          >
+                            {value !== undefined &&
+                            value !== null &&
+                            value !== ""
+                              ? String(value)
+                              : "N/A"}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
 
-                {/* RIGHT IMAGES */}
+                {/* IMAGES */}
                 <div>
                   <div
                     style={{
@@ -1240,8 +1457,11 @@ export default function GoldRepair() {
                     🖼 Jewellery Images
                   </div>
 
-                  {Array.isArray(selectedBooking.jewellery_images) &&
-                  selectedBooking.jewellery_images.length > 0 ? (
+                  {Array.isArray(
+                    selectedBooking.jewellery_images
+                  ) &&
+                  selectedBooking.jewellery_images
+                    .length > 0 ? (
                     <div
                       style={{
                         display: "grid",
@@ -1265,34 +1485,49 @@ export default function GoldRepair() {
                               style={{
                                 height: 180,
                                 display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
+                                alignItems:
+                                  "center",
+                                justifyContent:
+                                  "center",
                                 background:
                                   "linear-gradient(135deg,#F1F5F5,#E7EEEE)",
-                                position: "relative",
                               }}
                             >
                               {imageUrl &&
-                              imageUrl.startsWith("http") ? (
+                              imageUrl.startsWith(
+                                "http"
+                              ) ? (
                                 <img
                                   src={imageUrl}
-                                  alt={`Jewellery ${index + 1}`}
+                                  alt={`Jewellery ${
+                                    index + 1
+                                  }`}
                                   style={{
                                     width: "100%",
                                     height: "100%",
-                                    objectFit: "cover",
-                                    display: "block",
+                                    objectFit:
+                                      "cover",
+                                    display:
+                                      "block",
                                   }}
                                 />
                               ) : (
                                 <div
                                   style={{
-                                    textAlign: "center",
+                                    textAlign:
+                                      "center",
                                     padding: 12,
-                                    color: COLORS.muted,
+                                    color:
+                                      COLORS.muted,
                                   }}
                                 >
-                                  <div style={{ fontSize: 35 }}>💍</div>
+                                  <div
+                                    style={{
+                                      fontSize: 35,
+                                    }}
+                                  >
+                                    💍
+                                  </div>
 
                                   <div
                                     style={{
@@ -1301,17 +1536,18 @@ export default function GoldRepair() {
                                       marginTop: 6,
                                     }}
                                   >
-                                    Image {index + 1}
+                                    Image{" "}
+                                    {index + 1}
                                   </div>
 
                                   <div
                                     style={{
                                       fontSize: 8,
                                       marginTop: 5,
-                                      wordBreak: "break-all",
                                     }}
                                   >
-                                    Local device image
+                                    Local device
+                                    image
                                   </div>
                                 </div>
                               )}
@@ -1326,38 +1562,49 @@ export default function GoldRepair() {
                               <div
                                 style={{
                                   fontSize: 9,
-                                  color: COLORS.muted,
+                                  color:
+                                    COLORS.muted,
                                   fontWeight: 700,
                                 }}
                               >
-                                IMAGE {index + 1}
+                                IMAGE{" "}
+                                {index + 1}
                               </div>
 
                               <div
                                 style={{
                                   fontSize: 8,
                                   marginTop: 4,
-                                  color: COLORS.text,
-                                  wordBreak: "break-all",
+                                  color:
+                                    COLORS.text,
+                                  wordBreak:
+                                    "break-all",
                                   lineHeight: 1.4,
                                 }}
                               >
                                 {imageUrl}
                               </div>
 
-                              {imageUrl?.startsWith("http") && (
+                              {imageUrl?.startsWith(
+                                "http"
+                              ) && (
                                 <a
                                   href={imageUrl}
                                   target="_blank"
                                   rel="noreferrer"
                                   style={{
-                                    display: "inline-block",
+                                    display:
+                                      "inline-block",
                                     marginTop: 7,
-                                    padding: "5px 8px",
+                                    padding:
+                                      "5px 8px",
                                     borderRadius: 6,
-                                    background: COLORS.light,
-                                    color: COLORS.dark,
-                                    textDecoration: "none",
+                                    background:
+                                      COLORS.light,
+                                    color:
+                                      COLORS.dark,
+                                    textDecoration:
+                                      "none",
                                     fontSize: 9,
                                     fontWeight: 800,
                                   }}
@@ -1381,12 +1628,18 @@ export default function GoldRepair() {
                         fontSize: 11,
                       }}
                     >
-                      <div style={{ fontSize: 35 }}>📷</div>
-                      No jewellery images available.
+                      <div
+                        style={{ fontSize: 35 }}
+                      >
+                        📷
+                      </div>
+
+                      No jewellery images
+                      available.
                     </div>
                   )}
 
-                  {/* PAYMENT SUMMARY */}
+                  {/* PAYMENT */}
                   <div
                     style={{
                       marginTop: 15,
@@ -1407,18 +1660,29 @@ export default function GoldRepair() {
                     </div>
 
                     {[
-                      ["Service Fee", selectedBooking.service_fee],
-                      ["Tax", selectedBooking.tax_amount],
-                      ["Total Amount", selectedBooking.total_amount],
+                      [
+                        "Service Fee",
+                        selectedBooking.service_fee,
+                      ],
+                      [
+                        "Tax Amount",
+                        selectedBooking.tax_amount,
+                      ],
+                      [
+                        "Total Amount",
+                        selectedBooking.total_amount,
+                      ],
                     ].map(([label, amount]) => (
                       <div
                         key={label}
                         style={{
                           display: "flex",
-                          justifyContent: "space-between",
+                          justifyContent:
+                            "space-between",
                           padding: "7px 0",
                           borderBottom:
-                            label === "Total Amount"
+                            label ===
+                            "Total Amount"
                               ? "none"
                               : `1px solid ${COLORS.border}`,
                         }}
@@ -1434,11 +1698,11 @@ export default function GoldRepair() {
 
                         <b
                           style={{
-                            fontSize: label === "Total Amount" ? 15 : 11,
-                            color:
-                              label === "Total Amount"
-                                ? COLORS.dark
-                                : COLORS.text,
+                            fontSize:
+                              label ===
+                              "Total Amount"
+                                ? 15
+                                : 11,
                           }}
                         >
                           ₹{amount || "0.00"}
@@ -1474,7 +1738,6 @@ export default function GoldRepair() {
                   style={{
                     fontSize: 11,
                     lineHeight: 1.7,
-                    color: COLORS.text,
                   }}
                 >
                   {[
@@ -1492,11 +1755,12 @@ export default function GoldRepair() {
                       : null,
                   ]
                     .filter(Boolean)
-                    .join(", ") || "Address not available"}
+                    .join(", ") ||
+                    "Address not available"}
                 </div>
               </div>
 
-              {/* SPECIAL INSTRUCTIONS */}
+              {/* INSTRUCTIONS */}
               <div
                 style={{
                   marginTop: 12,
@@ -1528,13 +1792,14 @@ export default function GoldRepair() {
                 </div>
               </div>
 
-              {/* CLOSE */}
+              {/* ACTIONS */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "flex-end",
                   gap: 8,
                   marginTop: 18,
+                  flexWrap: "wrap",
                 }}
               >
                 {selectedBooking.phone && (
@@ -1583,9 +1848,9 @@ export default function GoldRepair() {
         </div>
       )}
 
-      {/* =========================================================
+      {/* =====================================================
           RESPONSIVE CSS
-      ========================================================== */}
+      ====================================================== */}
 
       <style>{`
         * {
@@ -1627,12 +1892,8 @@ export default function GoldRepair() {
             margin: 0;
           }
 
-          div[style*="padding: 20px"] {
-            padding: 10px !important;
-          }
-
           table {
-            min-width: 850px;
+            min-width: 950px;
           }
         }
       `}</style>
