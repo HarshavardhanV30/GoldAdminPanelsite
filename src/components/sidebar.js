@@ -15,11 +15,10 @@ import {
   FaFolderOpen,
   FaPhoneAlt,
   FaChartLine,
-  FaCoins,
   FaHandHoldingUsd,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
-import { FaHome, FaUser, FaCog } from 'react-icons/fa';
+
 export default function SidebarOnly() {
   const [isOpen, setIsOpen] = useState(true);
 
