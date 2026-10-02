@@ -3,46 +3,40 @@ import React, { useEffect, useMemo, useState } from "react";
 const API_URL =
   "https://goldbackend-production-0ed4.up.railway.app/goldrepair/all";
 
-const C = {
-  teal: "#087F7B",
-  dark: "#075E5B",
-  light: "#E8F7F5",
-  bg: "#F4F7F8",
-  white: "#fff",
+const COLORS = {
+  teal: "#008F90",
+  dark: "#006D6B",
+  light: "#E8F8F7",
+  bg: "#F4F8F8",
+  white: "#FFFFFF",
   text: "#172B2A",
   muted: "#71808A",
-  border: "#E4EAEC",
+  border: "#E2EAEA",
   green: "#059669",
   amber: "#D97706",
   red: "#DC2626",
   blue: "#2563EB",
 };
 
-const css = {
+const styles = {
   page: {
     minHeight: "100vh",
-    background: `linear-gradient(135deg,#F4F7F8 0%,#EDF5F4 100%)`,
-    color: C.text,
-    fontFamily: "Inter,Arial,sans-serif",
+    background:
+      "linear-gradient(135deg,#F4F8F8 0%,#EEF7F6 50%,#F7FAFA 100%)",
+    color: COLORS.text,
+    fontFamily: "Inter, Arial, sans-serif",
     padding: 20,
-  },
-  card: {
-    background: C.white,
-    border: `1px solid ${C.border}`,
-    borderRadius: 16,
-    boxShadow: "0 8px 30px rgba(15,50,50,.06)",
-  },
-  input: {
-    width: "100%",
-    border: `1px solid ${C.border}`,
-    borderRadius: 10,
-    padding: "10px 12px 10px 38px",
-    outline: "none",
-    fontSize: 12,
-    background: "#FAFCFC",
     boxSizing: "border-box",
   },
-  btn: {
+
+  card: {
+    background: COLORS.white,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 16,
+    boxShadow: "0 8px 30px rgba(0,70,70,.06)",
+  },
+
+  button: {
     border: 0,
     cursor: "pointer",
     borderRadius: 9,
@@ -50,43 +44,58 @@ const css = {
     fontSize: 11,
     padding: "9px 13px",
   },
-};
 
-const statusColor = (status) =>
-  ({
-    COMPLETED: [C.green, "#ECFDF5"],
-    PENDING: [C.red, "#FEF2F2"],
-    CANCELLED: [C.red, "#FEF2F2"],
-    IN_PROGRESS: [C.amber, "#FFF7ED"],
-  }[status] || [C.amber, "#FFF7ED"]);
+  input: {
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    outline: "none",
+    background: "#FAFCFC",
+    color: COLORS.text,
+    fontSize: 11,
+    boxSizing: "border-box",
+  },
+};
 
 export default function GoldRepair() {
   const [bookings, setBookings] = useState([]);
-  const [selectedBooking, setSelectedBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("SCHEDULE");
-  const [activeDetailTab, setActiveDetailTab] = useState("Details");
+  const [activeTab, setActiveTab] = useState("ALL");
+
+  // Calendar date
+  const [selectedDate, setSelectedDate] = useState("");
+
+  // Full detail modal
+  const [showDetails, setShowDetails] = useState(false);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       setError("");
+
       const response = await fetch(API_URL);
-      if (!response.ok) throw new Error("API request failed");
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
 
       const result = await response.json();
+
       const data =
         result?.success && Array.isArray(result.data)
-          ? result.data.filter((x) => x?.id && x?.full_name)
+          ? result.data.filter((item) => item?.id)
           : [];
 
       setBookings(data);
-      setSelectedBooking((prev) => prev || data[0] || null);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch repair bookings. Please check your network.");
+      setError(
+        "Failed to fetch repair bookings. Please check your network connection."
+      );
     } finally {
       setLoading(false);
     }
@@ -96,311 +105,451 @@ export default function GoldRepair() {
     fetchBookings();
   }, []);
 
-  const stats = useMemo(() => {
+  // --------------------------------------------------
+  // DATE HELPERS
+  // --------------------------------------------------
+
+  const getLocalDate = (dateValue) => {
+    if (!dateValue) return "";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "N/A";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "N/A";
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (dateValue) => {
+    if (!dateValue) return "N/A";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "N/A";
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const clearDateFilter = () => {
+    setSelectedDate("");
+  };
+
+  // --------------------------------------------------
+  // STATISTICS
+  // --------------------------------------------------
+
+  const statistics = useMemo(() => {
     const completed = bookings.filter(
-      (b) => b.status === "COMPLETED"
+      (item) => item.status === "COMPLETED"
     ).length;
-    const pending = bookings.filter((b) => b.status === "PENDING").length;
+
+    const pending = bookings.filter(
+      (item) => item.status === "PENDING"
+    ).length;
+
+    const cancelled = bookings.filter(
+      (item) => item.status === "CANCELLED"
+    ).length;
+
     const inProgress = bookings.filter(
-      (b) => b.status === "IN_PROGRESS" || !b.status
+      (item) => item.status === "IN_PROGRESS" || !item.status
     ).length;
+
     const revenue = bookings.reduce(
-      (sum, b) => sum + (parseFloat(b.total_amount) || 0),
+      (sum, item) => sum + Number(item.total_amount || 0),
       0
     );
 
-    return [
-      ["Total Bookings", bookings.length, "↑ +12%", "📅", C.blue, "#EFF6FF"],
-      ["Completed", completed, "↑ +18%", "✓", C.green, "#ECFDF5"],
-      ["In Progress", inProgress, "↑ 5%", "◷", C.amber, "#FFF7ED"],
-      ["Pending", pending, "↓ 8%", "!", C.red, "#FEF2F2"],
-      [
-        "Total Revenue",
-        `₹${revenue.toLocaleString("en-IN")}`,
-        "↑ +22%",
-        "₹",
-        C.blue,
-        "#EFF6FF",
-      ],
-    ];
+    return {
+      total: bookings.length,
+      completed,
+      pending,
+      cancelled,
+      inProgress,
+      revenue,
+    };
   }, [bookings]);
 
-  const counts = {
-    PENDING: bookings.filter((b) => b.status === "PENDING").length,
-    IN_PROGRESS: bookings.filter(
-      (b) => b.status === "IN_PROGRESS" || !b.status
-    ).length,
-    COMPLETED: bookings.filter((b) => b.status === "COMPLETED").length,
-    CANCELLED: bookings.filter((b) => b.status === "CANCELLED").length,
-  };
+  // --------------------------------------------------
+  // FILTER BOOKINGS
+  // --------------------------------------------------
 
   const filteredBookings = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    const query = searchQuery.trim().toLowerCase();
 
     return bookings.filter((item) => {
-      const matchesSearch =
-        !q ||
-        [item.full_name, item.phone, item.service_name, item.id]
+      // Search
+      const searchMatch =
+        !query ||
+        [
+          item.id,
+          item.service_id,
+          item.service_name,
+          item.jewellery_type,
+          item.full_name,
+          item.phone,
+          item.city,
+          item.district,
+          item.state,
+          item.pincode,
+        ]
+          .filter(Boolean)
           .join(" ")
           .toLowerCase()
-          .includes(q);
+          .includes(query);
 
-      const matchesTab =
-        activeTab === "SCHEDULE" ||
-        activeTab === "LIST" ||
-        item.status === activeTab ||
-        (activeTab === "IN_PROGRESS" && !item.status);
+      // Calendar filter
+      const dateMatch =
+        !selectedDate ||
+        getLocalDate(item.booking_date) === selectedDate;
 
-      return matchesSearch && matchesTab;
+      // Status filter
+      const status = item.status || "IN_PROGRESS";
+
+      const statusMatch =
+        activeTab === "ALL" ||
+        (activeTab === "IN_PROGRESS" &&
+          (status === "IN_PROGRESS" || !item.status)) ||
+        status === activeTab;
+
+      return searchMatch && dateMatch && statusMatch;
     });
-  }, [bookings, searchQuery, activeTab]);
+  }, [bookings, searchQuery, selectedDate, activeTab]);
 
-  const formatDate = (date) =>
-    date
-      ? new Date(date).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
-      : "N/A";
+  // --------------------------------------------------
+  // SELECT BOOKING
+  // --------------------------------------------------
 
-  const currentStatus = selectedBooking?.status || "IN_PROGRESS";
-  const [statusTextColor, statusBg] = statusColor(currentStatus);
+  const openDetails = (booking) => {
+    setSelectedBooking(booking);
+    setShowDetails(true);
+  };
 
-  if (loading)
+  const closeDetails = () => {
+    setShowDetails(false);
+  };
+
+  // --------------------------------------------------
+  // STATUS COLORS
+  // --------------------------------------------------
+
+  const getStatusStyle = (status) => {
+    const currentStatus = status || "IN_PROGRESS";
+
+    if (currentStatus === "COMPLETED") {
+      return {
+        color: COLORS.green,
+        background: "#ECFDF5",
+      };
+    }
+
+    if (currentStatus === "PENDING") {
+      return {
+        color: COLORS.red,
+        background: "#FEF2F2",
+      };
+    }
+
+    if (currentStatus === "CANCELLED") {
+      return {
+        color: COLORS.red,
+        background: "#FEF2F2",
+      };
+    }
+
+    return {
+      color: COLORS.amber,
+      background: "#FFF7ED",
+    };
+  };
+
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
+
+  if (loading) {
     return (
       <div
         style={{
-          ...css.page,
+          ...styles.page,
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
         }}
       >
-        <div style={{ ...css.card, padding: 35, textAlign: "center" }}>
-          <div style={{ fontSize: 38, marginBottom: 10 }}>💎</div>
-          <b style={{ color: C.dark }}>Loading Gold Repair Dashboard...</b>
-          <div style={{ color: C.muted, fontSize: 12, marginTop: 6 }}>
-            Fetching repair bookings
+        <div
+          style={{
+            ...styles.card,
+            padding: 40,
+            textAlign: "center",
+            minWidth: 280,
+          }}
+        >
+          <div style={{ fontSize: 42, marginBottom: 12 }}>💎</div>
+
+          <div style={{ fontWeight: 800, fontSize: 16 }}>
+            Gold Repair Dashboard
+          </div>
+
+          <div
+            style={{
+              color: COLORS.muted,
+              fontSize: 11,
+              marginTop: 7,
+            }}
+          >
+            Loading repair bookings...
           </div>
         </div>
       </div>
     );
+  }
 
-  if (error)
+  // --------------------------------------------------
+  // ERROR
+  // --------------------------------------------------
+
+  if (error) {
     return (
       <div
         style={{
-          ...css.page,
+          ...styles.page,
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
         }}
       >
-        <div style={{ ...css.card, padding: 35, textAlign: "center" }}>
-          <div style={{ fontSize: 35 }}>⚠️</div>
-          <p style={{ color: C.red, fontWeight: 700 }}>{error}</p>
+        <div
+          style={{
+            ...styles.card,
+            padding: 40,
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 40 }}>⚠️</div>
+
+          <p
+            style={{
+              color: COLORS.red,
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            {error}
+          </p>
+
           <button
             onClick={fetchBookings}
-            style={{ ...css.btn, background: C.teal, color: "#fff" }}
+            style={{
+              ...styles.button,
+              background: COLORS.teal,
+              color: "#fff",
+            }}
           >
             Retry
           </button>
         </div>
       </div>
     );
+  }
 
   return (
-    <div style={css.page}>
-      {/* HEADER */}
+    <div style={styles.page}>
+      {/* =========================================================
+          HEADER
+      ========================================================== */}
+
       <header
         style={{
-          ...css.card,
+          ...styles.card,
           padding: "14px 18px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 20,
           marginBottom: 18,
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ flex: 1, maxWidth: 520, position: "relative" }}>
-          <span
+        <div style={{ flex: 1, minWidth: 260, maxWidth: 550 }}>
+          <div
             style={{
-              position: "absolute",
-              left: 13,
-              top: 9,
-              fontSize: 16,
-              color: C.muted,
+              fontSize: 20,
+              fontWeight: 900,
+              color: COLORS.dark,
             }}
           >
-            🔍
-          </span>
-          <input
-            style={css.input}
-            placeholder="Search booking ID, customer, mobile or service..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+            Gold Repair
+          </div>
+
+          <div
+            style={{
+              color: COLORS.muted,
+              fontSize: 10,
+              marginTop: 3,
+            }}
+          >
+            Repair booking management dashboard
+          </div>
         </div>
 
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 15,
-            whiteSpace: "nowrap",
+            gap: 10,
+            flexWrap: "wrap",
           }}
         >
           <div
             style={{
+              background: COLORS.light,
+              color: COLORS.dark,
               padding: "8px 12px",
-              border: `1px solid ${C.border}`,
               borderRadius: 9,
               fontSize: 11,
-              background: "#FAFCFC",
+              fontWeight: 700,
             }}
           >
-            📅 02 Oct 2026
+            📅 {selectedDate ? selectedDate : "All Dates"}
           </div>
 
-          <div style={{ position: "relative", fontSize: 20 }}>
-            🔔
-            <span
-              style={{
-                position: "absolute",
-                top: -5,
-                right: -7,
-                width: 15,
-                height: 15,
-                borderRadius: "50%",
-                background: C.red,
-                color: "#fff",
-                fontSize: 9,
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 800,
-              }}
-            >
-              3
-            </span>
-          </div>
+          <div style={{ fontSize: 20 }}>🔔</div>
 
           <div
             style={{
-              borderLeft: `1px solid ${C.border}`,
-              paddingLeft: 15,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: COLORS.dark,
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 800,
+              fontSize: 13,
             }}
           >
-            <div
-              style={{
-                width: 35,
-                height: 35,
-                borderRadius: "50%",
-                background: C.dark,
-                color: "#fff",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 800,
-              }}
-            >
-              A
-            </div>
-            <div>
-              <b style={{ display: "block", fontSize: 12 }}>Admin</b>
-              <span style={{ fontSize: 9, color: C.muted }}>
-                Administrator
-              </span>
-            </div>
+            A
           </div>
         </div>
       </header>
 
-      {/* TITLE */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 15,
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
-            Gold Repair
-          </h1>
-          <p style={{ margin: "4px 0 0", color: C.muted, fontSize: 12 }}>
-            Manage repair bookings, technicians and customer requests
-          </p>
-        </div>
+      {/* =========================================================
+          KPI CARDS
+      ========================================================== */}
 
-        <button
-          style={{
-            ...css.btn,
-            background: `linear-gradient(135deg,${C.teal},${C.dark})`,
-            color: "#fff",
-            padding: "11px 16px",
-            boxShadow: "0 5px 15px rgba(8,127,123,.2)",
-          }}
-        >
-          ＋ Add Booking
-        </button>
-      </div>
-
-      {/* KPI */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(175px,1fr))",
+          gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))",
           gap: 12,
           marginBottom: 18,
         }}
       >
-        {stats.map(([title, value, growth, icon, color, bg]) => (
+        {[
+          [
+            "Total Bookings",
+            statistics.total,
+            "📅",
+            COLORS.blue,
+            "#EFF6FF",
+          ],
+          [
+            "Completed",
+            statistics.completed,
+            "✓",
+            COLORS.green,
+            "#ECFDF5",
+          ],
+          [
+            "In Progress",
+            statistics.inProgress,
+            "◷",
+            COLORS.amber,
+            "#FFF7ED",
+          ],
+          [
+            "Pending",
+            statistics.pending,
+            "!",
+            COLORS.red,
+            "#FEF2F2",
+          ],
+          [
+            "Revenue",
+            `₹${statistics.revenue.toLocaleString("en-IN")}`,
+            "₹",
+            COLORS.blue,
+            "#EFF6FF",
+          ],
+        ].map(([title, value, icon, color, iconBg]) => (
           <div
             key={title}
             style={{
-              ...css.card,
-              padding: 16,
+              ...styles.card,
+              padding: 15,
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "space-between",
               borderTop: `3px solid ${color}`,
             }}
           >
             <div>
               <div
                 style={{
-                  fontSize: 11,
-                  color: C.muted,
-                  fontWeight: 600,
-                  marginBottom: 5,
+                  color: COLORS.muted,
+                  fontSize: 10,
+                  fontWeight: 700,
                 }}
               >
                 {title}
               </div>
-              <div style={{ fontSize: 23, fontWeight: 800 }}>{value}</div>
-              <div style={{ color, fontSize: 10, marginTop: 4 }}>
-                {growth}{" "}
-                <span style={{ color: C.muted, fontWeight: 400 }}>
-                  This Month
-                </span>
+
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  marginTop: 5,
+                }}
+              >
+                {value}
               </div>
             </div>
+
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: bg,
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                background: iconBg,
                 color,
                 display: "grid",
                 placeItems: "center",
-                fontSize: 20,
-                fontWeight: 800,
+                fontWeight: 900,
+                fontSize: 19,
               }}
             >
               {icon}
@@ -409,814 +558,1082 @@ export default function GoldRepair() {
         ))}
       </div>
 
-      {/* MAIN GRID */}
+      {/* =========================================================
+          FILTER BAR
+      ========================================================== */}
+
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0,2fr) minmax(320px,1fr)",
-          gap: 18,
-          alignItems: "start",
+          ...styles.card,
+          padding: 14,
+          marginBottom: 15,
         }}
       >
-        {/* LEFT */}
-        <main>
-          {/* TABS */}
-          <div
-            style={{
-              ...css.card,
-              padding: 7,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 5,
-              marginBottom: 12,
-            }}
-          >
-            {[
-              ["SCHEDULE", "📅 Schedule"],
-              ["LIST", "☷ List"],
-              ["PENDING", `Pending ${counts.PENDING}`],
-              ["IN_PROGRESS", `In Progress ${counts.IN_PROGRESS}`],
-              ["COMPLETED", `Completed ${counts.COMPLETED}`],
-              ["CANCELLED", `Cancelled ${counts.CANCELLED}`],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                style={{
-                  ...css.btn,
-                  padding: "8px 11px",
-                  background: activeTab === key ? C.dark : "#F5F8F8",
-                  color: activeTab === key ? "#fff" : C.muted,
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* FILTER */}
-          <div
-            style={{
-              ...css.card,
-              padding: 11,
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginBottom: 12,
-            }}
-          >
-            {["02 Oct 2026", "All Services", "All Technicians", "All Status"].map(
-              (x) => (
-                <select
-                  key={x}
-                  defaultValue={x}
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    background: "#F8FAFA",
-                    borderRadius: 8,
-                    padding: "8px 10px",
-                    fontSize: 11,
-                    color: C.muted,
-                    outline: "none",
-                  }}
-                >
-                  <option>{x}</option>
-                </select>
-              )
-            )}
-
-            <input
-              style={{
-                ...css.input,
-                width: 180,
-                marginLeft: "auto",
-                padding: "8px 10px",
-              }}
-              placeholder="Search bookings..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* TABLE */}
-          <div style={{ ...css.card, overflow: "hidden", marginBottom: 14 }}>
-            <div
-              style={{
-                padding: "15px 16px",
-                borderBottom: `1px solid ${C.border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <b style={{ fontSize: 14 }}>Today's Schedule</b>
-                <span style={{ color: C.muted, fontSize: 11, marginLeft: 8 }}>
-                  02 October 2026
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  color: C.teal,
-                  background: C.light,
-                  padding: "6px 9px",
-                  borderRadius: 8,
-                  fontWeight: 700,
-                }}
-              >
-                {filteredBookings.length} Bookings
-              </span>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 11,
-                  minWidth: 760,
-                }}
-              >
-                <thead>
-                  <tr style={{ background: "#F8FAFA", color: C.muted }}>
-                    {[
-                      "ID",
-                      "Customer",
-                      "Service",
-                      "Type",
-                      "Date & Time",
-                      "City",
-                      "Amount",
-                      "",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "11px 10px",
-                          textAlign: "left",
-                          fontWeight: 700,
-                          borderBottom: `1px solid ${C.border}`,
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredBookings.length ? (
-                    filteredBookings.map((item) => {
-                      const selected = selectedBooking?.id === item.id;
-                      return (
-                        <tr
-                          key={item.id}
-                          onClick={() => setSelectedBooking(item)}
-                          style={{
-                            cursor: "pointer",
-                            background: selected ? "#F0FBF9" : "#fff",
-                            borderBottom: `1px solid ${C.border}`,
-                            transition: "all .2s",
-                          }}
-                        >
-                          <td style={{ padding: "12px 10px", fontWeight: 800 }}>
-                            #{item.id}
-                          </td>
-                          <td style={{ padding: "12px 10px" }}>
-                            <b>{item.full_name || "N/A"}</b>
-                            <small
-                              style={{
-                                display: "block",
-                                color: C.muted,
-                                marginTop: 3,
-                              }}
-                            >
-                              {item.phone || "N/A"}
-                            </small>
-                          </td>
-                          <td style={{ padding: "12px 10px" }}>
-                            {item.service_name || "Custom Repair"}
-                          </td>
-                          <td style={{ padding: "12px 10px", color: C.muted }}>
-                            {item.jewellery_type || "N/A"}
-                          </td>
-                          <td style={{ padding: "12px 10px" }}>
-                            {formatDate(item.booking_date)}
-                            <small
-                              style={{
-                                display: "block",
-                                color: C.muted,
-                                marginTop: 3,
-                              }}
-                            >
-                              {item.start_time || "--"} - {item.end_time || "--"}
-                            </small>
-                          </td>
-                          <td style={{ padding: "12px 10px", color: C.muted }}>
-                            {item.city || "N/A"}
-                          </td>
-                          <td style={{ padding: "12px 10px", fontWeight: 800 }}>
-                            ₹{item.total_amount || 0}
-                          </td>
-                          <td style={{ padding: "12px 10px" }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedBooking(item);
-                              }}
-                              style={{
-                                ...css.btn,
-                                padding: "6px 9px",
-                                background: C.light,
-                                color: C.dark,
-                              }}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="8"
-                        style={{
-                          padding: 40,
-                          textAlign: "center",
-                          color: C.muted,
-                        }}
-                      >
-                        <div style={{ fontSize: 28 }}>📭</div>
-                        No bookings found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* UPCOMING */}
-          <div style={{ ...css.card, padding: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <b style={{ fontSize: 13 }}>Upcoming Bookings</b>
-              <span style={{ color: C.teal, fontSize: 11, fontWeight: 700 }}>
-                Next 7 Days →
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))",
-                gap: 9,
-              }}
-            >
-              {bookings.slice(0, 5).map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedBooking(item)}
-                  style={{
-                    padding: 12,
-                    background: "#F8FAFA",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 11,
-                    cursor: "pointer",
-                  }}
-                >
-                  <small style={{ color: C.muted }}>
-                    {formatDate(item.booking_date)}
-                  </small>
-                  <b
-                    style={{
-                      display: "block",
-                      fontSize: 11,
-                      marginTop: 5,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.service_name || "Gold Repair"}
-                  </b>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: 10,
-                      color: C.muted,
-                      marginTop: 4,
-                    }}
-                  >
-                    {item.full_name}
-                  </span>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: 8,
-                      padding: "4px 7px",
-                      borderRadius: 6,
-                      background: "#FFF4D6",
-                      color: "#9A6700",
-                      fontSize: 9,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {item.customer_type || "Upcoming"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </main>
-
-        {/* RIGHT DETAIL PANEL */}
-        <aside
+        <div
           style={{
-            ...css.card,
-            overflow: "hidden",
-            position: "sticky",
-            top: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 12,
           }}
         >
+          <div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+              }}
+            >
+              Booking Schedule
+            </div>
+
+            <div
+              style={{
+                color: COLORS.muted,
+                fontSize: 10,
+                marginTop: 3,
+              }}
+            >
+              Select a date to display bookings for that day
+            </div>
+          </div>
+
+          {selectedDate && (
+            <button
+              onClick={clearDateFilter}
+              style={{
+                ...styles.button,
+                background: "#FEF2F2",
+                color: COLORS.red,
+              }}
+            >
+              ✕ Clear Date
+            </button>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* CALENDAR */}
           <div
             style={{
-              background: `linear-gradient(135deg,${C.dark},${C.teal})`,
-              color: "#fff",
-              padding: 16,
+              position: "relative",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
             }}
           >
-            <div>
-              <b style={{ fontSize: 14 }}>Booking Details</b>
-              <div style={{ opacity: 0.75, fontSize: 10, marginTop: 3 }}>
-                Repair management panel
-              </div>
-            </div>
-            <button
+            <span
               style={{
-                border: "1px solid rgba(255,255,255,.25)",
-                background: "rgba(255,255,255,.1)",
-                color: "#fff",
-                borderRadius: 8,
-                padding: "5px 9px",
-                cursor: "pointer",
+                position: "absolute",
+                left: 10,
+                zIndex: 1,
+                fontSize: 14,
               }}
             >
-              ✕
-            </button>
+              📅
+            </span>
+
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{
+                ...styles.input,
+                paddingLeft: 32,
+                minWidth: 170,
+                cursor: "pointer",
+              }}
+            />
           </div>
 
-          {!selectedBooking ? (
-            <div style={{ padding: 40, textAlign: "center", color: C.muted }}>
-              Select a booking to view details.
+          {/* SEARCH */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search ID, customer, phone, service..."
+            style={{
+              ...styles.input,
+              flex: 1,
+              minWidth: 230,
+            }}
+          />
+
+          <button
+            onClick={fetchBookings}
+            style={{
+              ...styles.button,
+              background: COLORS.teal,
+              color: "#fff",
+            }}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {/* STATUS TABS */}
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginTop: 12,
+          }}
+        >
+          {[
+            ["ALL", `All (${bookings.length})`],
+            ["PENDING", `Pending (${statistics.pending})`],
+            ["IN_PROGRESS", `In Progress (${statistics.inProgress})`],
+            ["COMPLETED", `Completed (${statistics.completed})`],
+            ["CANCELLED", `Cancelled (${statistics.cancelled})`],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                ...styles.button,
+                padding: "7px 11px",
+                background:
+                  activeTab === key ? COLORS.dark : "#F3F7F7",
+                color: activeTab === key ? "#fff" : COLORS.muted,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* DATE RESULT */}
+        <div
+          style={{
+            marginTop: 12,
+            padding: "9px 11px",
+            borderRadius: 9,
+            background: COLORS.light,
+            color: COLORS.dark,
+            fontSize: 11,
+            fontWeight: 700,
+          }}
+        >
+          {selectedDate
+            ? `Showing ${filteredBookings.length} booking(s) for ${new Date(
+                `${selectedDate}T00:00:00`
+              ).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}`
+            : `Showing ${filteredBookings.length} booking(s) from all dates`}
+        </div>
+      </div>
+
+      {/* =========================================================
+          TABLE
+      ========================================================== */}
+
+      <div
+        style={{
+          ...styles.card,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "14px 16px",
+            borderBottom: `1px solid ${COLORS.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <b style={{ fontSize: 14 }}>Repair Bookings</b>
+
+            <div
+              style={{
+                color: COLORS.muted,
+                fontSize: 10,
+                marginTop: 3,
+              }}
+            >
+              Click any booking to view complete information
             </div>
-          ) : (
-            <div style={{ padding: 16 }}>
-              {/* STATUS */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 15,
-                }}
-              >
-                <span
-                  style={{
-                    color: statusTextColor,
-                    background: statusBg,
-                    borderRadius: 20,
-                    padding: "6px 10px",
-                    fontSize: 10,
-                    fontWeight: 800,
-                  }}
-                >
-                  ● {currentStatus.replace("_", " ")}
-                </span>
-                <b style={{ fontSize: 10, color: C.muted }}>
-                  #{selectedBooking.id}
-                </b>
-              </div>
+          </div>
 
-              {/* CUSTOMER */}
-              <div
+          <span
+            style={{
+              background: COLORS.light,
+              color: COLORS.dark,
+              padding: "6px 10px",
+              borderRadius: 20,
+              fontSize: 10,
+              fontWeight: 800,
+            }}
+          >
+            {filteredBookings.length} Results
+          </span>
+        </div>
+
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              minWidth: 900,
+              borderCollapse: "collapse",
+              fontSize: 11,
+            }}
+          >
+            <thead>
+              <tr
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  paddingBottom: 15,
-                  borderBottom: `1px solid ${C.border}`,
+                  background: "#F7FAFA",
+                  color: COLORS.muted,
                 }}
               >
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div
+                {[
+                  "ID",
+                  "Service",
+                  "Customer",
+                  "Jewellery",
+                  "Date",
+                  "Time",
+                  "Type",
+                  "Amount",
+                  "Action",
+                ].map((heading) => (
+                  <th
+                    key={heading}
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 13,
-                      background: C.light,
-                      color: C.dark,
-                      display: "grid",
-                      placeItems: "center",
+                      padding: "11px 10px",
+                      textAlign: "left",
                       fontWeight: 800,
-                      fontSize: 16,
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {selectedBooking.full_name?.charAt(0) || "U"}
-                  </div>
-                  <div>
-                    <b style={{ fontSize: 13 }}>
-                      {selectedBooking.full_name || "N/A"}
-                    </b>
-                    <small
-                      style={{
-                        display: "block",
-                        color: C.muted,
-                        marginTop: 3,
-                      }}
-                    >
-                      {selectedBooking.phone || "N/A"}
-                    </small>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 6 }}>
-                  <a
-                    href={`tel:${selectedBooking.phone || ""}`}
-                    style={{
-                      textDecoration: "none",
-                      background: "#F1F5F9",
-                      padding: 8,
-                      borderRadius: 8,
-                    }}
-                  >
-                    📞
-                  </a>
-                  <a
-                    href={`https://wa.me/${selectedBooking.phone || ""}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      textDecoration: "none",
-                      background: "#ECFDF5",
-                      padding: 8,
-                      borderRadius: 8,
-                    }}
-                  >
-                    💬
-                  </a>
-                </div>
-              </div>
-
-              {/* DETAIL TABS */}
-              <div
-                style={{
-                  display: "flex",
-                  borderBottom: `1px solid ${C.border}`,
-                  marginBottom: 15,
-                }}
-              >
-                {["Details", "Images", "History"].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveDetailTab(tab)}
-                    style={{
-                      flex: 1,
-                      border: 0,
-                      background: "transparent",
-                      padding: "10px 4px",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color:
-                        activeDetailTab === tab ? C.teal : C.muted,
-                      borderBottom:
-                        activeDetailTab === tab
-                          ? `2px solid ${C.teal}`
-                          : "2px solid transparent",
-                    }}
-                  >
-                    {tab}
-                  </button>
+                    {heading}
+                  </th>
                 ))}
-              </div>
+              </tr>
+            </thead>
 
-              {/* DETAILS */}
-              {activeDetailTab === "Details" && (
-                <div style={{ fontSize: 11 }}>
-                  {[
-                    ["Service", selectedBooking.service_name || "N/A"],
-                    ["Jewellery", selectedBooking.jewellery_type || "N/A"],
-                    [
-                      "Issue",
-                      selectedBooking.issue_description || "N/A",
-                    ],
-                    [
-                      "Date & Time",
-                      `${formatDate(selectedBooking.booking_date)} • ${
-                        selectedBooking.start_time || "--"
-                      } - ${selectedBooking.end_time || "--"}`,
-                    ],
-                    [
-                      "Address",
-                      [
-                        selectedBooking.house_no,
-                        selectedBooking.street,
-                        selectedBooking.area,
-                        selectedBooking.city,
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "N/A",
-                    ],
-                  ].map(([label, value]) => (
+            <tbody>
+              {filteredBookings.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="9"
+                    style={{
+                      padding: 50,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                    }}
+                  >
+                    <div style={{ fontSize: 35 }}>📭</div>
+
                     <div
-                      key={label}
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 15,
-                        padding: "8px 0",
-                        borderBottom: `1px dashed ${C.border}`,
-                      }}
-                    >
-                      <span style={{ color: C.muted, minWidth: 75 }}>
-                        {label}
-                      </span>
-                      <b style={{ textAlign: "right", maxWidth: 210 }}>
-                        {value}
-                      </b>
-                    </div>
-                  ))}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "10px 0",
-                    }}
-                  >
-                    <span style={{ color: C.muted }}>Status</span>
-                    <select
-                      defaultValue={currentStatus}
-                      style={{
-                        border: 0,
-                        background: statusBg,
-                        color: statusTextColor,
-                        padding: "5px 8px",
-                        borderRadius: 7,
-                        fontWeight: 700,
-                        fontSize: 10,
-                      }}
-                    >
-                      <option value="PENDING">Pending</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="CANCELLED">Cancelled</option>
-                    </select>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      borderTop: `1px solid ${C.border}`,
-                      paddingTop: 11,
-                    }}
-                  >
-                    <span style={{ color: C.muted }}>Amount</span>
-                    <b style={{ fontSize: 16 }}>
-                      ₹{selectedBooking.total_amount || selectedBooking.service_fee || 0}
-                    </b>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginTop: 8,
-                    }}
-                  >
-                    <span style={{ color: C.muted }}>Payment</span>
-                    <span
-                      style={{
-                        background: "#ECFDF5",
-                        color: C.green,
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        fontSize: 9,
+                        marginTop: 8,
                         fontWeight: 800,
                       }}
                     >
-                      PAID
-                    </span>
-                  </div>
+                      No bookings found
+                    </div>
 
-                  <label
-                    style={{
-                      display: "block",
-                      fontWeight: 700,
-                      marginTop: 15,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Admin Notes
-                  </label>
-                  <textarea
-                    rows="3"
-                    defaultValue={selectedBooking.special_instructions || ""}
-                    placeholder="Add notes about this booking..."
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      border: `1px solid ${C.border}`,
-                      background: "#F8FAFA",
-                      borderRadius: 9,
-                      padding: 9,
-                      resize: "vertical",
-                      outline: "none",
-                      fontSize: 11,
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* IMAGES */}
-              {activeDetailTab === "Images" && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                  }}
-                >
-                  {Array.isArray(selectedBooking.jewellery_images) &&
-                  selectedBooking.jewellery_images.length ? (
-                    selectedBooking.jewellery_images.map((url, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          height: 110,
-                          borderRadius: 10,
-                          overflow: "hidden",
-                          background: "#F1F5F9",
-                          border: `1px solid ${C.border}`,
-                          display: "grid",
-                          placeItems: "center",
-                        }}
-                      >
-                        {url?.startsWith("http") ? (
-                          <img
-                            src={url}
-                            alt={`Jewellery ${index + 1}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        ) : (
-                          <span style={{ color: C.muted, fontSize: 10 }}>
-                            Image {index + 1}
-                          </span>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p
-                      style={{
-                        gridColumn: "1/-1",
-                        textAlign: "center",
-                        color: C.muted,
-                        padding: 25,
-                      }}
-                    >
-                      📷 No images attached.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* HISTORY */}
-              {activeDetailTab === "History" && (
-                <div>
-                  {[
-                    ["Booking Created", "Customer submitted repair request"],
-                    ["Inspection", "Jewellery received for inspection"],
-                    ["Repair", "Repair process pending"],
-                  ].map(([title, text], i) => (
                     <div
-                      key={title}
                       style={{
-                        display: "flex",
-                        gap: 10,
-                        padding: "10px 0",
-                        borderBottom: `1px solid ${C.border}`,
+                        marginTop: 4,
+                        fontSize: 10,
                       }}
                     >
-                      <div
+                      Try another date or search value.
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredBookings.map((item) => {
+                  const statusStyle = getStatusStyle(item.status);
+
+                  return (
+                    <tr
+                      key={item.id}
+                      onClick={() => openDetails(item)}
+                      style={{
+                        cursor: "pointer",
+                        borderBottom: `1px solid ${COLORS.border}`,
+                        background: "#fff",
+                      }}
+                    >
+                      <td
                         style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: "50%",
-                          background: i === 2 ? "#FFF7ED" : C.light,
-                          color: i === 2 ? C.amber : C.teal,
-                          display: "grid",
-                          placeItems: "center",
-                          fontSize: 10,
-                          fontWeight: 800,
+                          padding: "12px 10px",
+                          fontWeight: 900,
+                          color: COLORS.dark,
                         }}
                       >
-                        {i + 1}
-                      </div>
-                      <div>
-                        <b style={{ fontSize: 11 }}>{title}</b>
-                        <p
+                        #{item.id}
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        <b>{item.service_name || "N/A"}</b>
+
+                        <small
                           style={{
-                            margin: "3px 0",
-                            color: C.muted,
-                            fontSize: 10,
+                            display: "block",
+                            color: COLORS.muted,
+                            marginTop: 3,
                           }}
                         >
-                          {text}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                          {item.service_id || "N/A"}
+                        </small>
+                      </td>
 
-              {/* ACTIONS */}
+                      <td style={{ padding: "12px 10px" }}>
+                        <b>{item.full_name || "N/A"}</b>
+
+                        <small
+                          style={{
+                            display: "block",
+                            color: COLORS.muted,
+                            marginTop: 3,
+                          }}
+                        >
+                          {item.phone || "N/A"}
+                        </small>
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        {item.jewellery_type || "N/A"}
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        {formatDate(item.booking_date)}
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        {item.start_time || "--"}
+                        <small
+                          style={{
+                            display: "block",
+                            color: COLORS.muted,
+                            marginTop: 3,
+                          }}
+                        >
+                          to {item.end_time || "--"}
+                        </small>
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        <span
+                          style={{
+                            padding: "5px 8px",
+                            borderRadius: 7,
+                            background: "#F1F5F9",
+                            fontSize: 9,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.service_type || "N/A"}
+                        </span>
+                      </td>
+
+                      <td
+                        style={{
+                          padding: "12px 10px",
+                          fontWeight: 900,
+                        }}
+                      >
+                        ₹
+                        {Number(
+                          item.total_amount || 0
+                        ).toLocaleString("en-IN")}
+                      </td>
+
+                      <td style={{ padding: "12px 10px" }}>
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openDetails(item);
+                          }}
+                          style={{
+                            ...styles.button,
+                            padding: "6px 10px",
+                            background: COLORS.light,
+                            color: COLORS.dark,
+                          }}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* =========================================================
+          FULL DETAILS MODAL
+      ========================================================== */}
+
+      {showDetails && selectedBooking && (
+        <div
+          onClick={closeDetails}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(7,40,40,.65)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            padding: 20,
+            overflowY: "auto",
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(1100px,100%)",
+              margin: "20px auto",
+              background: COLORS.white,
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: "0 30px 80px rgba(0,0,0,.25)",
+            }}
+          >
+            {/* MODAL HEADER */}
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg,#006D6B 0%,#008F90 55%,#00A6A2 100%)",
+                color: "#fff",
+                padding: "18px 22px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 15,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 900,
+                  }}
+                >
+                  Gold Repair Booking Details
+                </div>
+
+                <div
+                  style={{
+                    opacity: 0.8,
+                    fontSize: 10,
+                    marginTop: 4,
+                  }}
+                >
+                  Complete information for Booking #{selectedBooking.id}
+                </div>
+              </div>
+
+              <button
+                onClick={closeDetails}
+                style={{
+                  width: 34,
+                  height: 34,
+                  border: "1px solid rgba(255,255,255,.3)",
+                  background: "rgba(255,255,255,.12)",
+                  color: "#fff",
+                  borderRadius: 9,
+                  cursor: "pointer",
+                  fontSize: 17,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* MODAL CONTENT */}
+            <div style={{ padding: 22 }}>
+              {/* TOP SUMMARY */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 6,
-                  borderTop: `1px solid ${C.border}`,
-                  marginTop: 16,
-                  paddingTop: 14,
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(180px,1fr))",
+                  gap: 10,
+                  marginBottom: 20,
                 }}
               >
-                <button
+                {[
+                  ["Booking ID", `#${selectedBooking.id}`],
+                  ["Service ID", selectedBooking.service_id],
+                  ["Service", selectedBooking.service_name],
+                  ["Customer", selectedBooking.full_name],
+                  ["Phone", selectedBooking.phone],
+                  ["Total Amount", `₹${selectedBooking.total_amount}`],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: "#F7FAFA",
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 11,
+                      padding: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: COLORS.muted,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {label}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 5,
+                        fontSize: 12,
+                        fontWeight: 900,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {value || "N/A"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ALL DATA */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "minmax(0,1.2fr) minmax(0,1fr)",
+                  gap: 20,
+                }}
+              >
+                {/* LEFT INFORMATION */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 10,
+                      color: COLORS.dark,
+                    }}
+                  >
+                    📋 Complete Booking Information
+                  </div>
+
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 13,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {[
+                      ["id", selectedBooking.id],
+                      ["service_id", selectedBooking.service_id],
+                      ["service_name", selectedBooking.service_name],
+                      ["jewellery_type", selectedBooking.jewellery_type],
+                      [
+                        "issue_description",
+                        selectedBooking.issue_description,
+                      ],
+                      ["booking_date", formatDate(selectedBooking.booking_date)],
+                      [
+                        "booking_date_raw",
+                        selectedBooking.booking_date,
+                      ],
+                      ["start_time", selectedBooking.start_time],
+                      ["end_time", selectedBooking.end_time],
+                      ["service_type", selectedBooking.service_type],
+                      ["customer_type", selectedBooking.customer_type],
+                      ["full_name", selectedBooking.full_name],
+                      ["phone", selectedBooking.phone],
+                      ["house_no", selectedBooking.house_no],
+                      ["street", selectedBooking.street],
+                      ["area", selectedBooking.area],
+                      ["landmark", selectedBooking.landmark],
+                      ["city", selectedBooking.city],
+                      ["district", selectedBooking.district],
+                      ["state", selectedBooking.state],
+                      ["pincode", selectedBooking.pincode],
+                      [
+                        "special_instructions",
+                        selectedBooking.special_instructions,
+                      ],
+                      ["service_fee", selectedBooking.service_fee],
+                      ["tax_amount", selectedBooking.tax_amount],
+                      ["total_amount", selectedBooking.total_amount],
+                      ["created_at", formatDateTime(selectedBooking.created_at)],
+                      ["updated_at", formatDateTime(selectedBooking.updated_at)],
+                      ["status", selectedBooking.status || "IN_PROGRESS"],
+                    ].map(([key, value], index) => (
+                      <div
+                        key={`${key}-${index}`}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "180px 1fr",
+                          gap: 15,
+                          padding: "10px 12px",
+                          background:
+                            index % 2 === 0 ? "#FAFCFC" : "#fff",
+                          borderBottom:
+                            index === 27
+                              ? "none"
+                              : `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: COLORS.muted,
+                            fontSize: 10,
+                            fontWeight: 800,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {key}
+                        </div>
+
+                        <div
+                          style={{
+                            color: COLORS.text,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {value !== undefined &&
+                          value !== null &&
+                          value !== ""
+                            ? String(value)
+                            : "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* RIGHT IMAGES */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 10,
+                      color: COLORS.dark,
+                    }}
+                  >
+                    🖼 Jewellery Images
+                  </div>
+
+                  {Array.isArray(selectedBooking.jewellery_images) &&
+                  selectedBooking.jewellery_images.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit,minmax(160px,1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {selectedBooking.jewellery_images.map(
+                        (imageUrl, index) => (
+                          <div
+                            key={`${imageUrl}-${index}`}
+                            style={{
+                              border: `1px solid ${COLORS.border}`,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              background: "#F4F7F7",
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: 180,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background:
+                                  "linear-gradient(135deg,#F1F5F5,#E7EEEE)",
+                                position: "relative",
+                              }}
+                            >
+                              {imageUrl &&
+                              imageUrl.startsWith("http") ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={`Jewellery ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    display: "block",
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    padding: 12,
+                                    color: COLORS.muted,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 35 }}>💍</div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      marginTop: 6,
+                                    }}
+                                  >
+                                    Image {index + 1}
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 8,
+                                      marginTop: 5,
+                                      wordBreak: "break-all",
+                                    }}
+                                  >
+                                    Local device image
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                padding: 9,
+                                background: "#fff",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 9,
+                                  color: COLORS.muted,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                IMAGE {index + 1}
+                              </div>
+
+                              <div
+                                style={{
+                                  fontSize: 8,
+                                  marginTop: 4,
+                                  color: COLORS.text,
+                                  wordBreak: "break-all",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {imageUrl}
+                              </div>
+
+                              {imageUrl?.startsWith("http") && (
+                                <a
+                                  href={imageUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    display: "inline-block",
+                                    marginTop: 7,
+                                    padding: "5px 8px",
+                                    borderRadius: 6,
+                                    background: COLORS.light,
+                                    color: COLORS.dark,
+                                    textDecoration: "none",
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  Open Image ↗
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        border: `1px dashed ${COLORS.border}`,
+                        borderRadius: 12,
+                        padding: 40,
+                        textAlign: "center",
+                        color: COLORS.muted,
+                        fontSize: 11,
+                      }}
+                    >
+                      <div style={{ fontSize: 35 }}>📷</div>
+                      No jewellery images available.
+                    </div>
+                  )}
+
+                  {/* PAYMENT SUMMARY */}
+                  <div
+                    style={{
+                      marginTop: 15,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 12,
+                      padding: 14,
+                      background: "#FAFCFC",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 900,
+                        marginBottom: 10,
+                      }}
+                    >
+                      💰 Payment Summary
+                    </div>
+
+                    {[
+                      ["Service Fee", selectedBooking.service_fee],
+                      ["Tax", selectedBooking.tax_amount],
+                      ["Total Amount", selectedBooking.total_amount],
+                    ].map(([label, amount]) => (
+                      <div
+                        key={label}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "7px 0",
+                          borderBottom:
+                            label === "Total Amount"
+                              ? "none"
+                              : `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: COLORS.muted,
+                          }}
+                        >
+                          {label}
+                        </span>
+
+                        <b
+                          style={{
+                            fontSize: label === "Total Amount" ? 15 : 11,
+                            color:
+                              label === "Total Amount"
+                                ? COLORS.dark
+                                : COLORS.text,
+                          }}
+                        >
+                          ₹{amount || "0.00"}
+                        </b>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ADDRESS */}
+              <div
+                style={{
+                  marginTop: 20,
+                  padding: 15,
+                  borderRadius: 12,
+                  background: "#F7FAFA",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <div
                   style={{
-                    ...css.btn,
-                    background: "#ECFDF5",
-                    color: C.green,
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: COLORS.dark,
+                    marginBottom: 8,
                   }}
                 >
-                  ✓ Complete
-                </button>
-                <button
+                  📍 Complete Service Address
+                </div>
+
+                <div
                   style={{
-                    ...css.btn,
-                    background: "#FFF7ED",
-                    color: C.amber,
+                    fontSize: 11,
+                    lineHeight: 1.7,
+                    color: COLORS.text,
                   }}
                 >
-                  📅 Reschedule
-                </button>
-                <button
+                  {[
+                    selectedBooking.house_no,
+                    selectedBooking.street,
+                    selectedBooking.area,
+                    selectedBooking.landmark
+                      ? `Landmark: ${selectedBooking.landmark}`
+                      : null,
+                    selectedBooking.city,
+                    selectedBooking.district,
+                    selectedBooking.state,
+                    selectedBooking.pincode
+                      ? `PIN: ${selectedBooking.pincode}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "Address not available"}
+                </div>
+              </div>
+
+              {/* SPECIAL INSTRUCTIONS */}
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 15,
+                  borderRadius: 12,
+                  background: "#FFF9EA",
+                  border: "1px solid #F5E3B0",
+                }}
+              >
+                <div
                   style={{
-                    ...css.btn,
-                    background: "#FEF2F2",
-                    color: C.red,
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: "#946200",
                   }}
                 >
-                  ✕ Cancel
+                  📝 Special Instructions
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 7,
+                    fontSize: 11,
+                    color: "#715000",
+                  }}
+                >
+                  {selectedBooking.special_instructions ||
+                    "No special instructions provided."}
+                </div>
+              </div>
+
+              {/* CLOSE */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: 18,
+                }}
+              >
+                {selectedBooking.phone && (
+                  <a
+                    href={`tel:${selectedBooking.phone}`}
+                    style={{
+                      ...styles.button,
+                      background: COLORS.light,
+                      color: COLORS.dark,
+                      textDecoration: "none",
+                    }}
+                  >
+                    📞 Call Customer
+                  </a>
+                )}
+
+                {selectedBooking.phone && (
+                  <a
+                    href={`https://wa.me/${selectedBooking.phone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      ...styles.button,
+                      background: "#ECFDF5",
+                      color: COLORS.green,
+                      textDecoration: "none",
+                    }}
+                  >
+                    💬 WhatsApp
+                  </a>
+                )}
+
+                <button
+                  onClick={closeDetails}
+                  style={{
+                    ...styles.button,
+                    background: COLORS.dark,
+                    color: "#fff",
+                  }}
+                >
+                  Close Details
                 </button>
               </div>
             </div>
-          )}
-        </aside>
-      </div>
+          </div>
+        </div>
+      )}
 
-      {/* RESPONSIVE INLINE STYLE */}
+      {/* =========================================================
+          RESPONSIVE CSS
+      ========================================================== */}
+
       <style>{`
-        @media(max-width:1000px){
-          div[style*="minmax(320px,1fr)"]{grid-template-columns:1fr!important}
-          aside[style*="position:sticky"]{position:relative!important;top:0!important}
+        * {
+          box-sizing: border-box;
         }
-        @media(max-width:700px){
-          body{margin:0}
-          header{flex-direction:column!important;align-items:stretch!important}
-          header>div:last-child{justify-content:space-between}
-          ${` `}
+
+        button {
+          transition: all .18s ease;
         }
-        button:hover{filter:brightness(.97)}
-        tr:hover{background:#F8FCFC!important}
-        input:focus,select:focus,textarea:focus{
-          border-color:${C.teal}!important;
-          box-shadow:0 0 0 3px rgba(8,127,123,.08);
+
+        button:hover {
+          transform: translateY(-1px);
+          filter: brightness(.97);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+          border-color: ${COLORS.teal} !important;
+          box-shadow: 0 0 0 3px rgba(0,143,144,.08);
+        }
+
+        tbody tr {
+          transition: background .18s ease;
+        }
+
+        tbody tr:hover {
+          background: #F3FBFA !important;
+        }
+
+        @media(max-width:900px) {
+          div[style*="minmax(0,1.2fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media(max-width:650px) {
+          body {
+            margin: 0;
+          }
+
+          div[style*="padding: 20px"] {
+            padding: 10px !important;
+          }
+
+          table {
+            min-width: 850px;
+          }
         }
       `}</style>
     </div>
