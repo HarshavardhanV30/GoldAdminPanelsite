@@ -51,7 +51,11 @@ export default function SidebarOnly() {
             {isOpen && <span className="nav-text">Sellers</span>}
             {isOpen && <FaEllipsisH className="ellipsis" />}
           </NavLink>
-
+              <NavLink to="/goldrepairscreen" className="nav-item">
+            <FaStore className="icon" />
+            {isOpen && <span className="nav-text">Gold Repair</span>}
+            {isOpen && <FaEllipsisH className="ellipsis" />}
+          </NavLink>
           <NavLink to="/GoldLoanRequest" className="nav-item">
             <FaMoneyCheckAlt className="icon" />
             {isOpen && <span className="nav-text">Gold Loans</span>}
