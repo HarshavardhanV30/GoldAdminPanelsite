@@ -1,698 +1,1994 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, MapPin, User, Save, ChevronDown, Edit, Trash2, List 
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
 
-const VendorAddress = () => {
-  const API_BASE_URL = 'https://goldbackend-production-0ed4.up.railway.app/vendoraddress';
+const API_URL =
+  "https://goldbackend-production-0ed4.up.railway.app/goldrepair/all";
 
-  // State strictly matches the POST API payload
-  const initialFormState = {
-    vendor_id: '',
-    shop_name: '',
-    house_no: '',
-    street: '',
-    area: '',
-    landmark: '',
-    mandal: '',
-    district: '',
-    city: '',
-    state: '',
-    pincode: ''
-  };
-
-  const [formData, setFormData] = useState(initialFormState);
-  const [addresses, setAddresses] = useState([]);
-  const [editId, setEditId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetchAllAddresses();
-  }, []);
-
-  const fetchAllAddresses = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/all`);
-      const data = await response.json();
-      setAddresses(data); 
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
-  };
-
-  const generatePreview = () => {
-    const { house_no, street, area, landmark, mandal, city, district, state, pincode } = formData;
-    const parts = [house_no, street, area, landmark, mandal, city, district, state, pincode].filter(part => part && part.trim() !== '');
-    
-    if (parts.length === 0) {
-      return "The complete address will be shown here after you fill the details.";
-    }
-    return parts.join(', ');
-  };
-
-  // Helper function to format the fetched full address for the table
-  const getFullAddressFormat = (addr) => {
-    const parts = [
-      addr.house_no, 
-      addr.street, 
-      addr.area, 
-      addr.landmark, 
-      addr.mandal, 
-      addr.city, 
-      addr.district, 
-      addr.pincode
-    ];
-    return parts.filter(part => part && String(part).trim() !== '').join(', ');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-
-    const payload = {
-      ...formData,
-      vendor_id: Number(formData.vendor_id)
-    };
-
-    try {
-      const url = editId ? `${API_BASE_URL}/${editId}` : `${API_BASE_URL}/add`;
-      const method = editId ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        setMessage(editId ? 'Address updated successfully!' : 'Address added successfully!');
-        setFormData(initialFormState);
-        setEditId(null);
-        fetchAllAddresses();
-      } else {
-        setMessage('Failed to save address.');
-      }
-    } catch (error) {
-      console.error("Error saving address:", error);
-      setMessage('Error connecting to the server.');
-    } finally {
-      setLoading(false);
-      setTimeout(() => setMessage(''), 3000);
-    }
-  };
-
-  const handleEdit = (address) => {
-    setEditId(address.id || address._id); 
-    setFormData({
-      ...initialFormState,
-      ...address 
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this address?")) return;
-    
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setMessage('Address deleted successfully!');
-        fetchAllAddresses();
-      }
-    } catch (error) {
-      console.error("Error deleting address:", error);
-    } finally {
-      setLoading(false);
-      setTimeout(() => setMessage(''), 3000);
-    }
-  };
-
-  return (
-    <>
-      <style>{`
-        .va-wrapper {
-          background-color: #f8fafc;
-          min-height: 100vh;
-          padding: 24px 32px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          color: #1e293b;
-          box-sizing: border-box;
-        }
-        .va-container {
-          max-width: 1152px;
-          margin: 0 auto;
-        }
-        .va-breadcrumb {
-          font-size: 14px;
-          color: #64748b;
-          margin-bottom: 16px;
-        }
-        .va-breadcrumb span {
-          font-weight: 500;
-          color: #1e293b;
-        }
-        .va-header-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-        }
-        .va-header-left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .va-icon-box {
-          background-color: #dcfce7;
-          padding: 12px;
-          border-radius: 12px;
-          color: #16a34a;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .va-header-title {
-          font-size: 24px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 4px 0;
-        }
-        .va-header-subtitle {
-          font-size: 14px;
-          color: #64748b;
-          margin: 0;
-        }
-        .va-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          border: none;
-          transition: all 0.2s;
-        }
-        .va-btn-back {
-          background-color: #ffffff;
-          border: 1px solid #16a34a;
-          color: #15803d;
-        }
-        .va-btn-back:hover {
-          background-color: #f0fdf4;
-        }
-        .va-btn-cancel {
-          background-color: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #334155;
-        }
-        .va-btn-cancel:hover {
-          background-color: #f8fafc;
-        }
-        .va-btn-save {
-          background-color: #166534;
-          color: #ffffff;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .va-btn-save:hover {
-          background-color: #14532d;
-        }
-        .va-btn-save:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        .va-alert {
-          background-color: #dcfce7;
-          border: 1px solid #bbf7d0;
-          color: #166534;
-          padding: 16px;
-          border-radius: 8px;
-          margin-bottom: 16px;
-        }
-        .va-card {
-          background-color: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-          overflow: hidden;
-          margin-bottom: 40px;
-        }
-        .va-card-body {
-          padding: 32px;
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 32px;
-        }
-        @media (min-width: 1024px) {
-          .va-card-body {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-        .va-section {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-        .va-section-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          border-radius: 8px;
-        }
-        .va-section-header.blue {
-          background-color: rgba(239, 246, 255, 0.5);
-          border: 1px solid #dbeafe;
-          color: #1e3a8a;
-        }
-        .va-section-header.blue svg { color: #2563eb; }
-        .va-section-header.green {
-          background-color: rgba(240, 253, 244, 0.5);
-          border: 1px solid #dcfce7;
-          color: #14532d;
-        }
-        .va-section-header.green svg { color: #16a34a; }
-        .va-section-title {
-          font-size: 18px;
-          font-weight: 600;
-          margin: 0;
-        }
-        .va-form-group-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .va-form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .va-grid-2 {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 16px;
-        }
-        @media (min-width: 768px) {
-          .va-grid-2 { grid-template-columns: 1fr 1fr; }
-        }
-        .va-grid-3 {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 16px;
-        }
-        @media (min-width: 768px) {
-          .va-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-        }
-        .va-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-          margin-bottom: 4px;
-        }
-        .va-asterisk {
-          color: #ef4444;
-        }
-        .va-input-wrapper {
-          position: relative;
-        }
-        .va-input {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          font-size: 14px;
-          color: #334155;
-          box-sizing: border-box;
-          background-color: #ffffff;
-          appearance: none;
-          outline: none;
-          transition: all 0.2s;
-        }
-        .va-input:focus {
-          border-color: #22c55e;
-          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
-        }
-        .va-select-icon {
-          position: absolute;
-          right: 12px;
-          top: 12px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
-        .va-preview-box {
-          background-color: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 16px;
-          display: flex;
-          gap: 12px;
-          align-items: flex-start;
-          margin-top: 8px;
-        }
-        .va-preview-icon {
-          background-color: rgba(226, 232, 240, 0.6);
-          padding: 8px;
-          border-radius: 50%;
-          color: #475569;
-          display: flex;
-        }
-        .va-preview-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1e293b;
-          margin: 0 0 4px 0;
-        }
-        .va-preview-text {
-          font-size: 14px;
-          color: #64748b;
-          line-height: 1.5;
-          margin: 0;
-        }
-        .va-card-footer {
-          padding: 24px;
-          border-top: 1px solid #e2e8f0;
-          background-color: rgba(248, 250, 252, 0.5);
-          display: flex;
-          justify-content: flex-end;
-          gap: 16px;
-        }
-        .va-table-header {
-          padding: 24px;
-          border-bottom: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .va-table-header h2 {
-          font-size: 18px;
-          font-weight: 600;
-          color: #1e293b;
-          margin: 0;
-        }
-        .va-table-header svg {
-          color: #64748b;
-        }
-        .va-table-responsive {
-          overflow-x: auto;
-        }
-        .va-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-        .va-table th {
-          background-color: #f8fafc;
-          padding: 16px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .va-table td {
-          padding: 16px;
-          font-size: 14px;
-          color: #1e293b;
-          border-bottom: 1px solid #f1f5f9;
-          vertical-align: top;
-        }
-        .va-table tr:hover td {
-          background-color: #f8fafc;
-        }
-        .va-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-        .va-btn-icon {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 8px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background-color 0.2s;
-        }
-        .va-btn-icon.edit { color: #2563eb; }
-        .va-btn-icon.edit:hover { background-color: #eff6ff; }
-        .va-btn-icon.delete { color: #ef4444; }
-        .va-btn-icon.delete:hover { background-color: #fef2f2; }
-      `}</style>
-
-      <div className="va-wrapper">
-        
-        <div className="va-container">
-          <div className="va-breadcrumb">
-            Vendors &gt; Vendor Addresses &gt; <span>{editId ? 'Edit Address' : 'Add Address'}</span>
-          </div>
-          
-          <div className="va-header-row">
-            <div className="va-header-left">
-              <div className="va-icon-box">
-                <MapPin size={28} />
-              </div>
-              <div>
-                <h1 className="va-header-title">{editId ? 'Edit Vendor Address' : 'Add Vendor Address'}</h1>
-                <p className="va-header-subtitle">Manage pickup, delivery and store locations dynamically.</p>
-              </div>
-            </div>
-            <button className="va-btn va-btn-back">
-              <ArrowLeft size={18} />
-              Back to Addresses
-            </button>
-          </div>
-        </div>
-
-        {message && (
-          <div className="va-container">
-            <div className="va-alert">{message}</div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="va-container va-card">
-          <div className="va-card-body">
-            
-            {/* Left Column - Vendor Information */}
-            <div className="va-section">
-              <div className="va-section-header blue">
-                <User size={20} />
-                <h2 className="va-section-title">Vendor Information</h2>
-              </div>
-
-              <div className="va-form-group-list">
-                <div className="va-form-group">
-                  <label className="va-label">
-                    Select Vendor ID <span className="va-asterisk">*</span>
-                  </label>
-                  <input 
-                    type="number" 
-                    name="vendor_id"
-                    value={formData.vendor_id}
-                    onChange={handleChange}
-                    placeholder="e.g. 101" 
-                    className="va-input"
-                    required
-                  />
-                </div>
-
-                <div className="va-form-group">
-                  <label className="va-label">
-                    Shop / Company Name <span className="va-asterisk">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    name="shop_name"
-                    value={formData.shop_name}
-                    onChange={handleChange}
-                    placeholder="e.g. Sri Venkateswara Gold & Diamonds" 
-                    className="va-input"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - Address Details */}
-            <div className="va-section">
-              <div className="va-section-header green">
-                <MapPin size={20} />
-                <h2 className="va-section-title">Address Details</h2>
-              </div>
-
-              <div className="va-form-group-list">
-                <div className="va-grid-2">
-                  <div className="va-form-group">
-                    <label className="va-label">House No. <span className="va-asterisk">*</span></label>
-                    <input type="text" name="house_no" value={formData.house_no} onChange={handleChange} placeholder="e.g. 15/123" className="va-input" required />
-                  </div>
-                  <div className="va-form-group">
-                    <label className="va-label">Street <span className="va-asterisk">*</span></label>
-                    <input type="text" name="street" value={formData.street} onChange={handleChange} placeholder="e.g. Main Bazaar Road" className="va-input" required />
-                  </div>
-                </div>
-
-                <div className="va-grid-2">
-                  <div className="va-form-group">
-                    <label className="va-label">Area</label>
-                    <input type="text" name="area" value={formData.area} onChange={handleChange} placeholder="e.g. Clock Tower Area" className="va-input" />
-                  </div>
-                  <div className="va-form-group">
-                    <label className="va-label">Landmark</label>
-                    <input type="text" name="landmark" value={formData.landmark} onChange={handleChange} placeholder="e.g. Opposite SBI Bank" className="va-input" />
-                  </div>
-                </div>
-
-                <div className="va-grid-2">
-                  <div className="va-form-group">
-                    <label className="va-label">Mandal</label>
-                    <input type="text" name="mandal" value={formData.mandal} onChange={handleChange} placeholder="e.g. Anantapur" className="va-input" />
-                  </div>
-                  <div className="va-form-group">
-                    <label className="va-label">City <span className="va-asterisk">*</span></label>
-                    <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Anantapur" className="va-input" required />
-                  </div>
-                </div>
-
-                <div className="va-grid-3">
-                  <div className="va-form-group">
-                    <label className="va-label">District</label>
-                    <input type="text" name="district" value={formData.district} onChange={handleChange} placeholder="District" className="va-input" />
-                  </div>
-                  <div className="va-form-group">
-                    <label className="va-label">State <span className="va-asterisk">*</span></label>
-                    <div className="va-input-wrapper">
-                      <select name="state" value={formData.state} onChange={handleChange} className="va-input" required>
-                        <option value="" disabled>Select</option>
-                        <option value="Andhra Pradesh">Andhra Pradesh</option>
-                        <option value="Telangana">Telangana</option>
-                        <option value="Karnataka">Karnataka</option>
-                      </select>
-                      <ChevronDown className="va-select-icon" size={18} />
-                    </div>
-                  </div>
-                  <div className="va-form-group">
-                    <label className="va-label">Pincode <span className="va-asterisk">*</span></label>
-                    <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="515001" className="va-input" required />
-                  </div>
-                </div>
-
-                <div className="va-preview-box">
-                  <div className="va-preview-icon">
-                    <MapPin size={16} />
-                  </div>
-                  <div>
-                    <h3 className="va-preview-title">Full Address Preview</h3>
-                    <p className="va-preview-text">
-                      {generatePreview()}
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <div className="va-card-footer">
-            <button 
-              type="button" 
-              className="va-btn va-btn-cancel"
-              onClick={() => {
-                setFormData(initialFormState);
-                setEditId(null);
-              }}
-            >
-              Clear / Cancel
-            </button>
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="va-btn va-btn-save"
-            >
-              <Save size={18} />
-              {loading ? 'Saving...' : (editId ? 'Update Address' : 'Save Address')}
-            </button>
-          </div>
-        </form>
-
-        <div className="va-container va-card">
-          <div className="va-table-header">
-            <List size={24} />
-            <h2>Saved Addresses</h2>
-          </div>
-          <div className="va-table-responsive">
-            <table className="va-table">
-              <thead>
-                <tr>
-                  <th>Vendor ID</th>
-                  <th>Shop Name</th>
-                  <th style={{ width: '40%' }}>Full Address</th>
-                  <th>State</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {addresses.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>No addresses found.</td>
-                  </tr>
-                ) : (
-                  addresses.map((address) => (
-                    <tr key={address.id || address._id}>
-                      <td style={{ fontWeight: '500', width: '10%' }}>#{address.vendor_id}</td>
-                      <td style={{ width: '20%' }}>{address.shop_name}</td>
-                      <td style={{ color: '#475569', lineHeight: '1.5' }}>
-                        {getFullAddressFormat(address)}
-                      </td>
-                      <td style={{ color: '#475569', width: '15%' }}>{address.state}</td>
-                      <td style={{ width: '15%' }}>
-                        <div className="va-actions">
-                          <button 
-                            onClick={() => handleEdit(address)}
-                            className="va-btn-icon edit"
-                            title="Edit"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(address.id || address._id)}
-                            className="va-btn-icon delete"
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-      </div>
-    </>
-  );
+const COLORS = {
+  teal: "#008F90",
+  dark: "#006D6B",
+  light: "#E8F8F7",
+  bg: "#F4F8F8",
+  white: "#FFFFFF",
+  text: "#172B2A",
+  muted: "#71808A",
+  border: "#E2EAEA",
+  green: "#059669",
+  amber: "#D97706",
+  red: "#DC2626",
+  blue: "#2563EB",
 };
 
-export default VendorAddress;
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(135deg,#F4F8F8 0%,#EEF7F6 50%,#F7FAFA 100%)",
+    color: COLORS.text,
+    fontFamily: "Inter, Arial, sans-serif",
+    padding: 20,
+    boxSizing: "border-box",
+  },
+
+  card: {
+    background: COLORS.white,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 16,
+    boxShadow: "0 8px 30px rgba(0,70,70,.06)",
+  },
+
+  button: {
+    border: 0,
+    cursor: "pointer",
+    borderRadius: 9,
+    fontWeight: 700,
+    fontSize: 11,
+    padding: "9px 13px",
+  },
+
+  input: {
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    outline: "none",
+    background: "#FAFCFC",
+    color: COLORS.text,
+    fontSize: 11,
+    boxSizing: "border-box",
+  },
+};
+
+export default function GoldRepair() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("ALL");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
+
+  // =========================================================
+  // FETCH BOOKINGS
+  // =========================================================
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
+
+      const result = await response.json();
+
+      const data =
+        result?.success && Array.isArray(result.data)
+          ? result.data
+              .filter((item) => item?.id)
+              .map(item => ({
+                ...item,
+                // Normalize status to UPPERCASE for exact matching
+                status: (item.status || "IN_PROGRESS").toUpperCase()
+              }))
+          : [];
+
+      setBookings(data);
+    } catch (err) {
+      console.error(err);
+      setError(
+        "Failed to fetch repair bookings. Please check your network connection."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // =========================================================
+  // DATE FUNCTIONS
+  // =========================================================
+
+  const getLocalDate = (dateValue) => {
+    if (!dateValue) return "";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "N/A";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (dateValue) => {
+    if (!dateValue) return "N/A";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // =========================================================
+  // UI HELPERS
+  // =========================================================
+  
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "COMPLETED":
+        return { bg: "#ECFDF5", color: COLORS.green };
+      case "PENDING":
+        return { bg: "#FEF2F2", color: COLORS.red };
+      case "CANCELLED":
+        return { bg: "#F1F5F9", color: COLORS.muted };
+      case "IN_PROGRESS":
+      default:
+        return { bg: "#FFF7ED", color: COLORS.amber };
+    }
+  };
+
+  const StatusBadge = ({ status }) => {
+    const style = getStatusStyle(status);
+    return (
+      <span
+        style={{
+          padding: "5px 10px",
+          borderRadius: 20,
+          background: style.bg,
+          color: style.color,
+          fontSize: 9,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          border: `1px solid ${style.color}30`, // 30 is hex opacity
+          display: "inline-block"
+        }}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  // =========================================================
+  // STATISTICS
+  // =========================================================
+
+  const statistics = useMemo(() => {
+    const completed = bookings.filter(
+      (item) => item.status === "COMPLETED"
+    ).length;
+
+    const pending = bookings.filter(
+      (item) => item.status === "PENDING"
+    ).length;
+
+    const cancelled = bookings.filter(
+      (item) => item.status === "CANCELLED"
+    ).length;
+
+    const inProgress = bookings.filter(
+      (item) => item.status === "IN_PROGRESS"
+    ).length;
+
+    const revenue = bookings.reduce(
+      (sum, item) => sum + Number(item.total_amount || 0),
+      0
+    );
+
+    return {
+      total: bookings.length,
+      completed,
+      pending,
+      cancelled,
+      inProgress,
+      revenue,
+    };
+  }, [bookings]);
+
+  // =========================================================
+  // FILTER
+  // =========================================================
+
+  const filteredBookings = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return bookings.filter((item) => {
+      const searchMatch =
+        !query ||
+        [
+          item.id,
+          item.service_id,
+          item.service_name,
+          item.jewellery_type,
+          item.issue_description,
+          item.full_name,
+          item.phone,
+          item.city,
+          item.district,
+          item.state,
+          item.pincode,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+
+      const dateMatch =
+        !selectedDate ||
+        getLocalDate(item.booking_date) === selectedDate;
+
+      const statusMatch =
+        activeTab === "ALL" || item.status === activeTab;
+
+      return searchMatch && dateMatch && statusMatch;
+    });
+  }, [bookings, searchQuery, selectedDate, activeTab]);
+
+  // =========================================================
+  // OPEN DETAILS
+  // =========================================================
+
+  const openDetails = (booking) => {
+    setSelectedBooking(booking);
+    setShowDetails(true);
+  };
+
+  const closeDetails = () => {
+    setShowDetails(false);
+  };
+
+  // =========================================================
+  // LOADING
+  // =========================================================
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          ...styles.page,
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <div
+          style={{
+            ...styles.card,
+            padding: 40,
+            textAlign: "center",
+            minWidth: 280,
+          }}
+        >
+          <div style={{ fontSize: 42, marginBottom: 12 }}>💎</div>
+
+          <div style={{ fontWeight: 800, fontSize: 16 }}>
+            Gold Repair Dashboard
+          </div>
+
+          <div
+            style={{
+              color: COLORS.muted,
+              fontSize: 11,
+              marginTop: 7,
+            }}
+          >
+            Loading repair bookings...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // ERROR
+  // =========================================================
+
+  if (error) {
+    return (
+      <div
+        style={{
+          ...styles.page,
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <div
+          style={{
+            ...styles.card,
+            padding: 40,
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 40 }}>⚠️</div>
+
+          <p
+            style={{
+              color: COLORS.red,
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            {error}
+          </p>
+
+          <button
+            onClick={fetchBookings}
+            style={{
+              ...styles.button,
+              background: COLORS.teal,
+              color: "#fff",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.page}>
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+
+      <header
+        style={{
+          ...styles.card,
+          padding: "14px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 20,
+          marginBottom: 18,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            minWidth: 260,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 900,
+              color: COLORS.dark,
+            }}
+          >
+            Gold Repair
+          </div>
+
+          <div
+            style={{
+              color: COLORS.muted,
+              fontSize: 10,
+              marginTop: 3,
+            }}
+          >
+            Repair booking management dashboard
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              background: COLORS.light,
+              color: COLORS.dark,
+              padding: "8px 12px",
+              borderRadius: 9,
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            📅 {selectedDate || "All Dates"}
+          </div>
+
+          <div
+            style={{
+              position: "relative",
+              fontSize: 20,
+            }}
+          >
+            🔔
+
+            <span
+              style={{
+                position: "absolute",
+                top: -5,
+                right: -6,
+                width: 15,
+                height: 15,
+                borderRadius: "50%",
+                background: COLORS.red,
+                color: "#fff",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 8,
+                fontWeight: 900,
+              }}
+            >
+              3
+            </span>
+          </div>
+
+          <div
+            style={{
+              width: 35,
+              height: 35,
+              borderRadius: "50%",
+              background: COLORS.dark,
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 800,
+            }}
+          >
+            A
+          </div>
+        </div>
+      </header>
+
+      {/* =====================================================
+          TITLE
+      ====================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 15,
+          marginBottom: 15,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 22,
+              fontWeight: 900,
+            }}
+          >
+            Repair Bookings
+          </h1>
+
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: COLORS.muted,
+              fontSize: 11,
+            }}
+          >
+            View, search and manage gold repair bookings
+          </p>
+        </div>
+
+        <button
+          style={{
+            ...styles.button,
+            background:
+              "linear-gradient(135deg,#006D6B,#008F90)",
+            color: "#fff",
+            boxShadow: "0 5px 15px rgba(0,143,144,.2)",
+          }}
+        >
+          ＋ Add Booking
+        </button>
+      </div>
+
+      {/* =====================================================
+          KPI CARDS
+      ====================================================== */}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit,minmax(170px,1fr))",
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
+        {[
+          [
+            "Total Bookings",
+            statistics.total,
+            "📅",
+            COLORS.blue,
+            "#EFF6FF",
+          ],
+          [
+            "Completed",
+            statistics.completed,
+            "✓",
+            COLORS.green,
+            "#ECFDF5",
+          ],
+          [
+            "In Progress",
+            statistics.inProgress,
+            "◷",
+            COLORS.amber,
+            "#FFF7ED",
+          ],
+          [
+            "Pending",
+            statistics.pending,
+            "!",
+            COLORS.red,
+            "#FEF2F2",
+          ],
+          [
+            "Total Revenue",
+            `₹${statistics.revenue.toLocaleString("en-IN")}`,
+            "₹",
+            COLORS.blue,
+            "#EFF6FF",
+          ],
+        ].map(([title, value, icon, color, iconBg]) => (
+          <div
+            key={title}
+            style={{
+              ...styles.card,
+              padding: 15,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderTop: `3px solid ${color}`,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: COLORS.muted,
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                {title}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  marginTop: 5,
+                }}
+              >
+                {value}
+              </div>
+            </div>
+
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                background: iconBg,
+                color,
+                display: "grid",
+                placeItems: "center",
+                fontWeight: 900,
+                fontSize: 19,
+              }}
+            >
+              {icon}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* =====================================================
+          FILTER PANEL
+      ====================================================== */}
+
+      <div
+        style={{
+          ...styles.card,
+          padding: 14,
+          marginBottom: 15,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+              }}
+            >
+              📅 Booking Calendar
+            </div>
+
+            <div
+              style={{
+                color: COLORS.muted,
+                fontSize: 10,
+                marginTop: 3,
+              }}
+            >
+              Select a date to display bookings for that day
+            </div>
+          </div>
+
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate("")}
+              style={{
+                ...styles.button,
+                background: "#FEF2F2",
+                color: COLORS.red,
+              }}
+            >
+              ✕ Clear Date
+            </button>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* DATE */}
+          <div
+            style={{
+              position: "relative",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                left: 10,
+                top: 8,
+                zIndex: 1,
+              }}
+            >
+              📅
+            </span>
+
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) =>
+                setSelectedDate(event.target.value)
+              }
+              style={{
+                ...styles.input,
+                paddingLeft: 32,
+                minWidth: 175,
+              }}
+            />
+          </div>
+
+          {/* SEARCH */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) =>
+              setSearchQuery(event.target.value)
+            }
+            placeholder="Search ID, customer, phone, service..."
+            style={{
+              ...styles.input,
+              flex: 1,
+              minWidth: 240,
+            }}
+          />
+
+          <button
+            onClick={fetchBookings}
+            style={{
+              ...styles.button,
+              background: COLORS.teal,
+              color: "#fff",
+            }}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {/* STATUS */}
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginTop: 12,
+          }}
+        >
+          {[
+            ["ALL", `All (${bookings.length})`],
+            ["PENDING", `Pending (${statistics.pending})`],
+            [
+              "IN_PROGRESS",
+              `In Progress (${statistics.inProgress})`,
+            ],
+            [
+              "COMPLETED",
+              `Completed (${statistics.completed})`,
+            ],
+            [
+              "CANCELLED",
+              `Cancelled (${statistics.cancelled})`,
+            ],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                ...styles.button,
+                padding: "7px 11px",
+                background:
+                  activeTab === key
+                    ? COLORS.dark
+                    : "#F3F7F7",
+                color:
+                  activeTab === key ? "#fff" : COLORS.muted,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* RESULT */}
+        <div
+          style={{
+            marginTop: 12,
+            padding: "9px 11px",
+            borderRadius: 9,
+            background: COLORS.light,
+            color: COLORS.dark,
+            fontSize: 11,
+            fontWeight: 700,
+          }}
+        >
+          {selectedDate
+            ? `Showing ${
+                filteredBookings.length
+              } booking(s) for ${new Date(
+                `${selectedDate}T00:00:00`
+              ).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}`
+            : `Showing ${filteredBookings.length} booking(s) from all dates`}
+        </div>
+      </div>
+
+      {/* =====================================================
+          BOOKING TABLE
+      ====================================================== */}
+
+      <div
+        style={{
+          ...styles.card,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "14px 16px",
+            borderBottom: `1px solid ${COLORS.border}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div>
+            <b style={{ fontSize: 14 }}>
+              Gold Repair Orders
+            </b>
+
+            <div
+              style={{
+                color: COLORS.muted,
+                fontSize: 10,
+                marginTop: 3,
+              }}
+            >
+              Click any booking to view complete details
+            </div>
+          </div>
+
+          <span
+            style={{
+              background: COLORS.light,
+              color: COLORS.dark,
+              padding: "6px 10px",
+              borderRadius: 20,
+              fontSize: 10,
+              fontWeight: 800,
+            }}
+          >
+            {filteredBookings.length} Results
+          </span>
+        </div>
+
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              minWidth: 950,
+              borderCollapse: "collapse",
+              fontSize: 11,
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  background: "#F7FAFA",
+                  color: COLORS.muted,
+                }}
+              >
+                {[
+                  "ID",
+                  "Service",
+                  "Customer",
+                  "Jewellery",
+                  "Date",
+                  "Time",
+                  "Type",
+                  "Amount",
+                  "Status",
+                  "Action",
+                ].map((heading) => (
+                  <th
+                    key={heading}
+                    style={{
+                      padding: "11px 10px",
+                      textAlign: "left",
+                      fontWeight: 800,
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredBookings.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="10"
+                    style={{
+                      padding: 50,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                    }}
+                  >
+                    <div style={{ fontSize: 35 }}>
+                      📭
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontWeight: 800,
+                      }}
+                    >
+                      No bookings found
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: 10,
+                      }}
+                    >
+                      Try another date or search value.
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredBookings.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => openDetails(item)}
+                    style={{
+                      cursor: "pointer",
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: 900,
+                        color: COLORS.dark,
+                      }}
+                    >
+                      #{item.id}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <b>
+                        {item.service_name || "N/A"}
+                      </b>
+
+                      <small
+                        style={{
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        {item.service_id || "N/A"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <b>
+                        {item.full_name || "N/A"}
+                      </b>
+
+                      <small
+                        style={{
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        {item.phone || "N/A"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {item.jewellery_type || "N/A"}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {formatDate(item.booking_date)}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      {item.start_time || "--"}
+
+                      <small
+                        style={{
+                          display: "block",
+                          color: COLORS.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        to {item.end_time || "--"}
+                      </small>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "5px 8px",
+                          borderRadius: 7,
+                          background: "#F1F5F9",
+                          fontSize: 9,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {item.service_type || "N/A"}
+                      </span>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: 900,
+                      }}
+                    >
+                      ₹
+                      {Number(
+                        item.total_amount || 0
+                      ).toLocaleString("en-IN")}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <StatusBadge status={item.status} />
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openDetails(item);
+                        }}
+                        style={{
+                          ...styles.button,
+                          padding: "6px 10px",
+                          background: COLORS.light,
+                          color: COLORS.dark,
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* =====================================================
+          FULL DETAILS MODAL
+      ====================================================== */}
+
+      {showDetails && selectedBooking && (
+        <div
+          onClick={closeDetails}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(7,40,40,.68)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            padding: 20,
+            overflowY: "auto",
+          }}
+        >
+          <div
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+            style={{
+              width: "min(1100px,100%)",
+              margin: "20px auto",
+              background: COLORS.white,
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow:
+                "0 30px 80px rgba(0,0,0,.25)",
+            }}
+          >
+            {/* MODAL HEADER */}
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg,#006D6B,#008F90,#00A6A2)",
+                color: "#fff",
+                padding: "18px 22px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 15,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 900,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12
+                  }}
+                >
+                  Gold Repair Booking Details
+                  <span style={{ 
+                    fontSize: 10, 
+                    background: "rgba(255,255,255,0.2)", 
+                    padding: "4px 8px", 
+                    borderRadius: 20 
+                  }}>
+                    {selectedBooking.status}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    opacity: 0.8,
+                    fontSize: 10,
+                    marginTop: 4,
+                  }}
+                >
+                  Complete information for Booking #
+                  {selectedBooking.id}
+                </div>
+              </div>
+
+              <button
+                onClick={closeDetails}
+                style={{
+                  width: 34,
+                  height: 34,
+                  border:
+                    "1px solid rgba(255,255,255,.3)",
+                  background:
+                    "rgba(255,255,255,.12)",
+                  color: "#fff",
+                  borderRadius: 9,
+                  cursor: "pointer",
+                  fontSize: 17,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* MODAL CONTENT */}
+            <div style={{ padding: 22 }}>
+              {/* SUMMARY */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(180px,1fr))",
+                  gap: 10,
+                  marginBottom: 20,
+                }}
+              >
+                {[
+                  [
+                    "Booking ID",
+                    `#${selectedBooking.id}`,
+                  ],
+                  [
+                    "Service ID",
+                    selectedBooking.service_id,
+                  ],
+                  [
+                    "Service",
+                    selectedBooking.service_name,
+                  ],
+                  [
+                    "Customer",
+                    selectedBooking.full_name,
+                  ],
+                  [
+                    "Phone",
+                    selectedBooking.phone,
+                  ],
+                  [
+                    "Total Amount",
+                    `₹${selectedBooking.total_amount || "0.00"}`,
+                  ],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: "#F7FAFA",
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 11,
+                      padding: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: COLORS.muted,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {label}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 5,
+                        fontSize: 12,
+                        fontWeight: 900,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {value || "N/A"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* INFORMATION + IMAGES */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "minmax(0,1.2fr) minmax(0,1fr)",
+                  gap: 20,
+                }}
+              >
+                {/* ALL FIELDS */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 10,
+                      color: COLORS.dark,
+                    }}
+                  >
+                    📋 Complete Booking Information
+                  </div>
+
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 13,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {[
+                      ["id", selectedBooking.id],
+                      [
+                        "service_id",
+                        selectedBooking.service_id,
+                      ],
+                      [
+                        "service_name",
+                        selectedBooking.service_name,
+                      ],
+                      [
+                        "jewellery_type",
+                        selectedBooking.jewellery_type,
+                      ],
+                      [
+                        "issue_description",
+                        selectedBooking.issue_description,
+                      ],
+                      [
+                        "jewellery_images",
+                        Array.isArray(
+                          selectedBooking.jewellery_images
+                        )
+                          ? `${selectedBooking.jewellery_images.length} image(s)`
+                          : "0 images",
+                      ],
+                      [
+                        "booking_date",
+                        formatDate(
+                          selectedBooking.booking_date
+                        ),
+                      ],
+                      [
+                        "booking_date_raw",
+                        selectedBooking.booking_date,
+                      ],
+                      [
+                        "start_time",
+                        selectedBooking.start_time,
+                      ],
+                      [
+                        "end_time",
+                        selectedBooking.end_time,
+                      ],
+                      [
+                        "service_type",
+                        selectedBooking.service_type,
+                      ],
+                      [
+                        "customer_type",
+                        selectedBooking.customer_type,
+                      ],
+                      [
+                        "full_name",
+                        selectedBooking.full_name,
+                      ],
+                      [
+                        "phone",
+                        selectedBooking.phone,
+                      ],
+                      [
+                        "house_no",
+                        selectedBooking.house_no,
+                      ],
+                      [
+                        "street",
+                        selectedBooking.street,
+                      ],
+                      [
+                        "area",
+                        selectedBooking.area,
+                      ],
+                      [
+                        "landmark",
+                        selectedBooking.landmark,
+                      ],
+                      [
+                        "city",
+                        selectedBooking.city,
+                      ],
+                      [
+                        "district",
+                        selectedBooking.district,
+                      ],
+                      [
+                        "state",
+                        selectedBooking.state,
+                      ],
+                      [
+                        "pincode",
+                        selectedBooking.pincode,
+                      ],
+                      [
+                        "special_instructions",
+                        selectedBooking.special_instructions,
+                      ],
+                      [
+                        "service_fee",
+                        selectedBooking.service_fee,
+                      ],
+                      [
+                        "tax_amount",
+                        selectedBooking.tax_amount,
+                      ],
+                      [
+                        "total_amount",
+                        selectedBooking.total_amount,
+                      ],
+                      [
+                        "created_at",
+                        formatDateTime(
+                          selectedBooking.created_at
+                        ),
+                      ],
+                      [
+                        "updated_at",
+                        formatDateTime(
+                          selectedBooking.updated_at
+                        ),
+                      ],
+                      [
+                        "status",
+                        selectedBooking.status,
+                      ],
+                    ].map(
+                      ([key, value], index, array) => (
+                        <div
+                          key={`${key}-${index}`}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                              "180px 1fr",
+                            gap: 15,
+                            padding: "10px 12px",
+                            background:
+                              index % 2 === 0
+                                ? "#FAFCFC"
+                                : "#fff",
+                            borderBottom:
+                              index === array.length - 1
+                                ? "none"
+                                : `1px solid ${COLORS.border}`,
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: COLORS.muted,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              wordBreak:
+                                "break-word",
+                            }}
+                          >
+                            {key}
+                          </div>
+
+                          <div
+                            style={{
+                              color: COLORS.text,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              wordBreak:
+                                "break-word",
+                            }}
+                          >
+                            {value !== undefined &&
+                            value !== null &&
+                            value !== ""
+                              ? String(value)
+                              : "N/A"}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* IMAGES */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 10,
+                      color: COLORS.dark,
+                    }}
+                  >
+                    🖼 Jewellery Images
+                  </div>
+
+                  {Array.isArray(
+                    selectedBooking.jewellery_images
+                  ) &&
+                  selectedBooking.jewellery_images
+                    .length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit,minmax(160px,1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {selectedBooking.jewellery_images.map(
+                        (imageUrl, index) => (
+                          <div
+                            key={`${imageUrl}-${index}`}
+                            style={{
+                              border: `1px solid ${COLORS.border}`,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              background: "#F4F7F7",
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: 180,
+                                display: "flex",
+                                alignItems:
+                                  "center",
+                                justifyContent:
+                                  "center",
+                                background:
+                                  "linear-gradient(135deg,#F1F5F5,#E7EEEE)",
+                              }}
+                            >
+                              {imageUrl &&
+                              imageUrl.startsWith(
+                                "http"
+                              ) ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={`Jewellery ${
+                                    index + 1
+                                  }`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit:
+                                      "cover",
+                                    display:
+                                      "block",
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    textAlign:
+                                      "center",
+                                    padding: 12,
+                                    color:
+                                      COLORS.muted,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: 35,
+                                    }}
+                                  >
+                                    💍
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      marginTop: 6,
+                                    }}
+                                  >
+                                    Image{" "}
+                                    {index + 1}
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 8,
+                                      marginTop: 5,
+                                    }}
+                                  >
+                                    Local device
+                                    image
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                padding: 9,
+                                background: "#fff",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 9,
+                                  color:
+                                    COLORS.muted,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                IMAGE{" "}
+                                {index + 1}
+                              </div>
+
+                              <div
+                                style={{
+                                  fontSize: 8,
+                                  marginTop: 4,
+                                  color:
+                                    COLORS.text,
+                                  wordBreak:
+                                    "break-all",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {imageUrl}
+                              </div>
+
+                              {imageUrl?.startsWith(
+                                "http"
+                              ) && (
+                                <a
+                                  href={imageUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    display:
+                                      "inline-block",
+                                    marginTop: 7,
+                                    padding:
+                                      "5px 8px",
+                                    borderRadius: 6,
+                                    background:
+                                      COLORS.light,
+                                    color:
+                                      COLORS.dark,
+                                    textDecoration:
+                                      "none",
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  Open Image ↗
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        border: `1px dashed ${COLORS.border}`,
+                        borderRadius: 12,
+                        padding: 40,
+                        textAlign: "center",
+                        color: COLORS.muted,
+                        fontSize: 11,
+                      }}
+                    >
+                      <div
+                        style={{ fontSize: 35 }}
+                      >
+                        📷
+                      </div>
+
+                      No jewellery images
+                      available.
+                    </div>
+                  )}
+
+                  {/* PAYMENT */}
+                  <div
+                    style={{
+                      marginTop: 15,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 12,
+                      padding: 14,
+                      background: "#FAFCFC",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 900,
+                        marginBottom: 10,
+                      }}
+                    >
+                      💰 Payment Summary
+                    </div>
+
+                    {[
+                      [
+                        "Service Fee",
+                        selectedBooking.service_fee,
+                      ],
+                      [
+                        "Tax Amount",
+                        selectedBooking.tax_amount,
+                      ],
+                      [
+                        "Total Amount",
+                        selectedBooking.total_amount,
+                      ],
+                    ].map(([label, amount]) => (
+                      <div
+                        key={label}
+                        style={{
+                          display: "flex",
+                          justifyContent:
+                            "space-between",
+                          padding: "7px 0",
+                          borderBottom:
+                            label ===
+                            "Total Amount"
+                              ? "none"
+                              : `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: COLORS.muted,
+                          }}
+                        >
+                          {label}
+                        </span>
+
+                        <b
+                          style={{
+                            fontSize:
+                              label ===
+                              "Total Amount"
+                                ? 15
+                                : 11,
+                          }}
+                        >
+                          ₹{amount || "0.00"}
+                        </b>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ADDRESS */}
+              <div
+                style={{
+                  marginTop: 20,
+                  padding: 15,
+                  borderRadius: 12,
+                  background: "#F7FAFA",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: COLORS.dark,
+                    marginBottom: 8,
+                  }}
+                >
+                  📍 Complete Service Address
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 11,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {[
+                    selectedBooking.shop_name,
+                    selectedBooking.house_no,
+                    selectedBooking.street,
+                    selectedBooking.area,
+                    selectedBooking.landmark
+                      ? `Landmark: ${selectedBooking.landmark}`
+                      : null,
+                    selectedBooking.mandal 
+                      ? `Mandal: ${selectedBooking.mandal}` 
+                      : null,
+                    selectedBooking.city,
+                    selectedBooking.district,
+                    selectedBooking.state,
+                    selectedBooking.pincode
+                      ? `PIN: ${selectedBooking.pincode}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") ||
+                    "Address not available"}
+                </div>
+              </div>
+
+              {/* INSTRUCTIONS */}
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 15,
+                  borderRadius: 12,
+                  background: "#FFF9EA",
+                  border: "1px solid #F5E3B0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: "#946200",
+                  }}
+                >
+                  📝 Special Instructions
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 7,
+                    fontSize: 11,
+                    color: "#715000",
+                  }}
+                >
+                  {selectedBooking.special_instructions ||
+                    "No special instructions provided."}
+                </div>
+              </div>
+
+              {/* ACTIONS */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 18,
+                  flexWrap: "wrap",
+                  gap: 15,
+                  borderTop: `1px solid ${COLORS.border}`,
+                  paddingTop: 15,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted }}>Update Status:</span>
+                  <select
+                    value={selectedBooking.status}
+                    onChange={(e) => {
+                      // Note: This only changes the state locally in the modal.
+                      // To make it permanent, you need to add a PUT request to your API.
+                      setSelectedBooking({ ...selectedBooking, status: e.target.value });
+                    }}
+                    style={{
+                      ...styles.input,
+                      padding: "7px 10px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      width: 140
+                    }}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {selectedBooking.phone && (
+                    <a
+                      href={`tel:${selectedBooking.phone}`}
+                      style={{
+                        ...styles.button,
+                        background: COLORS.light,
+                        color: COLORS.dark,
+                        textDecoration: "none",
+                      }}
+                    >
+                      📞 Call Customer
+                    </a>
+                  )}
+
+                  {selectedBooking.phone && (
+                    <a
+                      href={`https://wa.me/${selectedBooking.phone}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        ...styles.button,
+                        background: "#ECFDF5",
+                        color: COLORS.green,
+                        textDecoration: "none",
+                      }}
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+
+                  <button
+                    onClick={closeDetails}
+                    style={{
+                      ...styles.button,
+                      background: COLORS.dark,
+                      color: "#fff",
+                    }}
+                  >
+                    Close Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          RESPONSIVE CSS
+      ====================================================== */}
+
+      <style>{`
+        * {
+          box-sizing: border-box;
+        }
+
+        button {
+          transition: all .18s ease;
+        }
+
+        button:hover {
+          transform: translateY(-1px);
+          filter: brightness(.97);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+          border-color: ${COLORS.teal} !important;
+          box-shadow: 0 0 0 3px rgba(0,143,144,.08);
+        }
+
+        tbody tr {
+          transition: background .18s ease;
+        }
+
+        tbody tr:hover {
+          background: #F3FBFA !important;
+        }
+
+        @media(max-width:900px) {
+          div[style*="minmax(0,1.2fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media(max-width:650px) {
+          body {
+            margin: 0;
+          }
+
+          table {
+            min-width: 950px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
