@@ -18,7 +18,7 @@ import SellGoldPrice  from "./pages/SellGoldPrice";
 import Sidebar from "../src/components/sidebar";
 import LegalPolicies from "./pages/policy";
 import VendorAddress from "./pages/vendoraddress";  
-
+import GoldRepair from "./pages/goldrepair";
 
 
 import "./App.css";
@@ -64,6 +64,7 @@ const App = () => {
           <Route path="/SellGold" element={<SellGoldPrice/>}/>
           <Route path="/policy" element={<LegalPolicies/>}/>
           <Route path="/vendoraddress" element={<VendorAddress/>}/>
+          <Route path="/goldrepairscreen" element={<GoldRepair/>}/>
         </Routes>
       </Layout>
     </Router>
