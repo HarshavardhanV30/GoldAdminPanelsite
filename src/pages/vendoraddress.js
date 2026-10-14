@@ -62,12 +62,26 @@ const VendorAddress = () => {
     return parts.join(', ');
   };
 
+  // Helper function to format the fetched full address for the table
+  const getFullAddressFormat = (addr) => {
+    const parts = [
+      addr.house_no, 
+      addr.street, 
+      addr.area, 
+      addr.landmark, 
+      addr.mandal, 
+      addr.city, 
+      addr.district, 
+      addr.pincode
+    ];
+    return parts.filter(part => part && String(part).trim() !== '').join(', ');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
-    // Payload formatted strictly using the state keys
     const payload = {
       ...formData,
       vendor_id: Number(formData.vendor_id)
@@ -130,234 +144,554 @@ const VendorAddress = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
-      
-      <div className="max-w-6xl mx-auto mb-6">
-        <div className="text-sm text-slate-500 mb-4">
-          Vendors &gt; Vendor Addresses &gt; <span className="text-slate-800 font-medium">{editId ? 'Edit Address' : 'Add Address'}</span>
-        </div>
+    <>
+      <style>{`
+        .va-wrapper {
+          background-color: #f8fafc;
+          min-height: 100vh;
+          padding: 24px 32px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          color: #1e293b;
+          box-sizing: border-box;
+        }
+        .va-container {
+          max-width: 1152px;
+          margin: 0 auto;
+        }
+        .va-breadcrumb {
+          font-size: 14px;
+          color: #64748b;
+          margin-bottom: 16px;
+        }
+        .va-breadcrumb span {
+          font-weight: 500;
+          color: #1e293b;
+        }
+        .va-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .va-header-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .va-icon-box {
+          background-color: #dcfce7;
+          padding: 12px;
+          border-radius: 12px;
+          color: #16a34a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .va-header-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 4px 0;
+        }
+        .va-header-subtitle {
+          font-size: 14px;
+          color: #64748b;
+          margin: 0;
+        }
+        .va-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s;
+        }
+        .va-btn-back {
+          background-color: #ffffff;
+          border: 1px solid #16a34a;
+          color: #15803d;
+        }
+        .va-btn-back:hover {
+          background-color: #f0fdf4;
+        }
+        .va-btn-cancel {
+          background-color: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #334155;
+        }
+        .va-btn-cancel:hover {
+          background-color: #f8fafc;
+        }
+        .va-btn-save {
+          background-color: #166534;
+          color: #ffffff;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .va-btn-save:hover {
+          background-color: #14532d;
+        }
+        .va-btn-save:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        .va-alert {
+          background-color: #dcfce7;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+        }
+        .va-card {
+          background-color: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          overflow: hidden;
+          margin-bottom: 40px;
+        }
+        .va-card-body {
+          padding: 32px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        @media (min-width: 1024px) {
+          .va-card-body {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        .va-section {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        .va-section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          border-radius: 8px;
+        }
+        .va-section-header.blue {
+          background-color: rgba(239, 246, 255, 0.5);
+          border: 1px solid #dbeafe;
+          color: #1e3a8a;
+        }
+        .va-section-header.blue svg { color: #2563eb; }
+        .va-section-header.green {
+          background-color: rgba(240, 253, 244, 0.5);
+          border: 1px solid #dcfce7;
+          color: #14532d;
+        }
+        .va-section-header.green svg { color: #16a34a; }
+        .va-section-title {
+          font-size: 18px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .va-form-group-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .va-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .va-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        @media (min-width: 768px) {
+          .va-grid-2 { grid-template-columns: 1fr 1fr; }
+        }
+        .va-grid-3 {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        @media (min-width: 768px) {
+          .va-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        }
+        .va-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #334155;
+          margin-bottom: 4px;
+        }
+        .va-asterisk {
+          color: #ef4444;
+        }
+        .va-input-wrapper {
+          position: relative;
+        }
+        .va-input {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #334155;
+          box-sizing: border-box;
+          background-color: #ffffff;
+          appearance: none;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .va-input:focus {
+          border-color: #22c55e;
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
+        .va-select-icon {
+          position: absolute;
+          right: 12px;
+          top: 12px;
+          color: #94a3b8;
+          pointer-events: none;
+        }
+        .va-preview-box {
+          background-color: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 16px;
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          margin-top: 8px;
+        }
+        .va-preview-icon {
+          background-color: rgba(226, 232, 240, 0.6);
+          padding: 8px;
+          border-radius: 50%;
+          color: #475569;
+          display: flex;
+        }
+        .va-preview-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1e293b;
+          margin: 0 0 4px 0;
+        }
+        .va-preview-text {
+          font-size: 14px;
+          color: #64748b;
+          line-height: 1.5;
+          margin: 0;
+        }
+        .va-card-footer {
+          padding: 24px;
+          border-top: 1px solid #e2e8f0;
+          background-color: rgba(248, 250, 252, 0.5);
+          display: flex;
+          justify-content: flex-end;
+          gap: 16px;
+        }
+        .va-table-header {
+          padding: 24px;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .va-table-header h2 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+          margin: 0;
+        }
+        .va-table-header svg {
+          color: #64748b;
+        }
+        .va-table-responsive {
+          overflow-x: auto;
+        }
+        .va-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+        }
+        .va-table th {
+          background-color: #f8fafc;
+          padding: 16px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #475569;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .va-table td {
+          padding: 16px;
+          font-size: 14px;
+          color: #1e293b;
+          border-bottom: 1px solid #f1f5f9;
+          vertical-align: top;
+        }
+        .va-table tr:hover td {
+          background-color: #f8fafc;
+        }
+        .va-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+        }
+        .va-btn-icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color 0.2s;
+        }
+        .va-btn-icon.edit { color: #2563eb; }
+        .va-btn-icon.edit:hover { background-color: #eff6ff; }
+        .va-btn-icon.delete { color: #ef4444; }
+        .va-btn-icon.delete:hover { background-color: #fef2f2; }
+      `}</style>
+
+      <div className="va-wrapper">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-xl">
-              <MapPin className="text-green-600" size={28} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{editId ? 'Edit Vendor Address' : 'Add Vendor Address'}</h1>
-              <p className="text-sm text-slate-500">Manage pickup, delivery and store locations dynamically.</p>
-            </div>
+        <div className="va-container">
+          <div className="va-breadcrumb">
+            Vendors &gt; Vendor Addresses &gt; <span>{editId ? 'Edit Address' : 'Add Address'}</span>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium transition-colors">
-            <ArrowLeft size={18} />
-            Back to Addresses
-          </button>
-        </div>
-      </div>
-
-      {message && (
-        <div className="max-w-6xl mx-auto mb-4 p-4 rounded-lg bg-green-100 text-green-800 border border-green-200">
-          {message}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-10">
-        <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Left Column - Vendor Information */}
-          <div className="space-y-6">
-            <div className="bg-blue-50/50 rounded-lg p-3 flex items-center gap-2 border border-blue-100">
-              <User className="text-blue-600" size={20} />
-              <h2 className="text-lg font-semibold text-blue-900">Vendor Information</h2>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Select Vendor ID <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="number" 
-                  name="vendor_id"
-                  value={formData.vendor_id}
-                  onChange={handleChange}
-                  placeholder="e.g. 101" 
-                  className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                  required
-                />
+          <div className="va-header-row">
+            <div className="va-header-left">
+              <div className="va-icon-box">
+                <MapPin size={28} />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Shop / Company Name <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  name="shop_name"
-                  value={formData.shop_name}
-                  onChange={handleChange}
-                  placeholder="e.g. Sri Venkateswara Gold & Diamonds" 
-                  className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                  required
-                />
+                <h1 className="va-header-title">{editId ? 'Edit Vendor Address' : 'Add Vendor Address'}</h1>
+                <p className="va-header-subtitle">Manage pickup, delivery and store locations dynamically.</p>
               </div>
             </div>
+            <button className="va-btn va-btn-back">
+              <ArrowLeft size={18} />
+              Back to Addresses
+            </button>
           </div>
+        </div>
 
-          {/* Right Column - Address Details */}
-          <div className="space-y-6">
-            <div className="bg-green-50/50 rounded-lg p-3 flex items-center gap-2 border border-green-100">
-              <MapPin className="text-green-600" size={20} />
-              <h2 className="text-lg font-semibold text-green-900">Address Details</h2>
+        {message && (
+          <div className="va-container">
+            <div className="va-alert">{message}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="va-container va-card">
+          <div className="va-card-body">
+            
+            {/* Left Column - Vendor Information */}
+            <div className="va-section">
+              <div className="va-section-header blue">
+                <User size={20} />
+                <h2 className="va-section-title">Vendor Information</h2>
+              </div>
+
+              <div className="va-form-group-list">
+                <div className="va-form-group">
+                  <label className="va-label">
+                    Select Vendor ID <span className="va-asterisk">*</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    name="vendor_id"
+                    value={formData.vendor_id}
+                    onChange={handleChange}
+                    placeholder="e.g. 101" 
+                    className="va-input"
+                    required
+                  />
+                </div>
+
+                <div className="va-form-group">
+                  <label className="va-label">
+                    Shop / Company Name <span className="va-asterisk">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    name="shop_name"
+                    value={formData.shop_name}
+                    onChange={handleChange}
+                    placeholder="e.g. Sri Venkateswara Gold & Diamonds" 
+                    className="va-input"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">House No. <span className="text-red-500">*</span></label>
-                  <input type="text" name="house_no" value={formData.house_no} onChange={handleChange} placeholder="e.g. 15/123" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Street <span className="text-red-500">*</span></label>
-                  <input type="text" name="street" value={formData.street} onChange={handleChange} placeholder="e.g. Main Bazaar Road" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" required />
-                </div>
+            {/* Right Column - Address Details */}
+            <div className="va-section">
+              <div className="va-section-header green">
+                <MapPin size={20} />
+                <h2 className="va-section-title">Address Details</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
-                  <input type="text" name="area" value={formData.area} onChange={handleChange} placeholder="e.g. Clock Tower Area" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Landmark</label>
-                  <input type="text" name="landmark" value={formData.landmark} onChange={handleChange} placeholder="e.g. Opposite SBI Bank" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Mandal</label>
-                  <input type="text" name="mandal" value={formData.mandal} onChange={handleChange} placeholder="e.g. Anantapur" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">City <span className="text-red-500">*</span></label>
-                  <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Anantapur" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">District</label>
-                  <input type="text" name="district" value={formData.district} onChange={handleChange} placeholder="District" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">State <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <select name="state" value={formData.state} onChange={handleChange} className="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" required>
-                      <option value="" disabled>Select</option>
-                      <option value="Andhra Pradesh">Andhra Pradesh</option>
-                      <option value="Telangana">Telangana</option>
-                      <option value="Karnataka">Karnataka</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={18} />
+              <div className="va-form-group-list">
+                <div className="va-grid-2">
+                  <div className="va-form-group">
+                    <label className="va-label">House No. <span className="va-asterisk">*</span></label>
+                    <input type="text" name="house_no" value={formData.house_no} onChange={handleChange} placeholder="e.g. 15/123" className="va-input" required />
+                  </div>
+                  <div className="va-form-group">
+                    <label className="va-label">Street <span className="va-asterisk">*</span></label>
+                    <input type="text" name="street" value={formData.street} onChange={handleChange} placeholder="e.g. Main Bazaar Road" className="va-input" required />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Pincode <span className="text-red-500">*</span></label>
-                  <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="515001" className="w-full border border-slate-300 py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" required />
-                </div>
-              </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2 flex gap-3 items-start">
-                <div className="bg-slate-200/60 p-2 rounded-full mt-1">
-                  <MapPin className="text-slate-600" size={16} />
+                <div className="va-grid-2">
+                  <div className="va-form-group">
+                    <label className="va-label">Area</label>
+                    <input type="text" name="area" value={formData.area} onChange={handleChange} placeholder="e.g. Clock Tower Area" className="va-input" />
+                  </div>
+                  <div className="va-form-group">
+                    <label className="va-label">Landmark</label>
+                    <input type="text" name="landmark" value={formData.landmark} onChange={handleChange} placeholder="e.g. Opposite SBI Bank" className="va-input" />
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 text-sm">Full Address Preview</h3>
-                  <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                    {generatePreview()}
-                  </p>
-                </div>
-              </div>
 
+                <div className="va-grid-2">
+                  <div className="va-form-group">
+                    <label className="va-label">Mandal</label>
+                    <input type="text" name="mandal" value={formData.mandal} onChange={handleChange} placeholder="e.g. Anantapur" className="va-input" />
+                  </div>
+                  <div className="va-form-group">
+                    <label className="va-label">City <span className="va-asterisk">*</span></label>
+                    <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Anantapur" className="va-input" required />
+                  </div>
+                </div>
+
+                <div className="va-grid-3">
+                  <div className="va-form-group">
+                    <label className="va-label">District</label>
+                    <input type="text" name="district" value={formData.district} onChange={handleChange} placeholder="District" className="va-input" />
+                  </div>
+                  <div className="va-form-group">
+                    <label className="va-label">State <span className="va-asterisk">*</span></label>
+                    <div className="va-input-wrapper">
+                      <select name="state" value={formData.state} onChange={handleChange} className="va-input" required>
+                        <option value="" disabled>Select</option>
+                        <option value="Andhra Pradesh">Andhra Pradesh</option>
+                        <option value="Telangana">Telangana</option>
+                        <option value="Karnataka">Karnataka</option>
+                      </select>
+                      <ChevronDown className="va-select-icon" size={18} />
+                    </div>
+                  </div>
+                  <div className="va-form-group">
+                    <label className="va-label">Pincode <span className="va-asterisk">*</span></label>
+                    <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="515001" className="va-input" required />
+                  </div>
+                </div>
+
+                <div className="va-preview-box">
+                  <div className="va-preview-icon">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <h3 className="va-preview-title">Full Address Preview</h3>
+                    <p className="va-preview-text">
+                      {generatePreview()}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="border-t border-slate-200 p-6 bg-slate-50/50 flex justify-end gap-4">
-          <button 
-            type="button" 
-            className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors"
-            onClick={() => {
-              setFormData(initialFormState);
-              setEditId(null);
-            }}
-          >
-            Clear / Cancel
-          </button>
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-green-800 text-white rounded-lg hover:bg-green-900 font-medium transition-colors shadow-sm disabled:opacity-70"
-          >
-            <Save size={18} />
-            {loading ? 'Saving...' : (editId ? 'Update Address' : 'Save Address')}
-          </button>
-        </div>
-      </form>
+          <div className="va-card-footer">
+            <button 
+              type="button" 
+              className="va-btn va-btn-cancel"
+              onClick={() => {
+                setFormData(initialFormState);
+                setEditId(null);
+              }}
+            >
+              Clear / Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="va-btn va-btn-save"
+            >
+              <Save size={18} />
+              {loading ? 'Saving...' : (editId ? 'Update Address' : 'Save Address')}
+            </button>
+          </div>
+        </form>
 
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex items-center gap-3">
-          <List className="text-slate-500" size={24} />
-          <h2 className="text-lg font-semibold text-slate-800">Saved Addresses</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
-                <th className="p-4 font-medium">Vendor ID</th>
-                <th className="p-4 font-medium">Shop Name</th>
-                <th className="p-4 font-medium">City / Area</th>
-                <th className="p-4 font-medium">State</th>
-                <th className="p-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {addresses.length === 0 ? (
+        <div className="va-container va-card">
+          <div className="va-table-header">
+            <List size={24} />
+            <h2>Saved Addresses</h2>
+          </div>
+          <div className="va-table-responsive">
+            <table className="va-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" className="p-6 text-center text-slate-500">No addresses found.</td>
+                  <th>Vendor ID</th>
+                  <th>Shop Name</th>
+                  <th style={{ width: '40%' }}>Full Address</th>
+                  <th>State</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ) : (
-                addresses.map((address) => (
-                  <tr key={address.id || address._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="p-4 text-sm text-slate-800 font-medium">#{address.vendor_id}</td>
-                    <td className="p-4 text-sm text-slate-800">{address.shop_name}</td>
-                    <td className="p-4 text-sm text-slate-600">{address.city}, {address.area}</td>
-                    <td className="p-4 text-sm text-slate-600">{address.state}</td>
-                    <td className="p-4 flex justify-end gap-3">
-                      <button 
-                        onClick={() => handleEdit(address)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(address.id || address._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
+              </thead>
+              <tbody>
+                {addresses.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>No addresses found.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  addresses.map((address) => (
+                    <tr key={address.id || address._id}>
+                      <td style={{ fontWeight: '500', width: '10%' }}>#{address.vendor_id}</td>
+                      <td style={{ width: '20%' }}>{address.shop_name}</td>
+                      <td style={{ color: '#475569', lineHeight: '1.5' }}>
+                        {getFullAddressFormat(address)}
+                      </td>
+                      <td style={{ color: '#475569', width: '15%' }}>{address.state}</td>
+                      <td style={{ width: '15%' }}>
+                        <div className="va-actions">
+                          <button 
+                            onClick={() => handleEdit(address)}
+                            className="va-btn-icon edit"
+                            title="Edit"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(address.id || address._id)}
+                            className="va-btn-icon delete"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+        
       </div>
-      
-    </div>
+    </>
   );
 };
 
