@@ -62,6 +62,21 @@ const VendorAddress = () => {
     return parts.join(', ');
   };
 
+  // Helper function to format the fetched full address for the table
+  const getFullAddressFormat = (addr) => {
+    const parts = [
+      addr.house_no, 
+      addr.street, 
+      addr.area, 
+      addr.landmark, 
+      addr.mandal, 
+      addr.city, 
+      addr.district, 
+      addr.pincode
+    ];
+    return parts.filter(part => part && String(part).trim() !== '').join(', ');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -130,7 +145,6 @@ const VendorAddress = () => {
 
   return (
     <>
-      {/* Pure Normal CSS block embedded directly in the component */}
       <style>{`
         .va-wrapper {
           background-color: #f8fafc;
@@ -418,6 +432,7 @@ const VendorAddress = () => {
           font-size: 14px;
           color: #1e293b;
           border-bottom: 1px solid #f1f5f9;
+          vertical-align: top;
         }
         .va-table tr:hover td {
           background-color: #f8fafc;
@@ -630,7 +645,7 @@ const VendorAddress = () => {
                 <tr>
                   <th>Vendor ID</th>
                   <th>Shop Name</th>
-                  <th>City / Area</th>
+                  <th style={{ width: '40%' }}>Full Address</th>
                   <th>State</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -643,11 +658,13 @@ const VendorAddress = () => {
                 ) : (
                   addresses.map((address) => (
                     <tr key={address.id || address._id}>
-                      <td style={{ fontWeight: '500' }}>#{address.vendor_id}</td>
-                      <td>{address.shop_name}</td>
-                      <td style={{ color: '#475569' }}>{address.city}{address.area ? `, ${address.area}` : ''}</td>
-                      <td style={{ color: '#475569' }}>{address.state}</td>
-                      <td>
+                      <td style={{ fontWeight: '500', width: '10%' }}>#{address.vendor_id}</td>
+                      <td style={{ width: '20%' }}>{address.shop_name}</td>
+                      <td style={{ color: '#475569', lineHeight: '1.5' }}>
+                        {getFullAddressFormat(address)}
+                      </td>
+                      <td style={{ color: '#475569', width: '15%' }}>{address.state}</td>
+                      <td style={{ width: '15%' }}>
                         <div className="va-actions">
                           <button 
                             onClick={() => handleEdit(address)}
