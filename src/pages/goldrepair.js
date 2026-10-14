@@ -87,7 +87,13 @@ export default function GoldRepair() {
 
       const data =
         result?.success && Array.isArray(result.data)
-          ? result.data.filter((item) => item?.id)
+          ? result.data
+              .filter((item) => item?.id)
+              .map(item => ({
+                ...item,
+                // Normalize status to UPPERCASE for exact matching
+                status: (item.status || "IN_PROGRESS").toUpperCase()
+              }))
           : [];
 
       setBookings(data);
@@ -160,6 +166,45 @@ export default function GoldRepair() {
   };
 
   // =========================================================
+  // UI HELPERS
+  // =========================================================
+  
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "COMPLETED":
+        return { bg: "#ECFDF5", color: COLORS.green };
+      case "PENDING":
+        return { bg: "#FEF2F2", color: COLORS.red };
+      case "CANCELLED":
+        return { bg: "#F1F5F9", color: COLORS.muted };
+      case "IN_PROGRESS":
+      default:
+        return { bg: "#FFF7ED", color: COLORS.amber };
+    }
+  };
+
+  const StatusBadge = ({ status }) => {
+    const style = getStatusStyle(status);
+    return (
+      <span
+        style={{
+          padding: "5px 10px",
+          borderRadius: 20,
+          background: style.bg,
+          color: style.color,
+          fontSize: 9,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          border: `1px solid ${style.color}30`, // 30 is hex opacity
+          display: "inline-block"
+        }}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  // =========================================================
   // STATISTICS
   // =========================================================
 
@@ -177,7 +222,7 @@ export default function GoldRepair() {
     ).length;
 
     const inProgress = bookings.filter(
-      (item) => item.status === "IN_PROGRESS" || !item.status
+      (item) => item.status === "IN_PROGRESS"
     ).length;
 
     const revenue = bookings.reduce(
@@ -227,13 +272,8 @@ export default function GoldRepair() {
         !selectedDate ||
         getLocalDate(item.booking_date) === selectedDate;
 
-      const status = item.status || "IN_PROGRESS";
-
       const statusMatch =
-        activeTab === "ALL" ||
-        (activeTab === "IN_PROGRESS" &&
-          (status === "IN_PROGRESS" || !item.status)) ||
-        status === activeTab;
+        activeTab === "ALL" || item.status === activeTab;
 
       return searchMatch && dateMatch && statusMatch;
     });
@@ -875,6 +915,7 @@ export default function GoldRepair() {
                   "Time",
                   "Type",
                   "Amount",
+                  "Status",
                   "Action",
                 ].map((heading) => (
                   <th
@@ -897,7 +938,7 @@ export default function GoldRepair() {
               {filteredBookings.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="9"
+                    colSpan="10"
                     style={{
                       padding: 50,
                       textAlign: "center",
@@ -1057,6 +1098,14 @@ export default function GoldRepair() {
                         padding: "12px 10px",
                       }}
                     >
+                      <StatusBadge status={item.status} />
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                      }}
+                    >
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
@@ -1129,9 +1178,20 @@ export default function GoldRepair() {
                   style={{
                     fontSize: 17,
                     fontWeight: 900,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12
                   }}
                 >
                   Gold Repair Booking Details
+                  <span style={{ 
+                    fontSize: 10, 
+                    background: "rgba(255,255,255,0.2)", 
+                    padding: "4px 8px", 
+                    borderRadius: 20 
+                  }}>
+                    {selectedBooking.status}
+                  </span>
                 </div>
 
                 <div
@@ -1388,8 +1448,7 @@ export default function GoldRepair() {
                       ],
                       [
                         "status",
-                        selectedBooking.status ||
-                          "IN_PROGRESS",
+                        selectedBooking.status,
                       ],
                     ].map(
                       ([key, value], index, array) => (
@@ -1741,11 +1800,15 @@ export default function GoldRepair() {
                   }}
                 >
                   {[
+                    selectedBooking.shop_name,
                     selectedBooking.house_no,
                     selectedBooking.street,
                     selectedBooking.area,
                     selectedBooking.landmark
                       ? `Landmark: ${selectedBooking.landmark}`
+                      : null,
+                    selectedBooking.mandal 
+                      ? `Mandal: ${selectedBooking.mandal}` 
                       : null,
                     selectedBooking.city,
                     selectedBooking.district,
@@ -1796,52 +1859,81 @@ export default function GoldRepair() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 8,
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   marginTop: 18,
                   flexWrap: "wrap",
+                  gap: 15,
+                  borderTop: `1px solid ${COLORS.border}`,
+                  paddingTop: 15,
                 }}
               >
-                {selectedBooking.phone && (
-                  <a
-                    href={`tel:${selectedBooking.phone}`}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted }}>Update Status:</span>
+                  <select
+                    value={selectedBooking.status}
+                    onChange={(e) => {
+                      // Note: This only changes the state locally in the modal.
+                      // To make it permanent, you need to add a PUT request to your API.
+                      setSelectedBooking({ ...selectedBooking, status: e.target.value });
+                    }}
                     style={{
-                      ...styles.button,
-                      background: COLORS.light,
-                      color: COLORS.dark,
-                      textDecoration: "none",
+                      ...styles.input,
+                      padding: "7px 10px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      width: 140
                     }}
                   >
-                    📞 Call Customer
-                  </a>
-                )}
+                    <option value="PENDING">Pending</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
 
-                {selectedBooking.phone && (
-                  <a
-                    href={`https://wa.me/${selectedBooking.phone}`}
-                    target="_blank"
-                    rel="noreferrer"
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {selectedBooking.phone && (
+                    <a
+                      href={`tel:${selectedBooking.phone}`}
+                      style={{
+                        ...styles.button,
+                        background: COLORS.light,
+                        color: COLORS.dark,
+                        textDecoration: "none",
+                      }}
+                    >
+                      📞 Call Customer
+                    </a>
+                  )}
+
+                  {selectedBooking.phone && (
+                    <a
+                      href={`https://wa.me/${selectedBooking.phone}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        ...styles.button,
+                        background: "#ECFDF5",
+                        color: COLORS.green,
+                        textDecoration: "none",
+                      }}
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+
+                  <button
+                    onClick={closeDetails}
                     style={{
                       ...styles.button,
-                      background: "#ECFDF5",
-                      color: COLORS.green,
-                      textDecoration: "none",
+                      background: COLORS.dark,
+                      color: "#fff",
                     }}
                   >
-                    💬 WhatsApp
-                  </a>
-                )}
-
-                <button
-                  onClick={closeDetails}
-                  style={{
-                    ...styles.button,
-                    background: COLORS.dark,
-                    color: "#fff",
-                  }}
-                >
-                  Close Details
-                </button>
+                    Close Details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
