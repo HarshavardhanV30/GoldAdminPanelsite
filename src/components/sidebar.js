@@ -15,6 +15,7 @@ import {
   FaFolderOpen,
   FaPhoneAlt,
   FaChartLine,
+  FaCoins,
   FaHandHoldingUsd,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
@@ -229,6 +230,22 @@ export default function SidebarOnly() {
             )}
           </NavLink>
 
+<NavLink
+            to="/vendoraddress"
+            className="nav-item"
+          >
+            <FaPhoneAlt className="icon" />
+
+            {isOpen && (
+              <span className="nav-text">
+                Add VendorAddress
+              </span>
+            )}
+
+            {isOpen && (
+              <FaEllipsisH className="ellipsis" />
+            )}
+          </NavLink>
 
           {/* Add Gold Price */}
           <NavLink
