@@ -1,303 +1,1222 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
+const BASE_URL =
+  "https://goldbackend-production-0ed4.up.railway.app/goldservice";
+
+const INITIAL_FORM = {
+  service_id: "",
+  service_name: "",
+  service_fee: "",
+  original_price: "",
+};
 
 const GoldRepairService = ({ existingServiceId = null }) => {
-  // State for form fields
-  const [formData, setFormData] = useState({
-    service_id: "SRV-GOLD-007",
-    service_name: "Gold Earring Repair",
-    service_fee: "449.00",
-    original_price: "1000",
-  });
-
-  // State for image handling
+  const [formData, setFormData] = useState(INITIAL_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  // State for API and UI feedback
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const BASE_URL = "https://goldbackend-production-0ed4.up.railway.app/goldservice";
+  // GET ALL SERVICES
+  const fetchAllServices = useCallback(async () => {
+    setListLoading(true);
 
-  // ==========================================
-  // GET API (Fetch for Edit Mode)
-  // ==========================================
-  useEffect(() => {
-    if (existingServiceId) {
-      setIsEditing(true);
-      fetchServiceDetails(existingServiceId);
-    }
-  }, [existingServiceId]);
-
-  const fetchServiceDetails = async (id) => {
     try {
-      const response = await fetch(`${BASE_URL}/all`); // Or specific GET by ID if available
-      const data = await response.json();
-      const service = data.find((item) => item.id === id);
-      
-      if (service) {
-        setFormData({
-          service_id: service.service_id,
-          service_name: service.service_name,
-          service_fee: service.service_fee,
-          original_price: service.original_price,
-        });
-        setImagePreview(service.service_image);
+      const response = await fetch(`${BASE_URL}/all`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to fetch services.");
       }
+
+      // Supports either a direct array or common API response wrappers.
+      const list = Array.isArray(result)
+        ? result
+        : Array.isArray(result.data)
+        ? result.data
+        : Array.isArray(result.services)
+        ? result.services
+        : [];
+
+      setServices(list);
     } catch (error) {
-      console.error("Error fetching service:", error);
+      showMessage(error.message || "Failed to load services.", "error");
+    } finally {
+      setListLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchAllServices();
+  }, [fetchAllServices]);
+
+  // MESSAGE HANDLER
+  const showMessage = (text, type = "success") => {
+    setMessage(text);
+    setMessageType(type);
   };
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
+  // LOAD SELECTED SERVICE FOR EDITING
+  const editService = (service) => {
+    setFormData({
+      service_id: service.service_id ?? "",
+      service_name: service.service_name ?? "",
+      service_fee: service.service_fee ?? "",
+      original_price: service.original_price ?? "",
+    });
+
+    setImageFile(null);
+    setImagePreview(service.service_image || null);
+    setEditingId(service.id);
+    setIsEditing(true);
+    showMessage("Editing selected service.", "success");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // SUPPORT EXISTING SERVICE ID PROP
+  useEffect(() => {
+    if (existingServiceId == null || services.length === 0) return;
+
+    const service = services.find(
+      (item) => String(item.id) === String(existingServiceId)
+    );
+
+    if (service) {
+      editService(service);
+    } else {
+      showMessage("Service not found.", "error");
+    }
+    // Only run when the requested ID or loaded service list changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingServiceId, services]);
+
+  // INPUT CHANGE
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
+  // IMAGE UPLOAD
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      showMessage("Please select a PNG or JPG image.", "error");
+      e.target.value = "";
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage("Image size must be 5MB or less.", "error");
+      e.target.value = "";
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setMessage("");
   };
 
-  const removeImage = () => {
+  // CLEAR FORM
+  const resetForm = () => {
+    setFormData(INITIAL_FORM);
     setImageFile(null);
     setImagePreview(null);
+    setEditingId(null);
+    setIsEditing(false);
+    setMessage("");
+
+    const fileInput = document.getElementById("service-image");
+    if (fileInput) fileInput.value = "";
   };
 
+  // DISCOUNT CALCULATION
   const calculateDiscount = () => {
-    const fee = parseFloat(formData.service_fee);
-    const original = parseFloat(formData.original_price);
-    if (original > 0 && original > fee) {
+    const fee = Number(formData.service_fee);
+    const original = Number(formData.original_price);
+
+    if (
+      Number.isFinite(fee) &&
+      Number.isFinite(original) &&
+      original > fee &&
+      original > 0 &&
+      fee >= 0
+    ) {
       return Math.round(((original - fee) / original) * 100);
     }
+
     return 0;
   };
 
-  // ==========================================
-  // POST & PUT APIs (Save/Update)
-  // ==========================================
-  const handleSave = async () => {
+  // POST NEW SERVICE / PUT EXISTING SERVICE
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    if (
+      !formData.service_id.trim() ||
+      !formData.service_name.trim() ||
+      formData.service_fee === "" ||
+      formData.original_price === ""
+    ) {
+      showMessage("Please fill in all required fields.", "error");
+      return;
+    }
+
+    if (
+      !Number.isFinite(Number(formData.service_fee)) ||
+      !Number.isFinite(Number(formData.original_price)) ||
+      Number(formData.service_fee) < 0 ||
+      Number(formData.original_price) < 0
+    ) {
+      showMessage("Enter valid non-negative prices.", "error");
+      return;
+    }
+
+    if (!isEditing && !imageFile) {
+      showMessage("Please select a service image.", "error");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
-    const submitData = new FormData();
-    submitData.append("service_id", formData.service_id);
-    submitData.append("service_name", formData.service_name);
-    submitData.append("service_fee", formData.service_fee);
-    submitData.append("original_price", formData.original_price);
-    
-    if (imageFile) {
-      submitData.append("service_image", imageFile);
-    }
-
-    const url = isEditing ? `${BASE_URL}/${existingServiceId}` : `${BASE_URL}/add`;
-    const method = isEditing ? "PUT" : "POST";
-
     try {
+      const submitData = new FormData();
+
+      submitData.append("service_id", formData.service_id.trim());
+      submitData.append("service_name", formData.service_name.trim());
+      submitData.append("service_fee", formData.service_fee);
+      submitData.append("original_price", formData.original_price);
+
+      if (imageFile) {
+        submitData.append("service_image", imageFile);
+      }
+
+      const url = isEditing
+        ? `${BASE_URL}/${editingId}`
+        : `${BASE_URL}/add`;
+
       const response = await fetch(url, {
-        method: method,
+        method: isEditing ? "PUT" : "POST",
         body: submitData,
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
-      if (response.ok) {
-        setMessage(isEditing ? "Service updated successfully!" : "Service created successfully!");
-      } else {
-        setMessage(`Error: ${result.error || "Something went wrong"}`);
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.message || "Failed to save service."
+        );
       }
+
+      showMessage(
+        isEditing
+          ? "Service updated successfully!"
+          : "Service created successfully!",
+        "success"
+      );
+
+      resetForm();
+      await fetchAllServices();
     } catch (error) {
-      console.error("Save error:", error);
-      setMessage("Failed to connect to the server.");
+      showMessage(error.message || "Failed to connect to server.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================
-  // DELETE API
-  // ==========================================
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this service?")) return;
+  // DELETE SERVICE
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this gold repair service?"
+    );
+
+    if (!confirmed) return;
+
     setLoading(true);
 
     try {
-      const response = await fetch(`${BASE_URL}/${existingServiceId}`, {
+      const response = await fetch(`${BASE_URL}/${id}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        setMessage("Service deleted successfully.");
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.message || "Failed to delete service."
+        );
       }
+
+      if (String(editingId) === String(id)) {
+        resetForm();
+      }
+
+      showMessage("Service deleted successfully!", "success");
+      await fetchAllServices();
     } catch (error) {
-      console.error("Delete error:", error);
-      setMessage("Failed to delete service.");
+      showMessage(error.message || "Failed to delete service.", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // FILTER TABLE
+  const filteredServices = services.filter((service) => {
+    const query = searchTerm.toLowerCase();
+
+    return (
+      String(service.service_id || "").toLowerCase().includes(query) ||
+      String(service.service_name || "").toLowerCase().includes(query) ||
+      String(service.id || "").toLowerCase().includes(query)
+    );
+  });
+
+  const money = (value) =>
+    Number(value || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const styles = {
+    page: {
+      minHeight: "100vh",
+      background: "#f3f6f8",
+      padding: "clamp(12px, 3vw, 32px)",
+      fontFamily: "Inter, Arial, sans-serif",
+      color: "#172b35",
+      boxSizing: "border-box",
+    },
+    container: {
+      maxWidth: "1400px",
+      margin: "0 auto",
+    },
+    header: {
+      background: "linear-gradient(120deg, #073b3b, #105b54)",
+      color: "#fff",
+      padding: "24px",
+      borderRadius: "16px",
+      marginBottom: "24px",
+      boxShadow: "0 8px 24px rgba(7,59,59,.12)",
+    },
+    panel: {
+      background: "#fff",
+      border: "1px solid #e3e9ec",
+      borderRadius: "16px",
+      padding: "clamp(16px, 3vw, 28px)",
+      boxShadow: "0 4px 18px rgba(20,45,55,.04)",
+      minWidth: 0,
+    },
+    label: {
+      display: "block",
+      fontSize: "14px",
+      fontWeight: 700,
+      color: "#334852",
+      marginBottom: "8px",
+    },
+    input: {
+      display: "block",
+      width: "100%",
+      padding: "12px 14px",
+      border: "1px solid #d7e0e4",
+      borderRadius: "9px",
+      fontSize: "14px",
+      outlineColor: "#c99724",
+      boxSizing: "border-box",
+      background: "#fff",
+      color: "#172b35",
+    },
+    primaryButton: {
+      background: "#e6ae2c",
+      color: "#172b35",
+      border: "none",
+      borderRadius: "9px",
+      padding: "12px 18px",
+      fontWeight: 800,
+      cursor: "pointer",
+    },
+    secondaryButton: {
+      background: "#fff",
+      color: "#334852",
+      border: "1px solid #d7e0e4",
+      borderRadius: "9px",
+      padding: "12px 18px",
+      fontWeight: 700,
+      cursor: "pointer",
+    },
+    tableCell: {
+      padding: "14px 12px",
+      textAlign: "left",
+      borderBottom: "1px solid #edf1f3",
+      fontSize: "13px",
+      verticalAlign: "middle",
+    },
+  };
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f9fafb", padding: "2rem", display: "flex", justifyContent: "center", fontFamily: "sans-serif", boxSizing: "border-box" }}>
-      <div style={{ maxWidth: "72rem", width: "100%", display: "flex", flexWrap: "wrap", gap: "2rem", backgroundColor: "#ffffff", padding: "2rem", borderRadius: "0.75rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)", border: "1px solid #f3f4f6", boxSizing: "border-box" }}>
-        
-        {/* Left Side: Form */}
-        <div style={{ flex: "1 1 45%", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
-            <button style={{ padding: "0.5rem", border: "1px solid #e5e7eb", borderRadius: "9999px", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg style={{ width: "1.25rem", height: "1.25rem", color: "#4b5563" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            </button>
-            <div>
-              <h1 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#1f2937", margin: 0 }}>Add / Edit Gold Repair Service</h1>
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0, marginTop: "0.25rem" }}>Manage your gold repair services and pricing details</p>
-            </div>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        {/* HEADER */}
+        <header style={styles.header}>
+          <div style={{ color: "#f3c65e", fontSize: "12px", fontWeight: 800 }}>
+            G-BUYER / ADMIN PANEL
           </div>
 
-          {message && (
-            <div style={{ padding: "0.75rem", borderRadius: "0.25rem", fontSize: "0.875rem", backgroundColor: message.includes("Error") || message.includes("Failed") ? "#fee2e2" : "#dcfce3", color: message.includes("Error") || message.includes("Failed") ? "#b91c1c" : "#15803d" }}>
-              {message}
-            </div>
-          )}
+          <h1 style={{ fontSize: "clamp(23px, 3vw, 30px)", margin: "10px 0" }}>
+            Gold Repair Services
+          </h1>
 
-          {/* Form Fields */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>Service ID <span style={{ color: "#ef4444" }}>*</span></label>
-              <div style={{ position: "relative" }}>
-                <input type="text" name="service_id" value={formData.service_id} onChange={handleInputChange} style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", outline: "none", boxSizing: "border-box" }} />
+          <p style={{ color: "#d0e4df", margin: 0, lineHeight: 1.6 }}>
+            Manage service details, pricing, images and repair service listings.
+          </p>
+        </header>
+
+        {/* SUMMARY CARDS */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "16px",
+            marginBottom: "24px",
+          }}
+        >
+          {[
+            { label: "Total Services", value: services.length, icon: "✦" },
+            {
+              label: "Lowest Service Fee",
+              value:
+                services.length > 0
+                  ? `₹${money(
+                      Math.min(...services.map((s) => Number(s.service_fee) || 0))
+                    )}`
+                  : "₹0.00",
+              icon: "₹",
+            },
+            {
+              label: "Services With Images",
+              value: services.filter((s) => s.service_image).length,
+              icon: "▧",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                ...styles.panel,
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+              }}
+            >
+              <div
+                style={{
+                  width: "46px",
+                  height: "46px",
+                  flexShrink: 0,
+                  borderRadius: "12px",
+                  display: "grid",
+                  placeItems: "center",
+                  background: "#fff4d4",
+                  color: "#a36b00",
+                  fontSize: "22px",
+                  fontWeight: 800,
+                }}
+              >
+                {item.icon}
+              </div>
+
+              <div>
+                <div style={{ color: "#71818a", fontSize: "12px" }}>
+                  {item.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: "21px",
+                    fontWeight: 800,
+                    marginTop: "5px",
+                  }}
+                >
+                  {item.value}
+                </div>
               </div>
             </div>
+          ))}
+        </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>Service Name <span style={{ color: "#ef4444" }}>*</span></label>
-              <div style={{ position: "relative" }}>
-                <input type="text" name="service_name" value={formData.service_name} onChange={handleInputChange} style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", outline: "none", boxSizing: "border-box" }} />
+        {/* ADD / EDIT FORM + PREVIEW */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
+            gap: "22px",
+            alignItems: "start",
+            marginBottom: "28px",
+          }}
+        >
+          <section style={styles.panel}>
+            <div style={{ marginBottom: "24px" }}>
+              <div
+                style={{
+                  color: "#a77814",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  letterSpacing: "1px",
+                }}
+              >
+                SERVICE CONFIGURATION
               </div>
+
+              <h2 style={{ margin: "8px 0", fontSize: "22px" }}>
+                {isEditing ? "Edit Service" : "Add New Service"}
+              </h2>
+
+              <p style={{ color: "#71818a", fontSize: "13px", lineHeight: 1.6 }}>
+                Enter the service information and upload a clear image.
+              </p>
             </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>Service Fee (₹) <span style={{ color: "#ef4444" }}>*</span></label>
-              <div style={{ position: "relative" }}>
-                <input type="number" name="service_fee" value={formData.service_fee} onChange={handleInputChange} style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", outline: "none", boxSizing: "border-box" }} />
-                <span style={{ position: "absolute", right: "1rem", top: "0.75rem", color: "#9ca3af", fontWeight: "bold" }}>₹</span>
+            {message && (
+              <div
+                role="status"
+                style={{
+                  padding: "12px",
+                  borderRadius: "9px",
+                  marginBottom: "18px",
+                  fontSize: "13px",
+                  background:
+                    messageType === "error" ? "#fff0f0" : "#eaf8ee",
+                  color: messageType === "error" ? "#b42318" : "#16743b",
+                  border:
+                    messageType === "error"
+                      ? "1px solid #ffd0d0"
+                      : "1px solid #c9ebd2",
+                }}
+              >
+                {message}
               </div>
-            </div>
+            )}
 
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>Original Price (₹) <span style={{ color: "#ef4444" }}>*</span></label>
-              <div style={{ position: "relative" }}>
-                <input type="number" name="original_price" value={formData.original_price} onChange={handleInputChange} style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", outline: "none", boxSizing: "border-box" }} />
-                <span style={{ position: "absolute", right: "1rem", top: "0.75rem", color: "#9ca3af", fontWeight: "bold" }}>₹</span>
+            <form onSubmit={handleSave}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "18px",
+                }}
+              >
+                <div>
+                  <label style={styles.label}>
+                    Service ID <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    name="service_id"
+                    value={formData.service_id}
+                    onChange={handleInputChange}
+                    placeholder="SRV-GOLD-007"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Service Name <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    name="service_name"
+                    value={formData.service_name}
+                    onChange={handleInputChange}
+                    placeholder="Gold Earring Repair"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Service Fee (₹) <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    style={styles.input}
+                    type="number"
+                    name="service_fee"
+                    min="0"
+                    step="0.01"
+                    value={formData.service_fee}
+                    onChange={handleInputChange}
+                    placeholder="449.00"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Original Price (₹){" "}
+                    <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    style={styles.input}
+                    type="number"
+                    name="original_price"
+                    min="0"
+                    step="0.01"
+                    value={formData.original_price}
+                    onChange={handleInputChange}
+                    placeholder="1000.00"
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Image Upload */}
-            <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>Service Image <span style={{ color: "#ef4444" }}>*</span></label>
-              <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                <label style={{ flex: 1, border: "2px dashed #d1d5db", borderRadius: "0.5rem", padding: "1.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: "transparent" }}>
-                  <svg style={{ width: "2rem", height: "2rem", color: "#6b7280", marginBottom: "0.5rem" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  <span style={{ fontSize: "0.875rem", color: "#4b5563" }}><span style={{ fontWeight: "600", color: "#000" }}>Click to upload</span> or drag and drop</span>
-                  <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" }}>PNG, JPG, JPEG (Max 5MB)</span>
-                  <input type="file" style={{ display: "none" }} accept="image/png, image/jpeg, image/jpg" onChange={handleImageChange} />
+              {/* IMAGE UPLOAD */}
+              <div style={{ marginTop: "22px" }}>
+                <label style={styles.label}>
+                  Service Image{" "}
+                  {!isEditing && (
+                    <span style={{ color: "#dc2626" }}>*</span>
+                  )}
                 </label>
-                
+
+                <label
+                  htmlFor="service-image"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "120px",
+                    padding: "20px",
+                    border: "2px dashed #d7e0e4",
+                    borderRadius: "12px",
+                    background: "#fafcfc",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <span style={{ fontSize: "30px", color: "#a77814" }}>
+                    ⇧
+                  </span>
+                  <strong style={{ fontSize: "14px", marginTop: "8px" }}>
+                    Click to upload an image
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#71818a",
+                      marginTop: "6px",
+                    }}
+                  >
+                    PNG or JPG · Maximum 5MB
+                  </span>
+
+                  <input
+                    id="service-image"
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleImageChange}
+                    style={{
+                      position: "absolute",
+                      width: "1px",
+                      height: "1px",
+                      overflow: "hidden",
+                      clip: "rect(0,0,0,0)",
+                    }}
+                  />
+                </label>
+
                 {imagePreview && (
-                  <div style={{ position: "relative", width: "8rem", height: "8rem", borderRadius: "0.5rem", border: "1px solid #e5e7eb", overflow: "hidden", flexShrink: 0 }}>
-                    <img src={imagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button onClick={removeImage} style={{ position: "absolute", top: "0.25rem", right: "0.25rem", backgroundColor: "#ffffff", borderRadius: "9999px", padding: "0.25rem", border: "none", cursor: "pointer", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg style={{ width: "1rem", height: "1rem", color: "#374151" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "14px",
+                      marginTop: "14px",
+                      padding: "10px",
+                      border: "1px solid #e3e9ec",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    <img
+                      src={imagePreview}
+                      alt="Selected service"
+                      style={{
+                        width: "86px",
+                        height: "76px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <strong style={{ fontSize: "13px" }}>
+                        {imageFile ? imageFile.name : "Current service image"}
+                      </strong>
+                      <div
+                        style={{
+                          color: "#71818a",
+                          fontSize: "12px",
+                          marginTop: "5px",
+                        }}
+                      >
+                        {imageFile
+                          ? `${(imageFile.size / 1024).toFixed(1)} KB`
+                          : "Existing image"}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                        const input = document.getElementById("service-image");
+                        if (input) input.value = "";
+                      }}
+                      style={{
+                        ...styles.secondaryButton,
+                        padding: "8px 10px",
+                        color: "#b42318",
+                      }}
+                    >
+                      Remove
                     </button>
                   </div>
                 )}
+
+                {isEditing && !imageFile && (
+                  <p style={{ color: "#71818a", fontSize: "12px" }}>
+                    To replace the image, upload another file. If no new file is
+                    selected, the existing image is not sent in the update.
+                  </p>
+                )}
               </div>
-              {imageFile && <p style={{ fontSize: "0.75rem", color: "#16a34a", marginTop: "0.5rem" }}>✓ Image selected: {imageFile.name}</p>}
+
+              {/* FORM ACTIONS */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  marginTop: "24px",
+                }}
+              >
+                <button
+                  type="button"
+                  style={styles.secondaryButton}
+                  onClick={resetForm}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    ...styles.primaryButton,
+                    flex: 1,
+                    minWidth: "140px",
+                    opacity: loading ? 0.65 : 1,
+                  }}
+                >
+                  {loading
+                    ? "Please wait..."
+                    : isEditing
+                    ? "✓ Update Service"
+                    : "+ Save Service"}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          {/* LIVE PREVIEW */}
+          <section
+            style={{
+              ...styles.panel,
+              background: "#fffaf0",
+              borderColor: "#f0dfb6",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "10px",
+                alignItems: "center",
+                marginBottom: "18px",
+                flexWrap: "wrap",
+              }}
+            >
+              <h2 style={{ fontSize: "20px", margin: 0 }}>Live Preview</h2>
+              <span
+                style={{
+                  background: "#ffedb6",
+                  color: "#815b09",
+                  padding: "7px 12px",
+                  borderRadius: "30px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                }}
+              >
+                ✦ GOLD REPAIR
+              </span>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-            <button style={{ flex: 1, padding: "0.75rem 1rem", border: "1px solid #d1d5db", borderRadius: "0.5rem", fontWeight: "600", color: "#374151", backgroundColor: "#ffffff", cursor: "pointer" }}>
-              Cancel
-            </button>
-            {isEditing && (
-              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem 1rem", border: "1px solid #fca5a5", borderRadius: "0.5rem", fontWeight: "600", color: "#dc2626", backgroundColor: "#fef2f2", cursor: "pointer" }}>
-                Delete
-              </button>
-            )}
-            <button onClick={handleSave} disabled={loading} style={{ flex: 1, padding: "0.75rem 1rem", border: "none", borderRadius: "0.5rem", fontWeight: "600", color: "#000000", backgroundColor: "#eab308", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", cursor: loading ? "not-allowed" : "pointer" }}>
-              <svg style={{ width: "1.25rem", height: "1.25rem" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-              {loading ? "Saving..." : "Save Service"}
-            </button>
-          </div>
-        </div>
-
-        {/* Right Side: Live Preview Card */}
-        <div style={{ flex: "1 1 45%", backgroundColor: "rgba(254, 252, 232, 0.4)", borderRadius: "0.75rem", padding: "1.5rem", border: "1px solid #fef08a", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
-          
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <h2 style={{ fontWeight: "bold", color: "#1f2937", margin: 0, fontSize: "1.125rem" }}>Service Preview</h2>
-            <span style={{ backgroundColor: "#fef08a", color: "#854d0e", fontSize: "0.75rem", fontWeight: "bold", padding: "0.25rem 0.75rem", borderRadius: "9999px", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <svg style={{ width: "0.75rem", height: "0.75rem" }} fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9.5 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm-1 4.5h3v4.5h-3V10z"></path></svg>
-              Gold Repair Service
-            </span>
-          </div>
-
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", border: "1px solid #f3f4f6", overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
-            {/* Preview Image Area */}
-            <div style={{ height: "16rem", backgroundColor: "#f3f4f6", width: "100%", position: "relative" }}>
+            <div
+              style={{
+                height: "clamp(200px, 28vw, 330px)",
+                background: "#f2ead9",
+                borderRadius: "12px",
+                overflow: "hidden",
+                display: "grid",
+                placeItems: "center",
+                border: "1px solid #e8dcc4",
+              }}
+            >
               {imagePreview ? (
-                <img src={imagePreview} alt="Service Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img
+                  src={imagePreview}
+                  alt={formData.service_name || "Service preview"}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
               ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>Image Preview</div>
+                <div style={{ color: "#927c55", textAlign: "center" }}>
+                  <div style={{ fontSize: "42px" }}>◇</div>
+                  <div style={{ fontSize: "13px" }}>Service image preview</div>
+                </div>
               )}
             </div>
 
-            <div style={{ padding: "1.5rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                <h3 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#111827", margin: 0 }}>{formData.service_name || "Service Name"}</h3>
-                <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#4b5563", backgroundColor: "#f3f4f6", padding: "0.25rem 0.5rem", borderRadius: "0.375rem", border: "1px solid #e5e7eb" }}>
-                  {formData.service_id || "ID"}
+            <div style={{ padding: "18px 0 4px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "23px",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {formData.service_name || "Service Name"}
+                </h3>
+
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "6px 9px",
+                    background: "#fff",
+                    border: "1px solid #e6d7b6",
+                    borderRadius: "7px",
+                  }}
+                >
+                  {formData.service_id || "SERVICE-ID"}
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
-                <span style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ca8a04" }}>₹{formData.service_fee || "0.00"}</span>
-                <span style={{ fontSize: "1.125rem", color: "#9ca3af", textDecoration: "line-through" }}>₹{formData.original_price || "0"}</span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  margin: "18px 0 22px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "26px",
+                    fontWeight: 800,
+                    color: "#bd850e",
+                  }}
+                >
+                  ₹{money(formData.service_fee)}
+                </span>
+
+                {Number(formData.original_price) > 0 && (
+                  <span
+                    style={{
+                      color: "#899197",
+                      textDecoration: "line-through",
+                    }}
+                  >
+                    ₹{money(formData.original_price)}
+                  </span>
+                )}
+
                 {calculateDiscount() > 0 && (
-                  <span style={{ backgroundColor: "#dcfce3", color: "#15803d", fontSize: "0.75rem", fontWeight: "bold", padding: "0.25rem 0.5rem", borderRadius: "0.25rem" }}>
+                  <span
+                    style={{
+                      background: "#dcfce7",
+                      color: "#15803d",
+                      padding: "6px 9px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                    }}
+                  >
                     {calculateDiscount()}% OFF
                   </span>
                 )}
               </div>
 
-              {/* Feature Tags (Static per UI design) */}
-              <div style={{ backgroundColor: "#FAF8F3", borderRadius: "0.5rem", padding: "1rem", display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.5rem", textAlign: "center", fontSize: "0.75rem", fontWeight: "500", color: "#374151" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", borderRight: "1px solid #e5e7eb", padding: "0 0.5rem" }}>
-                  <svg style={{ width: "1.5rem", height: "1.5rem", color: "#0f766e" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                  Expert Repair Service
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", borderRight: "1px solid #e5e7eb", padding: "0 0.5rem" }}>
-                  <svg style={{ width: "1.5rem", height: "1.5rem", color: "#0f766e" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  High Quality Workmanship
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", padding: "0 0.5rem" }}>
-                  <svg style={{ width: "1.5rem", height: "1.5rem", color: "#0f766e" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                  Original Shine Restored
-                </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  background: "#f6efdf",
+                  borderRadius: "10px",
+                  padding: "16px 6px",
+                  textAlign: "center",
+                  gap: "4px",
+                }}
+              >
+                {[
+                  ["⚒", "Expert Repair"],
+                  ["✓", "Quality Work"],
+                  ["◇", "Shine Restored"],
+                ].map(([icon, label]) => (
+                  <div
+                    key={label}
+                    style={{
+                      padding: "5px",
+                      borderRight:
+                        label !== "Shine Restored"
+                          ? "1px solid #e1d4bb"
+                          : "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#0f766e",
+                        fontSize: "24px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      {icon}
+                    </div>
+                    <div style={{ fontSize: "11px", fontWeight: 700 }}>
+                      {label}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
+        {/* ALL SERVICES TABLE — BOTTOM OF PAGE */}
+        <section style={styles.panel}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              flexWrap: "wrap",
+              marginBottom: "20px",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "#a77814",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  letterSpacing: "1px",
+                }}
+              >
+                SERVICE DIRECTORY
+              </div>
+              <h2 style={{ margin: "8px 0", fontSize: "23px" }}>
+                All Gold Repair Services
+              </h2>
+              <p style={{ color: "#71818a", fontSize: "13px", margin: 0 }}>
+                View, edit, and delete services from your database.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={fetchAllServices}
+              disabled={listLoading}
+              style={styles.secondaryButton}
+            >
+              ↻ {listLoading ? "Refreshing..." : "Refresh List"}
+            </button>
+          </div>
+
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by service ID, name, or database ID..."
+            style={{ ...styles.input, marginBottom: "20px" }}
+          />
+
+          <div style={{ overflowX: "auto", width: "100%" }}>
+            <table
+              style={{
+                width: "100%",
+                minWidth: "800px",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#f3f7f7" }}>
+                  {[
+                    "IMAGE",
+                    "DATABASE ID",
+                    "SERVICE ID",
+                    "SERVICE NAME",
+                    "SERVICE FEE",
+                    "ORIGINAL PRICE",
+                    "DISCOUNT",
+                    "ACTIONS",
+                  ].map((heading) => (
+                    <th
+                      key={heading}
+                      style={{
+                        ...styles.tableCell,
+                        fontSize: "11px",
+                        color: "#62747c",
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {listLoading && services.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      style={{ ...styles.tableCell, textAlign: "center" }}
+                    >
+                      Loading services...
+                    </td>
+                  </tr>
+                ) : filteredServices.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      style={{
+                        ...styles.tableCell,
+                        textAlign: "center",
+                        padding: "40px 12px",
+                        color: "#71818a",
+                      }}
+                    >
+                      <div style={{ fontSize: "30px", marginBottom: "10px" }}>
+                        ◇
+                      </div>
+                      {searchTerm
+                        ? "No matching services found."
+                        : "No services available. Add your first service above."}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredServices.map((service) => {
+                    const fee = Number(service.service_fee) || 0;
+                    const original = Number(service.original_price) || 0;
+                    const discount =
+                      original > fee && original > 0
+                        ? Math.round(((original - fee) / original) * 100)
+                        : 0;
+
+                    return (
+                      <tr key={service.id}>
+                        <td style={styles.tableCell}>
+                          {service.service_image ? (
+                            <img
+                              src={service.service_image}
+                              alt={service.service_name || "Service"}
+                              loading="lazy"
+                              style={{
+                                width: "58px",
+                                height: "50px",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                border: "1px solid #e3e9ec",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "58px",
+                                height: "50px",
+                                borderRadius: "8px",
+                                background: "#f3f6f8",
+                                display: "grid",
+                                placeItems: "center",
+                              }}
+                            >
+                              ◇
+                            </div>
+                          )}
+                        </td>
+
+                        <td style={styles.tableCell}>{service.id}</td>
+
+                        <td style={styles.tableCell}>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "5px 8px",
+                              background: "#edf5f4",
+                              color: "#0f766e",
+                              borderRadius: "6px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {service.service_id || "—"}
+                          </span>
+                        </td>
+
+                        <td
+                          style={{
+                            ...styles.tableCell,
+                            fontWeight: 700,
+                            maxWidth: "200px",
+                          }}
+                        >
+                          {service.service_name || "—"}
+                        </td>
+
+                        <td
+                          style={{
+                            ...styles.tableCell,
+                            color: "#a77814",
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          ₹{money(fee)}
+                        </td>
+
+                        <td
+                          style={{
+                            ...styles.tableCell,
+                            color: "#71818a",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          ₹{money(original)}
+                        </td>
+
+                        <td style={styles.tableCell}>
+                          {discount > 0 ? (
+                            <span
+                              style={{
+                                background: "#e6f7eb",
+                                color: "#16743b",
+                                borderRadius: "6px",
+                                padding: "5px 8px",
+                                fontWeight: 800,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {discount}% OFF
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+
+                        <td style={styles.tableCell}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              alignItems: "center",
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => editService(service)}
+                              disabled={loading}
+                              style={{
+                                ...styles.secondaryButton,
+                                padding: "8px 11px",
+                                fontSize: "12px",
+                              }}
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(service.id)}
+                              disabled={loading}
+                              style={{
+                                ...styles.secondaryButton,
+                                padding: "8px 11px",
+                                fontSize: "12px",
+                                color: "#b42318",
+                                borderColor: "#f1c5c5",
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            style={{
+              borderTop: "1px solid #edf1f3",
+              paddingTop: "16px",
+              marginTop: "14px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+              color: "#71818a",
+              fontSize: "12px",
+            }}
+          >
+            <span>
+              Showing {filteredServices.length} of {services.length} services
+            </span>
+            <span>G-BUYER · Gold Repair Management</span>
+          </div>
+        </section>
       </div>
     </div>
   );
