@@ -265,6 +265,22 @@ export default function SidebarOnly() {
             )}
           </NavLink>
 
+            <NavLink
+            to="/goldrepairservice"
+            className="nav-item"
+          >
+            <FaChartLine className="icon" />
+
+            {isOpen && (
+              <span className="nav-text">
+                Gold Repair service
+              </span>
+            )}
+
+            {isOpen && (
+              <FaEllipsisH className="ellipsis" />
+            )}
+          </NavLink>
 
           {/* Sell Gold Price */}
           <NavLink
