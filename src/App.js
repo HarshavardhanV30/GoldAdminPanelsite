@@ -19,7 +19,7 @@ import Sidebar from "../src/components/sidebar";
 import LegalPolicies from "./pages/policy";
 import VendorAddress from "./pages/vendoraddress";  
 import GoldRepair from "./pages/goldrepair";
-
+import GoldRepairService from "./pages/goldrepairservice";
 
 import "./App.css";
 import AddGoldProduct from "./pages/AddGoldProduct";
@@ -65,6 +65,7 @@ const App = () => {
           <Route path="/policy" element={<LegalPolicies/>}/>
           <Route path="/vendoraddress" element={<VendorAddress/>}/>
           <Route path="/goldrepairscreen" element={<GoldRepair/>}/>
+          <Route path="/goldrepairservice" element={<GoldRepairService/>}/>
         </Routes>
       </Layout>
     </Router>
