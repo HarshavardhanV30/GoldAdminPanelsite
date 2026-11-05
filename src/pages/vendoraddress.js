@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE_URL =
-  'https://goldbackend-production-0ed4.up.railway.app/vendoraddress';
+  'https://goldbackend-production-d119.up.railway.app/vendoraddress';
 
 const initialForm = {
   vendor_id: '',
